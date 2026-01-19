@@ -1,0 +1,28 @@
+# Dependencies
+node_modules
+
+# Build outputs
+dist
+dist-ssr
+
+# Local environment files
+*.local
+
+# Lock files (use npm ci for reproducible builds)
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# IDE and editor directories
+.idea/
+.vscode/
+
+# OS generated files
+.DS_Store
+
+.kiro/
+
+
+.vite/
+
+.env
