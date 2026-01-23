@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import type { FileItem } from '@/types/file';
 import { formatDate } from '@/utils/format';
-import { getFileIcon } from '@/utils/file-icon';
+import { getFileIcon, handleIconError } from '@/utils/file-icon';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   DropdownMenu,
@@ -111,29 +111,13 @@ export function FileGridView({
               className={cn(
                 'relative rounded-lg p-4 pb-2 text-center transition-all cursor-pointer group',
                 'hover:bg-accent',
-                isSelected && 'bg-primary/10'
+                isSelected && 'bg-accent'
               )}
               onMouseEnter={() => setHoveredId(file.id)}
               onMouseLeave={() => setHoveredId(null)}
               onClick={(e) => handleItemClick(file, e)}
               onDoubleClick={() => handleDoubleClick(file)}
             >
-              {/* 选择框 */}
-              <div
-                data-checkbox
-                className={cn(
-                  'absolute top-2 left-2 z-10 transition-opacity',
-                  isHovered || isSelected ? 'opacity-100' : 'opacity-0'
-                )}
-              >
-                <Checkbox
-                  checked={isSelected}
-                  onCheckedChange={(checked) => handleSelectChange(file.id, checked as boolean)}
-                  onClick={(e) => e.stopPropagation()}
-                  className="bg-background"
-                />
-              </div>
-
               {/* 更多操作 */}
               {!isSelected && (
                 <div
@@ -200,6 +184,7 @@ export function FileGridView({
                   src={getFileIcon(file.isDir ? 'dir' : file.suffix || '')}
                   alt={file.displayName}
                   className="w-16 h-16 object-contain transition-transform group-hover:scale-105"
+                  onError={handleIconError}
                 />
               </div>
 

@@ -1,3 +1,11 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- License: CC Attribution. Made by salesforce: https://www.lightningdesignsystem.com/ -->
-<svg width="800px" height="800px" viewBox="-4 0 64 64" xmlns="http://www.w3.org/2000/svg"><path d="M51.48,15.46A4.52,4.52,0,0,1,56,20V51a4.52,4.52,0,0,1-4.52,4.52h-47A4.52,4.52,0,0,1,0,51H0V13A4.52,4.52,0,0,1,4.52,8.52H16c3.82,0,4.23,1.14,6.74,4.45,2.07,2.74,7.11,2.49,10.39,2.49Z" fill="#2563eb"/><path d="M51.48,18.12H9.24a4.52,4.52,0,0,0-4.52,4.52v2.84L9.19,19H51.54L56,25.49V22.64A4.52,4.52,0,0,0,51.48,18.12Z" fill="#60a5fa"/><path d="M4.57,55.48H51.48A4.52,4.52,0,0,0,56,51V23.48A4.52,4.52,0,0,0,51.48,19H9.25a4.52,4.52,0,0,0-4.52,4.52V51a4.65,4.65,0,0,1-.06.72,2.33,2.33,0,0,1-4.6,0A4.5,4.5,0,0,0,4.57,55.48Z" fill="#3b82f6"/></svg>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+
+<!-- License: PD. Made by paomedia: https://github.com/paomedia/small-n-flat -->
+<svg width="800px" height="800px" viewBox="0 0 24 24" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:cc="http://creativecommons.org/ns#" xmlns:dc="http://purl.org/dc/elements/1.1/">
+ <g transform="translate(0 -1028.4)">
+  <path d="m2 1033.4c-1.1046 0-2 0.9-2 2v14c0 1.1 0.89543 2 2 2h20c1.105 0 2-0.9 2-2v-14c0-1.1-0.895-2-2-2h-20z" fill="#576D7E"/>
+  <path d="m3 1029.4c-1.1046 0-2 0.9-2 2v14c0 1.1 0.8954 2 2 2h11 5 2c1.105 0 2-0.9 2-2v-9-3c0-1.1-0.895-2-2-2h-2-5-1l-3-2h-7z" fill="#576D7E"/>
+  <path d="m23 1042.4v-8c0-1.1-0.895-2-2-2h-11-5-2c-1.1046 0-2 0.9-2 2v8h22z" fill="#bdc3c7"/>
+  <path d="m2 1033.4c-1.1046 0-2 0.9-2 2v6 1 6c0 1.1 0.89543 2 2 2h20c1.105 0 2-0.9 2-2v-6-1-6c0-1.1-0.895-2-2-2h-20z" fill="#576D7E"/>
+ </g>
+</svg>

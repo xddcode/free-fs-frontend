@@ -20,35 +20,25 @@ export function getFileIcon(type: string): string {
 }
 
 /**
- * 获取文件图标路径（带回退）
- * 如果指定类型的图标不存在，返回默认文件图标
+ * 获取默认文件图标路径
+ * 当指定类型的图标加载失败时使用
  * 
- * @param type - 文件类型（后缀名）或 'dir' 表示文件夹
- * @returns 图标路径
+ * @returns 默认图标路径
  */
-export function getFileIconWithFallback(type: string): string {
-  const lowerType = type.toLowerCase();
-  
-  // 文件夹特殊处理
-  if (lowerType === 'dir' || lowerType === 'folder') {
-    return '/i/folder.svg';
+export function getDefaultFileIcon(): string {
+  return '/i/default.svg';
+}
+
+/**
+ * 处理图标加载错误
+ * 用于 img 标签的 onError 事件
+ * 
+ * @param event - 错误事件
+ */
+export function handleIconError(event: React.SyntheticEvent<HTMLImageElement, Event>): void {
+  const img = event.currentTarget;
+  // 避免无限循环：如果已经是默认图标了就不再替换
+  if (!img.src.endsWith('/default.svg')) {
+    img.src = getDefaultFileIcon();
   }
-  
-  // 已知的文件类型列表（可以根据实际情况扩展）
-  const knownTypes = [
-    'doc', 'docx', 'zip', 'rar', 'pdf', 'txt', 'md',
-    'xls', 'xlsx', 'ppt', 'pptx', 'csv',
-    'jpg', 'jpeg', 'png', 'gif', 'svg', 'bmp',
-    'mp3', 'mp4', 'avi', 'mov', 'wav',
-    'html', 'htm', 'css', 'js', 'ts', 'jsx', 'tsx',
-    'json', 'xml', 'yaml', 'yml',
-    'c', 'cpp', 'h', 'java', 'py', 'go', 'rs',
-  ];
-  
-  // 如果是已知类型，返回对应图标，否则返回通用文件图标
-  if (knownTypes.includes(lowerType)) {
-    return `/i/${lowerType}.svg`;
-  }
-  
-  return '/i/file.svg';
 }

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Folder, Home } from 'lucide-react';
 import { getFolders } from '@/api/file';
-import { getFileIcon } from '@/utils/file-icon';
+import { getFileIcon, handleIconError } from '@/utils/file-icon';
 import type { FileItem } from '@/types/file';
 import {
   Dialog,
@@ -176,6 +176,7 @@ export function MoveModal({ open, onOpenChange, file, files, onConfirm }: MoveMo
                       src={getFileIcon('dir')}
                       alt="文件夹"
                       className="w-5 h-5 object-contain flex-shrink-0"
+                      onError={handleIconError}
                     />
                     <span className="flex-1 text-sm truncate">{folder.displayName}</span>
                   </div>

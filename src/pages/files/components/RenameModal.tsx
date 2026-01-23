@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { getFileIcon } from '@/utils/file-icon';
+import { getFileIcon, handleIconError } from '@/utils/file-icon';
 import type { FileItem } from '@/types/file';
 
 interface RenameModalProps {
@@ -66,6 +66,7 @@ export function RenameModal({ open, onOpenChange, file, onConfirm }: RenameModal
               src={getFileIcon(file?.isDir ? 'dir' : file?.suffix || '')}
               alt={file?.displayName}
               className="w-[88px] h-[88px] object-contain"
+              onError={handleIconError}
             />
           </div>
           {/* 输入框 */}

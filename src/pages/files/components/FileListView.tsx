@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import type { FileItem, SortOrder } from '@/types/file';
 import { formatFileSize, formatDate } from '@/utils/format';
-import { getFileIcon } from '@/utils/file-icon';
+import { getFileIcon, handleIconError } from '@/utils/file-icon';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   DropdownMenu,
@@ -141,6 +141,7 @@ export function FileListView({
                         src={getFileIcon(file.isDir ? 'dir' : file.suffix || '')}
                         alt={file.displayName}
                         className="w-7 h-7 object-contain"
+                        onError={handleIconError}
                       />
                     </div>
                     <span className="text-sm font-normal text-foreground/90 truncate">{file.displayName}</span>
