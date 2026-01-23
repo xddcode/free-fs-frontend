@@ -1,28 +1,28 @@
-# Dependencies
-node_modules
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
-# Build outputs
+node_modules
 dist
 dist-ssr
-
-# Local environment files
 *.local
 
-# Lock files (use npm ci for reproducible builds)
-package-lock.json
-pnpm-lock.yaml
-yarn.lock
-
-# IDE and editor directories
-.idea/
-.vscode/
-
-# OS generated files
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
 .DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
 
-.kiro/
-
-
-.vite/
-
-.env
+# Environment variables
+.env.local
+.env.*.local

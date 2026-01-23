@@ -82,7 +82,7 @@ export const NavItem = React.memo(function NavItem({
         'transition-all duration-200 ease-in-out',
         'outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring',
         active 
-          ? 'bg-black text-white' 
+          ? 'bg-sidebar-accent text-sidebar-accent-foreground' 
           : 'text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50',
         collapsed && 'justify-center px-2'
       )}

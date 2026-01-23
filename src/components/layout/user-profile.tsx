@@ -1,8 +1,10 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { User, LogOut, Settings, UserCircle, MoreVertical } from 'lucide-react';
+import { User, LogOut, Settings, MoreVertical, Sun, Moon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { UserProfileProps } from '@/types/layout';
 import { useAuth } from '@/contexts/auth-context';
+import { useTheme } from '@/components/theme-provider';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,6 +24,7 @@ export const UserProfile = React.memo(function UserProfile({
   const [imageError, setImageError] = useState(false);
   const navigate = useNavigate();
   const { logout } = useAuth();
+  const { theme, setTheme } = useTheme();
 
   // Determine if we should show the default avatar
   const showDefaultAvatar = useMemo(() => 
@@ -39,14 +42,14 @@ export const UserProfile = React.memo(function UserProfile({
   }, [logout, navigate]);
 
   const handleSettings = useCallback(() => {
-    console.log('Settings clicked');
-    // TODO: Navigate to settings page
-  }, []);
+    navigate('/settings');
+  }, [navigate]);
 
-  const handleProfile = useCallback(() => {
-    console.log('Profile clicked');
-    // TODO: Navigate to profile page
-  }, []);
+  const toggleTheme = useCallback(() => {
+    setTheme(theme === 'light' ? 'dark' : 'light');
+  }, [theme, setTheme]);
+
+  const isDark = theme === 'dark';
 
   const tooltipText = useMemo(() => 
     `${username}\n${email}`,
@@ -60,19 +63,12 @@ export const UserProfile = React.memo(function UserProfile({
 
   // Avatar component for reuse
   const AvatarComponent = () => (
-    showDefaultAvatar ? (
-      <div className={`${collapsed ? 'h-8 w-8' : 'h-9 w-9'} rounded-full bg-sidebar-accent flex items-center justify-center transition-all duration-200`} aria-hidden="true">
-        <User className={`${collapsed ? 'h-4 w-4' : 'h-5 w-5'} text-sidebar-foreground/60 transition-all duration-200`} aria-hidden="true" />
-      </div>
-    ) : (
-      <img
-        src={avatar}
-        alt=""
-        className={`${collapsed ? 'h-8 w-8' : 'h-9 w-9'} rounded-full object-cover transition-all duration-200`}
-        onError={handleImageError}
-        aria-hidden="true"
-      />
-    )
+    <Avatar className='h-8 w-8 rounded-lg'>
+      <AvatarImage src={avatar} alt={username} />
+      <AvatarFallback className='rounded-lg'>
+        {username?.slice(0, 2).toUpperCase() || 'UN'}
+      </AvatarFallback>
+    </Avatar>
   );
 
   if (collapsed) {
@@ -90,20 +86,32 @@ export const UserProfile = React.memo(function UserProfile({
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" side="top" className="w-56">
-          <DropdownMenuLabel>
-            <div className="flex flex-col space-y-1">
-              <p className="text-sm font-medium leading-none">{username}</p>
-              <p className="text-xs leading-none text-muted-foreground">{email}</p>
+          <DropdownMenuLabel className='p-0 font-normal'>
+            <div className='flex items-center gap-2 px-1 py-1.5 text-start text-sm'>
+              <AvatarComponent />
+              <div className='grid flex-1 text-start text-sm leading-tight'>
+                <span className='truncate font-semibold'>{username}</span>
+                <span className='truncate text-xs'>{email}</span>
+              </div>
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={handleProfile}>
-            <UserCircle className="mr-2 h-4 w-4" />
-            <span>个人资料</span>
-          </DropdownMenuItem>
           <DropdownMenuItem onClick={handleSettings}>
             <Settings className="mr-2 h-4 w-4" />
-            <span>设置</span>
+            <span>账户设置</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={toggleTheme}>
+            {isDark ? (
+              <>
+                <Sun className="mr-2 h-4 w-4" />
+                <span>明亮模式</span>
+              </>
+            ) : (
+              <>
+                <Moon className="mr-2 h-4 w-4" />
+                <span>暗黑模式</span>
+              </>
+            )}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:text-red-600">
@@ -148,15 +156,32 @@ export const UserProfile = React.memo(function UserProfile({
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-56">
-          <DropdownMenuLabel>我的账户</DropdownMenuLabel>
+          <DropdownMenuLabel className='p-0 font-normal'>
+            <div className='flex items-center gap-2 px-1 py-1.5 text-start text-sm'>
+              <AvatarComponent />
+              <div className='grid flex-1 text-start text-sm leading-tight'>
+                <span className='truncate font-semibold'>{username}</span>
+                <span className='truncate text-xs'>{email}</span>
+              </div>
+            </div>
+          </DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={handleProfile}>
-            <UserCircle className="mr-2 h-4 w-4" />
-            <span>个人资料</span>
-          </DropdownMenuItem>
           <DropdownMenuItem onClick={handleSettings}>
             <Settings className="mr-2 h-4 w-4" />
-            <span>设置</span>
+            <span>账户设置</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={toggleTheme}>
+            {isDark ? (
+              <>
+                <Sun className="mr-2 h-4 w-4" />
+                <span>明亮模式</span>
+              </>
+            ) : (
+              <>
+                <Moon className="mr-2 h-4 w-4" />
+                <span>暗黑模式</span>
+              </>
+            )}
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:text-red-600">

@@ -4,18 +4,18 @@ import { NavSection } from './nav-section';
 import { NavItem } from './nav-item';
 import { StorageInfo } from './storage-info';
 import { UserProfile } from './user-profile';
-import { useUserStore } from '@/stores';
+import { useAuth } from '@/contexts/auth-context';
 import {
   MAIN_NAVIGATION,
   COMMON_TOOLS_NAVIGATION,
   FILE_TYPE_NAVIGATION,
   FILE_TYPE_CATEGORIES,
-} from '../../lib/constants';
+} from '@/lib/constants';
 import type { NavigationItem, FileTypeCategory } from '@/types/layout';
 
 export const Sidebar = React.memo(function Sidebar(): React.JSX.Element {
   const location = useLocation();
-  const userState = useUserStore();
+  const { user } = useAuth();
 
   // Determine if a navigation item is active based on current pathname
   const isActive = useCallback((href: string): boolean => {
@@ -31,12 +31,12 @@ export const Sidebar = React.memo(function Sidebar(): React.JSX.Element {
     total: 100,
   }), []);
 
-  // User data from store
+  // User data from auth context
   const userData = useMemo(() => ({
-    username: userState.nickname || userState.username || 'Guest',
-    email: userState.email || 'guest@example.com',
-    avatar: userState.avatar,
-  }), [userState.nickname, userState.username, userState.email, userState.avatar]);
+    username: user?.nickname || user?.username || 'Guest',
+    email: user?.email || 'guest@example.com',
+    avatar: user?.avatar,
+  }), [user]);
 
   const handleProfileClick = useCallback(() => {
     console.log('User profile clicked');

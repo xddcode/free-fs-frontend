@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import type { UserInfo } from '@/types/modules/user';
+import type { UserInfo } from '@/types/user';
+import { setToken as saveToken, clearToken as removeToken, getToken } from '@/utils/auth';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -27,7 +28,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     const initAuth = () => {
       try {
-        const storedToken = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+        const storedToken = getToken();
         const storedUser = localStorage.getItem('userInfo') || sessionStorage.getItem('userInfo');
         
         if (storedToken && storedUser) {
@@ -39,9 +40,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       } catch (error) {
         console.error('初始化认证信息失败:', error);
         // 清除可能损坏的数据
-        localStorage.removeItem('accessToken');
+        removeToken();
         localStorage.removeItem('userInfo');
-        sessionStorage.removeItem('accessToken');
         sessionStorage.removeItem('userInfo');
       } finally {
         setIsLoading(false);
@@ -53,22 +53,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const login = async (accessToken: string, userInfo: UserInfo, remember = false) => {
     try {
+      // 保存 token（使用 auth.ts 的方法）
+      saveToken(accessToken, remember);
       setToken(accessToken);
       setUser(userInfo);
       setIsAuthenticated(true);
       
       // 根据remember参数决定存储位置
       const storage = remember ? localStorage : sessionStorage;
-      storage.setItem('accessToken', accessToken);
       storage.setItem('userInfo', JSON.stringify(userInfo));
       
-      // 如果选择记住我，清除sessionStorage中的数据
+      // 清除另一个存储中的数据
       if (remember) {
-        sessionStorage.removeItem('accessToken');
         sessionStorage.removeItem('userInfo');
       } else {
-        // 如果不记住我，清除localStorage中的数据
-        localStorage.removeItem('accessToken');
         localStorage.removeItem('userInfo');
       }
     } catch (error) {
@@ -83,10 +81,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setIsAuthenticated(false);
     
     // 清除所有存储的认证信息
-    localStorage.removeItem('accessToken');
+    removeToken();
     localStorage.removeItem('userInfo');
-    sessionStorage.removeItem('accessToken');
     sessionStorage.removeItem('userInfo');
+    
+    // 跳转到登录页
+    window.location.hash = '#/login';
   };
 
   const updateUser = (userInfo: UserInfo) => {
