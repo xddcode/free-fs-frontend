@@ -8,11 +8,13 @@ import {
   Trash2,
   Edit,
   Eye,
+  FolderPlus,
+  Upload,
+  RefreshCw,
 } from 'lucide-react';
 import type { FileItem } from '@/types/file';
 import { formatDate } from '@/utils/format';
 import { getFileIcon, handleIconError } from '@/utils/file-icon';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
   DropdownMenu,
   DropdownMenuContent,

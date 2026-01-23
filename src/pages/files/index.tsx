@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { List, LayoutGrid, Download, Share2, Heart, Move, Trash2, X, FolderOpen, Upload, FolderPlus } from 'lucide-react';
+import { List, LayoutGrid, Download, Share2, Heart, Move, Trash2, X, FolderOpen, Upload, FolderPlus, RefreshCw } from 'lucide-react';
 import { useFileList } from './hooks/useFileList';
 import { useFileOperations } from './hooks/useFileOperations';
 import {
@@ -26,6 +26,14 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '@/components/ui/empty';
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuGroup,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -215,132 +223,153 @@ export default function FilesPage() {
       </header>
 
       {/* Main Content */}
-      <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-        {/* 面包屑 */}
-        <div className="pt-4">
-          <FileBreadcrumb
-            breadcrumbPath={fileList.breadcrumbPath}
-            customTitle={isFavoritesView ? '我的收藏' : isRecentsView ? '最近使用' : undefined}
-            onNavigate={fileList.navigateToFolder}
-          />
-        </div>
+      <ContextMenu>
+        <ContextMenuTrigger className="flex flex-1 flex-col gap-4 p-4 pt-0">
+          {/* 面包屑 */}
+          <div className="pt-4">
+            <FileBreadcrumb
+              breadcrumbPath={fileList.breadcrumbPath}
+              customTitle={isFavoritesView ? '我的收藏' : isRecentsView ? '最近使用' : undefined}
+              onNavigate={fileList.navigateToFolder}
+            />
+          </div>
 
-        {/* 视图控制栏 */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {viewMode === 'grid' && (
-              <Checkbox
-                checked={isAllSelected}
-                onCheckedChange={handleSelectAll}
-                aria-label="全选"
+          {/* 视图控制栏 */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {viewMode === 'grid' && (
+                <Checkbox
+                  checked={isAllSelected}
+                  onCheckedChange={handleSelectAll}
+                  aria-label="全选"
+                />
+              )}
+              <span className="text-sm text-muted-foreground">
+                {selectedKeys.length > 0
+                  ? `已选 ${selectedKeys.length} 项`
+                  : `共 ${fileList.fileList.length} 项`}
+              </span>
+            </div>
+            <div className="flex gap-1">
+              <Button
+                variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setViewMode('list')}
+              >
+                <List className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setViewMode('grid')}
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+
+          {/* 文件内容区域 */}
+          <div className="flex-1 overflow-auto">
+            {fileList.loading ? (
+              <div className="flex items-center justify-center h-48">
+                <p className="text-muted-foreground">加载中...</p>
+              </div>
+            ) : fileList.fileList.length === 0 ? (
+              <div className="flex items-center justify-center min-h-[400px]">
+                <Empty className="border-none">
+                  <EmptyHeader>
+                    <EmptyMedia variant="icon">
+                      <FolderOpen className="h-12 w-12" />
+                    </EmptyMedia>
+                    <EmptyTitle>
+                      {isFavoritesView
+                        ? '暂无收藏文件'
+                        : isRecentsView
+                        ? '暂无最近使用文件'
+                        : fileList.searchKeyword
+                        ? '未找到匹配的文件'
+                        : '文件夹为空'}
+                    </EmptyTitle>
+                    <EmptyDescription>
+                      {isFavoritesView
+                        ? '收藏的文件会显示在这里'
+                        : isRecentsView
+                        ? '最近访问的文件会显示在这里'
+                        : fileList.searchKeyword
+                        ? '尝试使用其他关键词搜索'
+                        : '上传文件或创建文件夹开始使用'}
+                    </EmptyDescription>
+                  </EmptyHeader>
+                  {!isFavoritesView && !isRecentsView && !fileList.searchKeyword && (
+                    <EmptyContent>
+                      <div className="flex gap-2">
+                        <Button size="sm" onClick={triggerFileSelect}>
+                          <Upload className="h-4 w-4 mr-2" />
+                          上传文件
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={operations.openCreateFolderModal}>
+                          <FolderPlus className="h-4 w-4 mr-2" />
+                          新建文件夹
+                        </Button>
+                      </div>
+                    </EmptyContent>
+                  )}
+                </Empty>
+              </div>
+            ) : viewMode === 'grid' ? (
+              <FileGridView
+                fileList={fileList.fileList}
+                selectedKeys={selectedKeys}
+                onSelectionChange={setSelectedKeys}
+                onFileClick={handleFileClick}
+                onDownload={operations.handleDownload}
+                onShare={operations.openShareModal}
+                onDelete={operations.openDeleteConfirm}
+                onRename={operations.openRenameModal}
+                onMove={operations.openMoveModal}
+                onFavorite={operations.handleFavorite}
+                onPreview={operations.openPreview}
+              />
+            ) : (
+              <FileListView
+                fileList={fileList.fileList}
+                selectedKeys={selectedKeys}
+                onSelectionChange={setSelectedKeys}
+                onFileClick={handleFileClick}
+                onSortChange={fileList.handleSortChange}
+                onDownload={operations.handleDownload}
+                onShare={operations.openShareModal}
+                onDelete={operations.openDeleteConfirm}
+                onRename={operations.openRenameModal}
+                onMove={operations.openMoveModal}
+                onFavorite={operations.handleFavorite}
+                onPreview={operations.openPreview}
               />
             )}
-            <span className="text-sm text-muted-foreground">
-              {selectedKeys.length > 0
-                ? `已选 ${selectedKeys.length} 项`
-                : `共 ${fileList.fileList.length} 项`}
-            </span>
           </div>
-          <div className="flex gap-1">
-            <Button
-              variant={viewMode === 'list' ? 'secondary' : 'ghost'}
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => setViewMode('list')}
-            >
-              <List className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => setViewMode('grid')}
-            >
-              <LayoutGrid className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-
-        {/* 文件内容区域 */}
-        <div className="flex-1 overflow-auto">
-          {fileList.loading ? (
-            <div className="flex items-center justify-center h-48">
-              <p className="text-muted-foreground">加载中...</p>
-            </div>
-          ) : fileList.fileList.length === 0 ? (
-            <div className="flex items-center justify-center min-h-[400px]">
-              <Empty className="border-none">
-                <EmptyHeader>
-                  <EmptyMedia variant="icon">
-                    <FolderOpen className="h-12 w-12" />
-                  </EmptyMedia>
-                  <EmptyTitle>
-                    {isFavoritesView
-                      ? '暂无收藏文件'
-                      : isRecentsView
-                      ? '暂无最近使用文件'
-                      : fileList.searchKeyword
-                      ? '未找到匹配的文件'
-                      : '文件夹为空'}
-                  </EmptyTitle>
-                  <EmptyDescription>
-                    {isFavoritesView
-                      ? '收藏的文件会显示在这里'
-                      : isRecentsView
-                      ? '最近访问的文件会显示在这里'
-                      : fileList.searchKeyword
-                      ? '尝试使用其他关键词搜索'
-                      : '上传文件或创建文件夹开始使用'}
-                  </EmptyDescription>
-                </EmptyHeader>
-                {!isFavoritesView && !isRecentsView && !fileList.searchKeyword && (
-                  <EmptyContent>
-                    <div className="flex gap-2">
-                      <Button size="sm" onClick={triggerFileSelect}>
-                        <Upload className="h-4 w-4 mr-2" />
-                        上传文件
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={operations.openCreateFolderModal}>
-                        <FolderPlus className="h-4 w-4 mr-2" />
-                        新建文件夹
-                      </Button>
-                    </div>
-                  </EmptyContent>
-                )}
-              </Empty>
-            </div>
-          ) : viewMode === 'grid' ? (
-            <FileGridView
-              fileList={fileList.fileList}
-              selectedKeys={selectedKeys}
-              onSelectionChange={setSelectedKeys}
-              onFileClick={handleFileClick}
-              onDownload={operations.handleDownload}
-              onShare={operations.openShareModal}
-              onDelete={operations.openDeleteConfirm}
-              onRename={operations.openRenameModal}
-              onMove={operations.openMoveModal}
-              onFavorite={operations.handleFavorite}
-              onPreview={operations.openPreview}
-            />
-          ) : (
-            <FileListView
-              fileList={fileList.fileList}
-              selectedKeys={selectedKeys}
-              onSelectionChange={setSelectedKeys}
-              onFileClick={handleFileClick}
-              onSortChange={fileList.handleSortChange}
-              onDownload={operations.handleDownload}
-              onShare={operations.openShareModal}
-              onDelete={operations.openDeleteConfirm}
-              onRename={operations.openRenameModal}
-              onMove={operations.openMoveModal}
-              onFavorite={operations.handleFavorite}
-              onPreview={operations.openPreview}
-            />
-          )}
-        </div>
-      </div>
+        </ContextMenuTrigger>
+        {!isFavoritesView && !isRecentsView && (
+          <ContextMenuContent>
+            <ContextMenuGroup>
+              <ContextMenuItem onClick={operations.openCreateFolderModal}>
+                <FolderPlus className="h-4 w-4 mr-2" />
+                新建文件夹
+              </ContextMenuItem>
+              <ContextMenuItem onClick={triggerFileSelect}>
+                <Upload className="h-4 w-4 mr-2" />
+                上传文件
+              </ContextMenuItem>
+              <ContextMenuSeparator />
+              <ContextMenuItem onClick={fileList.refresh}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                刷新
+              </ContextMenuItem>
+            </ContextMenuGroup>
+          </ContextMenuContent>
+        )}
+      </ContextMenu>
 
       {/* 底部批量操作栏 */}
       {selectedKeys.length > 0 && (
