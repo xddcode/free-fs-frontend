@@ -172,7 +172,7 @@ export function AddStorageModal({ open, onOpenChange, onSuccess }: AddStorageMod
                 clearFieldError('platform');
               }}
             >
-              <SelectTrigger className={errors.platform ? 'border-red-500' : ''}>
+              <SelectTrigger className={`w-full ${errors.platform ? 'border-red-500' : ''}`}>
                 <SelectValue placeholder="请选择存储平台" />
               </SelectTrigger>
               <SelectContent>

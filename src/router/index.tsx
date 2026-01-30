@@ -52,54 +52,6 @@ export const router = createHashRouter([
     ),
   },
   {
-    path: '/files/*',
-    element: (
-      <LayoutWrapper>
-        <FileManagerPage />
-      </LayoutWrapper>
-    ),
-  },
-  {
-    path: '/recent',
-    element: (
-      <LayoutWrapper>
-        <FileManagerPage />
-      </LayoutWrapper>
-    ),
-  },
-  {
-    path: '/starred',
-    element: (
-      <LayoutWrapper>
-        <FileManagerPage />
-      </LayoutWrapper>
-    ),
-  },
-  {
-    path: '/favorites',
-    element: (
-      <LayoutWrapper>
-        <FileManagerPage />
-      </LayoutWrapper>
-    ),
-  },
-  {
-    path: '/trash',
-    element: (
-      <LayoutWrapper>
-        <FileManagerPage />
-      </LayoutWrapper>
-    ),
-  },
-  {
-    path: '/shares',
-    element: (
-      <LayoutWrapper>
-        <FileManagerPage />
-      </LayoutWrapper>
-    ),
-  },
-  {
     path: '/storage',
     element: (
       <LayoutWrapper>

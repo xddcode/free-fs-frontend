@@ -6,3 +6,7 @@ export { CreateFolderModal } from './CreateFolderModal';
 export { RenameModal } from './RenameModal';
 export { MoveModal } from './MoveModal';
 export { ShareModal } from './ShareModal';
+export { SelectionDock } from './SelectionDock';
+export { default as RecycleBinView } from './RecycleBinView';
+export { DeleteConfirmDialog } from './DeleteConfirmDialog';
+export { FileDetailModal } from './FileDetailModal';

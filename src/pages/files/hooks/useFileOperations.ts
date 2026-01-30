@@ -10,12 +10,14 @@ import {
 } from '@/api/file';
 import type { FileItem } from '@/types/file';
 
-export function useFileOperations(refreshCallback: () => void) {
+export function useFileOperations(refreshCallback: () => void, clearSelectionCallback?: () => void) {
   // 模态框状态
   const [createFolderModalVisible, setCreateFolderModalVisible] = useState(false);
   const [renameModalVisible, setRenameModalVisible] = useState(false);
   const [moveModalVisible, setMoveModalVisible] = useState(false);
   const [shareModalVisible, setShareModalVisible] = useState(false);
+  const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
+  const [detailModalVisible, setDetailModalVisible] = useState(false);
 
   // 操作的文件
   const [renamingFile, setRenamingFile] = useState<FileItem | null>(null);
@@ -23,6 +25,8 @@ export function useFileOperations(refreshCallback: () => void) {
   const [movingFiles, setMovingFiles] = useState<FileItem[]>([]);
   const [sharingFile, setSharingFile] = useState<FileItem | null>(null);
   const [sharingFiles, setSharingFiles] = useState<FileItem[]>([]);
+  const [deletingFiles, setDeletingFiles] = useState<FileItem[]>([]);
+  const [detailFile, setDetailFile] = useState<FileItem | null>(null);
 
   /**
    * 打开创建文件夹弹窗
@@ -103,12 +107,13 @@ export function useFileOperations(refreshCallback: () => void) {
         setMoveModalVisible(false);
         setMovingFile(null);
         setMovingFiles([]);
+        clearSelectionCallback?.();
         refreshCallback();
       } catch (error) {
         toast.error('移动失败');
       }
     },
-    [refreshCallback]
+    [refreshCallback, clearSelectionCallback]
   );
 
   /**
@@ -133,41 +138,43 @@ export function useFileOperations(refreshCallback: () => void) {
    * 删除文件
    */
   const handleDelete = useCallback(
-    async (fileIds: string[]) => {
+    async () => {
+      const fileIds = deletingFiles.map((f) => f.id);
       try {
         await deleteFiles(fileIds);
         const successMsg = fileIds.length === 1 ? '已移到回收站' : `已将 ${fileIds.length} 个文件移到回收站`;
         toast.success(successMsg);
+        setDeleteDialogVisible(false);
+        setDeletingFiles([]);
+        clearSelectionCallback?.();
         refreshCallback();
       } catch (error) {
         toast.error('删除失败');
       }
     },
-    [refreshCallback]
+    [deletingFiles, refreshCallback, clearSelectionCallback]
   );
 
   /**
-   * 删除文件确认
+   * 打开删除确认对话框
    */
   const openDeleteConfirm = useCallback(
     (file: FileItem) => {
-      if (window.confirm(`确定要将文件 "${file.displayName}" 放入回收站吗？`)) {
-        handleDelete([file.id]);
-      }
+      setDeletingFiles([file]);
+      setDeleteDialogVisible(true);
     },
-    [handleDelete]
+    []
   );
 
   /**
-   * 批量删除确认
+   * 打开批量删除确认对话框
    */
   const openBatchDeleteConfirm = useCallback(
     (files: FileItem[]) => {
-      if (window.confirm(`确定要将选中的 ${files.length} 个文件放入回收站吗？`)) {
-        handleDelete(files.map((f) => f.id));
-      }
+      setDeletingFiles(files);
+      setDeleteDialogVisible(true);
     },
-    [handleDelete]
+    []
   );
 
   /**
@@ -209,12 +216,16 @@ export function useFileOperations(refreshCallback: () => void) {
           await unfavoriteFile(fileIds);
           toast.success('取消收藏成功');
         }
+        // 如果是批量操作，清除选中状态
+        if (fileArray.length > 1) {
+          clearSelectionCallback?.();
+        }
         refreshCallback();
       } catch (error) {
         toast.error(hasUnfavorited ? '收藏失败' : '取消收藏失败');
       }
     },
-    [refreshCallback]
+    [refreshCallback, clearSelectionCallback]
   );
 
   /**
@@ -222,6 +233,14 @@ export function useFileOperations(refreshCallback: () => void) {
    */
   const openPreview = useCallback((file: FileItem) => {
     window.open(`${import.meta.env.VITE_API_VIEW_URL}/preview/${file.id}`, '_blank');
+  }, []);
+
+  /**
+   * 打开详细信息弹窗
+   */
+  const openDetail = useCallback((file: FileItem) => {
+    setDetailFile(file);
+    setDetailModalVisible(true);
   }, []);
 
   return {
@@ -234,6 +253,10 @@ export function useFileOperations(refreshCallback: () => void) {
     setMoveModalVisible,
     shareModalVisible,
     setShareModalVisible,
+    deleteDialogVisible,
+    setDeleteDialogVisible,
+    detailModalVisible,
+    setDetailModalVisible,
 
     // 操作的文件
     renamingFile,
@@ -241,6 +264,8 @@ export function useFileOperations(refreshCallback: () => void) {
     movingFiles,
     sharingFile,
     sharingFiles,
+    deletingFiles,
+    detailFile,
 
     // 操作方法
     openCreateFolderModal,
@@ -258,5 +283,6 @@ export function useFileOperations(refreshCallback: () => void) {
     handleDownload,
     handleFavorite,
     openPreview,
+    openDetail,
   };
 }

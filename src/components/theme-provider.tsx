@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react';
+import { flushSync } from 'react-dom';
 
 type Theme = 'dark' | 'light' | 'system';
 
@@ -10,7 +11,7 @@ type ThemeProviderProps = {
 
 type ThemeProviderState = {
   theme: Theme;
-  setTheme: (theme: Theme) => void;
+  setTheme: (theme: Theme, animated?: boolean) => void;
 };
 
 const initialState: ThemeProviderState = {
@@ -50,9 +51,45 @@ export function ThemeProvider({
 
   const value = {
     theme,
-    setTheme: (theme: Theme) => {
-      localStorage.setItem(storageKey, theme);
-      setTheme(theme);
+    setTheme: async (newTheme: Theme, animated: boolean = true) => {
+      // 如果不需要动画或浏览器不支持 View Transition API，直接切换
+      if (!animated || !document.startViewTransition) {
+        localStorage.setItem(storageKey, newTheme);
+        setTheme(newTheme);
+        return;
+      }
+
+      // 使用 View Transition API 实现动画
+      const transition = document.startViewTransition(() => {
+        flushSync(() => {
+          localStorage.setItem(storageKey, newTheme);
+          setTheme(newTheme);
+        });
+      });
+
+      await transition.ready;
+
+      // 从屏幕中心开始动画
+      const x = window.innerWidth / 2;
+      const y = window.innerHeight / 2;
+      const maxRadius = Math.hypot(
+        Math.max(x, window.innerWidth - x),
+        Math.max(y, window.innerHeight - y)
+      );
+
+      document.documentElement.animate(
+        {
+          clipPath: [
+            `circle(0px at ${x}px ${y}px)`,
+            `circle(${maxRadius}px at ${x}px ${y}px)`,
+          ],
+        },
+        {
+          duration: 400,
+          easing: 'ease-in-out',
+          pseudoElement: '::view-transition-new(root)',
+        }
+      );
     },
   };
 

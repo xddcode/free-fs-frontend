@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { getFileIcon, handleIconError } from '@/utils/file-icon';
+import { FileIcon } from '@/components/file-icon';
 import type { FileItem } from '@/types/file';
 
 interface RenameModalProps {
@@ -62,11 +62,9 @@ export function RenameModal({ open, onOpenChange, file, onConfirm }: RenameModal
         <div className="py-3 pb-4 px-5">
           {/* 文件图标预览 */}
           <div className="flex justify-center mb-6">
-            <img
-              src={getFileIcon(file?.isDir ? 'dir' : file?.suffix || '')}
-              alt={file?.displayName}
-              className="w-[88px] h-[88px] object-contain"
-              onError={handleIconError}
+            <FileIcon
+              type={file?.isDir ? 'dir' : file?.suffix || ''}
+              size={88}
             />
           </div>
           {/* 输入框 */}

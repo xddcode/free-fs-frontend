@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { FileIcon } from '@/components/file-icon';
 
 interface CreateFolderModalProps {
   open: boolean;
@@ -41,11 +42,7 @@ export function CreateFolderModal({ open, onOpenChange, parentId, onConfirm }: C
         <div className="flex flex-col items-center gap-6 py-6 px-5">
           {/* 文件夹图标 */}
           <div className="flex items-center justify-center">
-            <img
-              src="/i/folder.svg"
-              alt="文件夹"
-              className="w-20 h-20 object-contain"
-            />
+            <FileIcon type="folder" size={80} />
           </div>
           {/* 输入框 */}
           <Input

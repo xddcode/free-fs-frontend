@@ -34,7 +34,7 @@ export function AppearanceForm() {
   })
 
   function onSubmit(data: AppearanceFormValues) {
-    setTheme(data.theme)
+    setTheme(data.theme, false)
     toast.success('主题设置已更新')
   }
 

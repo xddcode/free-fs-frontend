@@ -15,9 +15,11 @@ export function useFileList() {
   const [orderBy, setOrderBy] = useState('updateTime');
   const [orderDirection, setOrderDirection] = useState<SortOrder>('DESC');
 
-  // 从 URL 获取当前目录 ID
+  // 从 URL 获取当前目录 ID 和筛选参数
   const currentParentId = searchParams.get('parentId') || undefined;
   const viewType = searchParams.get('view');
+  const fileType = searchParams.get('type');
+  const isDirFilter = searchParams.get('isDir') === 'true';
 
   /**
    * 更新面包屑路径
@@ -57,7 +59,7 @@ export function useFileList() {
         orderDirection,
         parentId: currentParentId,
         keyword: searchKeyword || undefined,
-        fileType: searchParams.get('type') as FileType | undefined,
+        fileType: fileType as FileType | undefined,
         isFavorite: isFavoritesView ? true : undefined,
         isRecents: isRecentsView ? true : undefined,
         isDir: searchParams.get('isDir') === 'true' ? true : undefined,
@@ -65,8 +67,8 @@ export function useFileList() {
 
       setFileList(response || []);
 
-      // 收藏/最近视图不需要面包屑
-      if (isFavoritesView || isRecentsView) {
+      // 收藏/最近/类型筛选/文件夹筛选视图不需要面包屑
+      if (isFavoritesView || isRecentsView || fileType || isDirFilter) {
         setBreadcrumbPath([]);
       } else {
         await updateBreadcrumbPath(currentParentId);
@@ -77,7 +79,7 @@ export function useFileList() {
     } finally {
       setLoading(false);
     }
-  }, [viewType, orderBy, orderDirection, currentParentId, searchKeyword, searchParams, updateBreadcrumbPath]);
+  }, [viewType, orderBy, orderDirection, currentParentId, searchKeyword, fileType, isDirFilter, updateBreadcrumbPath]);
 
   /**
    * 进入文件夹
@@ -134,7 +136,7 @@ export function useFileList() {
   useEffect(() => {
     fetchFileList();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentParentId, viewType, orderBy, orderDirection, searchKeyword]);
+  }, [currentParentId, viewType, fileType, orderBy, orderDirection, searchKeyword]);
 
   return {
     loading,

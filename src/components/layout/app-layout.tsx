@@ -1,20 +1,22 @@
-import React from 'react';
-import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
-import { Sidebar } from './sidebar';
+import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
+import { AppSidebar } from './app-sidebar'
+import { Header } from './header'
+import { Main } from './main'
 
 interface AppLayoutProps {
-  children: React.ReactNode;
+  children: React.ReactNode
 }
 
-export const AppLayout = React.memo(function AppLayout({ 
-  children 
-}: AppLayoutProps): React.JSX.Element {
+export function AppLayout({ children }: AppLayoutProps) {
   return (
     <SidebarProvider>
-      <Sidebar />
+      <AppSidebar />
       <SidebarInset>
-        {children}
+        <Header fixed />
+        <Main fixed>
+          {children}
+        </Main>
       </SidebarInset>
     </SidebarProvider>
-  );
-});
+  )
+}

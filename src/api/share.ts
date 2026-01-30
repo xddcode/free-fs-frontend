@@ -1,19 +1,5 @@
 import { request } from './request';
-
-export interface ShareCreateParams {
-  fileIds: string[];
-  expireType?: number | null;
-  expireTime?: string;
-  needShareCode?: boolean;
-  maxViewCount?: number;
-  maxDownloadCount?: number;
-}
-
-export interface ShareCreateResponse {
-  shareId: string;
-  shareLink: string;
-  shareCode?: string;
-}
+import type { ShareCreateParams, ShareCreateResponse } from '@/types/share';
 
 /**
  * 创建分享
