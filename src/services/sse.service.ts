@@ -1,62 +1,152 @@
-import { TaskStatus } from '@/types/transfer';
+import type { SSEMessage, SSEMessageType, SSEProgressData, SSEStatusData, SSECompleteData, SSEErrorData } from '@/types/transfer';
 
-interface SSEProgressData {
-  uploadedBytes: number;
-  totalBytes: number;
-  uploadedChunks: number;
-  totalChunks: number;
+export type SSEMessageHandler = (message: SSEMessage) => void;
+export type SSEConnectionHandler = (connected: boolean) => void;
+
+interface SSEServiceConfig {
+  baseUrl: string;
+  endpoint: string;
+  syncOnReconnect: boolean;
 }
 
-interface SSEStatusData {
-  status: TaskStatus;
-  message?: string;
+const DEFAULT_CONFIG: SSEServiceConfig = {
+  baseUrl: import.meta.env.VITE_API_BASE_URL || '',
+  endpoint: '/apis/transfer/sse',
+  syncOnReconnect: true,
+};
+
+function parseProgressData(data: Record<string, unknown>): SSEProgressData {
+  return {
+    uploadedBytes: Number(data.uploadedBytes) || 0,
+    totalBytes: Number(data.totalBytes) || 0,
+    uploadedChunks: Number(data.uploadedChunks) || 0,
+    totalChunks: Number(data.totalChunks) || 0,
+  };
 }
 
-interface SSECompleteData {
-  fileId: string;
-  fileName: string;
-  fileSize: number;
+function parseStatusData(data: Record<string, unknown>): SSEStatusData {
+  return {
+    status: (data.status as string) || 'idle',
+    message: data.message as string | undefined,
+  } as SSEStatusData;
 }
 
-interface SSEErrorData {
-  code: string;
-  message: string;
+function parseCompleteData(data: Record<string, unknown>): SSECompleteData {
+  return {
+    fileId: (data.fileId as string) || '',
+    fileName: (data.fileName as string) || '',
+    fileSize: Number(data.fileSize) || 0,
+  };
 }
 
-interface SSECallbacks {
-  onProgress?: (taskId: string, data: SSEProgressData) => void;
-  onStatus?: (taskId: string, data: SSEStatusData) => void;
-  onComplete?: (taskId: string, data: SSECompleteData) => void;
-  onError?: (taskId: string, data: SSEErrorData) => void;
+function parseErrorData(data: Record<string, unknown>): SSEErrorData {
+  return {
+    code: (data.code as string) || 'UNKNOWN_ERROR',
+    message: (data.message as string) || 'Unknown error occurred',
+  };
 }
 
 class SSEService {
+  private static instance: SSEService | null = null;
   private eventSource: EventSource | null = null;
-  private callbacks: SSECallbacks = {};
+  private currentUserId: string | null = null;
+  private messageHandlers: Set<SSEMessageHandler> = new Set();
+  private connectionHandlers: Set<SSEConnectionHandler> = new Set();
+  private config: SSEServiceConfig;
+  private connected = false;
+  private onReconnectSync: (() => Promise<void>) | null = null;
   private reconnectAttempts = 0;
   private readonly MAX_RECONNECT_ATTEMPTS = 5;
   private readonly RECONNECT_BASE_DELAY = 2000;
 
-  connect(userId: string, callbacks: SSECallbacks): void {
+  private constructor(config: Partial<SSEServiceConfig> = {}) {
+    this.config = { ...DEFAULT_CONFIG, ...config };
+  }
+
+  public static getInstance(config?: Partial<SSEServiceConfig>): SSEService {
+    if (!SSEService.instance) {
+      SSEService.instance = new SSEService(config);
+    }
+    return SSEService.instance;
+  }
+
+  public connect(userId: string): void {
+    if (this.eventSource && this.currentUserId === userId) {
+      return;
+    }
+
     if (this.eventSource) {
       this.disconnect();
     }
 
-    this.callbacks = callbacks;
-    const url = `${import.meta.env.VITE_API_BASE_URL}/apis/transfer/sse?userId=${encodeURIComponent(userId)}`;
+    this.currentUserId = userId;
+
+    const url = `${this.config.baseUrl}${this.config.endpoint}?userId=${encodeURIComponent(userId)}`;
 
     try {
       this.eventSource = new EventSource(url);
       this.setupEventListeners();
     } catch (error) {
-      console.error('SSE connection failed:', error);
+      console.error('SSE 连接失败:', error);
+      this.setConnected(false);
     }
   }
 
-  disconnect(): void {
+  public disconnect(): void {
     if (this.eventSource) {
       this.eventSource.close();
       this.eventSource = null;
+      this.currentUserId = null;
+      this.setConnected(false);
+    }
+  }
+
+  public isConnected(): boolean {
+    return this.connected;
+  }
+
+  public onMessage(handler: SSEMessageHandler): () => void {
+    this.messageHandlers.add(handler);
+    return () => {
+      this.messageHandlers.delete(handler);
+    };
+  }
+
+  public onConnectionChange(handler: SSEConnectionHandler): () => void {
+    this.connectionHandlers.add(handler);
+    return () => {
+      this.connectionHandlers.delete(handler);
+    };
+  }
+
+  public setReconnectSyncCallback(callback: () => Promise<void>): void {
+    this.onReconnectSync = callback;
+  }
+
+  private setConnected(connected: boolean): void {
+    const wasConnected = this.connected;
+    this.connected = connected;
+
+    this.connectionHandlers.forEach((handler) => {
+      try {
+        handler(connected);
+      } catch {
+        // Silent
+      }
+    });
+
+    if (!wasConnected && connected && this.config.syncOnReconnect) {
+      this.triggerReconnectSync();
+    }
+  }
+
+  private async triggerReconnectSync(): Promise<void> {
+    if (this.onReconnectSync) {
+      try {
+        await this.onReconnectSync();
+      } catch {
+        // Silent
+      }
     }
   }
 
@@ -65,15 +155,23 @@ class SSEService {
 
     this.eventSource.onopen = () => {
       this.reconnectAttempts = 0;
+      this.setConnected(true);
     };
 
-    this.eventSource.onerror = () => {
+    this.eventSource.onerror = (error) => {
+      console.error('SSE 连接错误:', error);
+      
       if (this.eventSource?.readyState === EventSource.CLOSED) {
+        this.setConnected(false);
+        
         if (this.reconnectAttempts < this.MAX_RECONNECT_ATTEMPTS) {
           this.reconnectAttempts += 1;
           const delay = this.RECONNECT_BASE_DELAY * this.reconnectAttempts;
+          
           setTimeout(() => {
-            // Reconnect logic would go here
+            if (this.currentUserId) {
+              this.connect(this.currentUserId);
+            }
           }, delay);
         }
       }
@@ -96,35 +194,75 @@ class SSEService {
         this.handleEvent('error', event);
       }
     });
+
+    this.eventSource.onmessage = (event) => {
+      this.handleGenericMessage(event);
+    };
   }
 
-  private handleEvent(type: string, event: Event): void {
+  private handleEvent(type: SSEMessageType, event: Event): void {
     if (!(event instanceof MessageEvent)) return;
 
     try {
-      const data = JSON.parse(event.data);
-      const taskId = data.taskId;
+      const rawData = JSON.parse(event.data);
+      const message = this.parseMessage(type, rawData);
 
-      if (!taskId) return;
-
-      switch (type) {
-        case 'progress':
-          this.callbacks.onProgress?.(taskId, data);
-          break;
-        case 'status':
-          this.callbacks.onStatus?.(taskId, data);
-          break;
-        case 'complete':
-          this.callbacks.onComplete?.(taskId, data);
-          break;
-        case 'error':
-          this.callbacks.onError?.(taskId, data);
-          break;
+      if (message) {
+        this.dispatchMessage(message);
       }
-    } catch (error) {
-      console.error('Failed to parse SSE message:', error);
+    } catch {
+      // Silent
     }
+  }
+
+  private handleGenericMessage(event: MessageEvent): void {
+    try {
+      const rawData = JSON.parse(event.data);
+
+      if (rawData.type && rawData.taskId) {
+        const message = this.parseMessage(rawData.type, rawData);
+        if (message) {
+          this.dispatchMessage(message);
+        }
+      }
+    } catch {
+      // Silent
+    }
+  }
+
+  private parseMessage(
+    type: SSEMessageType,
+    rawData: Record<string, unknown>
+  ): SSEMessage | null {
+    const taskId = rawData.taskId as string;
+    if (!taskId) return null;
+
+    const data = (rawData.data as Record<string, unknown>) || rawData;
+
+    switch (type) {
+      case 'progress':
+        return { type: 'progress', taskId, data: parseProgressData(data) };
+      case 'status':
+        return { type: 'status', taskId, data: parseStatusData(data) };
+      case 'complete':
+        return { type: 'complete', taskId, data: parseCompleteData(data) };
+      case 'error':
+        return { type: 'error', taskId, data: parseErrorData(data) };
+      default:
+        return null;
+    }
+  }
+
+  private dispatchMessage(message: SSEMessage): void {
+    this.messageHandlers.forEach((handler) => {
+      try {
+        handler(message);
+      } catch {
+        // Silent
+      }
+    });
   }
 }
 
-export const sseService = new SSEService();
+export const sseService = SSEService.getInstance();
+export { SSEService };

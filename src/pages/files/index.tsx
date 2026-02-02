@@ -1,6 +1,6 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { List, LayoutGrid, FileText, Upload, FolderPlus, RefreshCw, FolderUp } from 'lucide-react';
+import { List, LayoutGrid, FileText, Upload, FolderPlus, RefreshCw } from 'lucide-react';
 import { useFileList } from './hooks/useFileList';
 import { useFileOperations } from './hooks/useFileOperations';
 import {
@@ -16,7 +16,10 @@ import {
   RecycleBinView,
   DeleteConfirmDialog,
   FileDetailModal,
+  MySharesView,
 } from './components';
+import UploadModal from './components/UploadModal';
+import UploadPanel from './components/UploadPanel';
 import type { FileItem } from '@/types/file';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -44,14 +47,15 @@ type ViewMode = 'list' | 'grid';
 export default function FilesPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const folderInputRef = useRef<HTMLInputElement>(null);
 
   // 视图模式
   const [viewMode, setViewMode] = useState<ViewMode>((searchParams.get('viewMode') as ViewMode) || 'grid');
 
   // 选中的文件
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
+
+  // 上传弹窗状态
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
 
   // 使用 hooks
   const fileList = useFileList();
@@ -63,7 +67,12 @@ export default function FilesPage() {
     setSelectedKeys([]);
   };
   
-  const operations = useFileOperations(fileList.refresh, clearSelection);
+  const operations = useFileOperations(fileList.refresh, clearSelection, () => {
+    // 在特殊视图中创建文件夹后，返回全部文件页面
+    if (isFavoritesView || isRecentsView || isTypeFilter || isDirFilter) {
+      navigate(`/files?viewMode=${viewMode}`);
+    }
+  });
 
   // 计算当前视图类型
   const viewType = searchParams.get('view');
@@ -80,18 +89,28 @@ export default function FilesPage() {
   const hasUnfavorited = selectedFiles.some((f) => !f.isFavorite);
 
   /**
-   * ESC 键取消多选
+   * 键盘快捷键
    */
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // ESC 键取消多选
       if (e.key === 'Escape' && selectedKeys.length > 0) {
         clearSelection();
+      }
+      
+      // F2 键重命名（仅当选中单个文件时）
+      if (e.key === 'F2' && selectedKeys.length === 1) {
+        e.preventDefault();
+        const selectedFile = fileList.fileList.find((file) => file.id === selectedKeys[0]);
+        if (selectedFile) {
+          operations.openRenameModal(selectedFile);
+        }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedKeys.length]);
+  }, [selectedKeys, fileList.fileList]);
 
   /**
    * 当目录变化时清空选中状态
@@ -101,45 +120,31 @@ export default function FilesPage() {
   }, [fileList.currentParentId, viewType, fileType, isDirFilter]);
 
   /**
-   * 触发文件选择
+   * 监听文件上传完成事件
    */
-  const triggerFileSelect = () => {
-    fileInputRef.current?.click();
-  };
+  useEffect(() => {
+    const handleUploadComplete = (event: Event) => {
+      const customEvent = event as CustomEvent<{ parentId?: string }>;
+      const { parentId } = customEvent.detail;
+      
+      // 如果是当前目录的文件，刷新列表
+      if (parentId === fileList.currentParentId) {
+        fileList.refresh();
+      }
+    };
+
+    window.addEventListener('file-upload-complete', handleUploadComplete);
+
+    return () => {
+      window.removeEventListener('file-upload-complete', handleUploadComplete);
+    };
+  }, [fileList.currentParentId, fileList.refresh]);
 
   /**
-   * 触发文件夹选择
+   * 打开上传弹窗
    */
-  const triggerFolderSelect = () => {
-    folderInputRef.current?.click();
-  };
-
-  /**
-   * 处理文件选择
-   */
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files || files.length === 0) return;
-
-    if (files.length > 5) {
-      toast.warning('一次最多只能上传5个文件');
-      event.target.value = '';
-      return;
-    }
-
-    toast.info(`准备上传 ${files.length} 个文件...`);
-    event.target.value = '';
-  };
-
-  /**
-   * 处理文件夹选择
-   */
-  const handleFolderSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files || files.length === 0) return;
-
-    toast.info(`准备上传文件夹，共 ${files.length} 个文件...`);
-    event.target.value = '';
+  const handleOpenUploadModal = () => {
+    setUploadModalOpen(true);
   };
 
   /**
@@ -212,13 +217,7 @@ export default function FilesPage() {
   }
 
   if (isSharesView) {
-    return (
-      <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
-        <div className="flex flex-1 items-center justify-center">
-          <p className="text-muted-foreground">我的分享功能开发中...</p>
-        </div>
-      </div>
-    );
+    return <MySharesView />;
   }
 
   return (
@@ -262,10 +261,10 @@ export default function FilesPage() {
           searchKeyword={fileList.searchKeyword}
           onSearchChange={fileList.setSearchKeyword}
           onSearch={fileList.search}
-          onUpload={triggerFileSelect}
+          onUpload={handleOpenUploadModal}
           onCreateFolder={operations.openCreateFolderModal}
           onRefresh={fileList.refresh}
-          hideActions={isFavoritesView || isRecentsView || isTypeFilter || isDirFilter}
+          hideActions={false}
         />
       </div>
 
@@ -315,10 +314,10 @@ export default function FilesPage() {
                       <EmptyTitle>暂无文件</EmptyTitle>
                       <EmptyDescription>上传文件或创建文件夹开始使用</EmptyDescription>
                     </EmptyHeader>
-                    {!isFavoritesView && !isRecentsView && !isTypeFilter && !isDirFilter && !fileList.searchKeyword && (
+                    {!fileList.searchKeyword && (
                       <EmptyContent>
                         <div className="flex gap-2">
-                          <Button size="sm" onClick={triggerFileSelect}>
+                          <Button size="sm" onClick={handleOpenUploadModal}>
                             <Upload className="h-4 w-4 mr-2" />
                             上传文件
                           </Button>
@@ -378,23 +377,15 @@ export default function FilesPage() {
             </div>
           </ContextMenuTrigger>
           <ContextMenuContent>
-            {!isFavoritesView && !isRecentsView && !isTypeFilter && !isDirFilter && (
-              <>
-                <ContextMenuItem onClick={operations.openCreateFolderModal}>
-                  <FolderPlus className="h-4 w-4 mr-2" />
-                  新建文件夹
-                </ContextMenuItem>
-                <ContextMenuItem onClick={triggerFileSelect}>
-                  <Upload className="h-4 w-4 mr-2" />
-                  上传文件
-                </ContextMenuItem>
-                <ContextMenuItem onClick={triggerFolderSelect}>
-                  <FolderUp className="h-4 w-4 mr-2" />
-                  上传文件夹
-                </ContextMenuItem>
-                <ContextMenuSeparator />
-              </>
-            )}
+            <ContextMenuItem onClick={operations.openCreateFolderModal}>
+              <FolderPlus className="h-4 w-4 mr-2" />
+              新建文件夹
+            </ContextMenuItem>
+            <ContextMenuItem onClick={handleOpenUploadModal}>
+              <Upload className="h-4 w-4 mr-2" />
+              上传文件
+            </ContextMenuItem>
+            <ContextMenuSeparator />
             <ContextMenuItem onClick={() => fileList.refresh()}>
               <RefreshCw className="h-4 w-4 mr-2" />
               刷新
@@ -415,19 +406,15 @@ export default function FilesPage() {
         onClear={clearSelection}
       />
 
-      {/* 隐藏的文件选择input */}
-      <input ref={fileInputRef} type="file" multiple style={{ display: 'none' }} onChange={handleFileSelect} />
-      
-      {/* 隐藏的文件夹选择input */}
-      <input 
-        ref={folderInputRef} 
-        type="file" 
-        // @ts-ignore
-        webkitdirectory="" 
-        directory="" 
-        style={{ display: 'none' }} 
-        onChange={handleFolderSelect} 
+      {/* 上传弹窗 */}
+      <UploadModal
+        open={uploadModalOpen}
+        onOpenChange={setUploadModalOpen}
+        parentId={fileList.currentParentId}
       />
+
+      {/* 上传进度面板 */}
+      <UploadPanel onSuccess={fileList.refresh} />
 
       {/* 模态框 */}
       <CreateFolderModal
@@ -450,6 +437,7 @@ export default function FilesPage() {
         file={operations.movingFile}
         files={operations.movingFiles}
         onConfirm={operations.handleMove}
+        onRefresh={fileList.refresh}
       />
 
       <ShareModal
@@ -471,6 +459,7 @@ export default function FilesPage() {
         open={operations.detailModalVisible}
         onOpenChange={operations.setDetailModalVisible}
         file={operations.detailFile}
+        breadcrumbPath={fileList.breadcrumbPath}
       />
     </div>
   );

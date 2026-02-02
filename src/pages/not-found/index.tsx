@@ -7,7 +7,7 @@ export default function NotFoundPage() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen">
       <h1 className="text-6xl font-bold mb-4">404</h1>
-      <p className="text-xl text-[var(--color-text-2)] mb-8">页面未找到</p>
+      <p className="text-xl text-[var(--color-text-2)] mb-8">抱歉，您访问的页面不存在</p>
       <Button onClick={() => navigate('/')}>返回首页</Button>
     </div>
   );

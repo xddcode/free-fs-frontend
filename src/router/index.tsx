@@ -1,8 +1,10 @@
-import { createHashRouter, Navigate } from 'react-router-dom';
+import { createBrowserRouter, Navigate } from 'react-router-dom';
 import LoginPage from '@/pages/login';
 import HomePage from '@/pages/home';
 import FileManagerPage from '@/pages/files';
 import StoragePage from '@/pages/storage';
+import SharePage from '@/pages/share';
+import TransferPage from '@/pages/transfer';
 import { Settings } from '@/pages/settings';
 import { SettingsProfile } from '@/pages/settings/profile';
 import { SettingsAppearance } from '@/pages/settings/appearance';
@@ -30,10 +32,14 @@ function LayoutWrapper({ children }: { children: React.ReactNode }) {
   );
 }
 
-export const router = createHashRouter([
+export const router = createBrowserRouter([
   {
     path: '/login',
     element: <LoginPage />,
+  },
+  {
+    path: '/s/:shareToken',
+    element: <SharePage />,
   },
   {
     path: '/',
@@ -63,9 +69,7 @@ export const router = createHashRouter([
     path: '/transfer',
     element: (
       <LayoutWrapper>
-        <div className="flex items-center justify-center h-screen">
-          <p className="text-muted-foreground">传输页面开发中...</p>
-        </div>
+        <TransferPage />
       </LayoutWrapper>
     ),
   },

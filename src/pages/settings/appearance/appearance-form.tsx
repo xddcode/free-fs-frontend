@@ -98,7 +98,7 @@ export function AppearanceForm() {
         />
 
         <div className='pt-4'>
-          <Button type='submit'>更新设置</Button>
+          <Button type='submit'>保存设置</Button>
         </div>
       </form>
     </Form>

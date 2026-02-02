@@ -1,48 +1,86 @@
 import { request } from './request';
-import { InitUploadCmd, CheckUploadCmd, CheckUploadResultVO } from '@/types/transfer';
+import type {
+  FileTransferTaskVO,
+  InitUploadCmd,
+  CheckUploadCmd,
+  CheckUploadResultVO,
+} from '@/types/transfer';
 
-export const transferApi = {
-  // 初始化上传任务
-  initUpload: (data: InitUploadCmd) => {
-    return request.post<{ taskId: string }>('/apis/transfer/init', data);
-  },
+/**
+ * 初始化上传
+ */
+export function initUpload(params: InitUploadCmd) {
+  return request.post<string>('/apis/transfer/init', params);
+}
 
-  // 校验上传（秒传检测）
-  checkUpload: (data: CheckUploadCmd) => {
-    return request.post<CheckUploadResultVO>('/apis/transfer/check', data);
-  },
+/**
+ * 校验文件
+ */
+export function checkUpload(params: CheckUploadCmd) {
+  return request.post<CheckUploadResultVO>('/apis/transfer/check', params);
+}
 
-  // 上传分片
-  uploadChunk: (data: FormData) => {
-    return request.post('/apis/transfer/upload-chunk', data, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-  },
+/**
+ * 上传分片
+ */
+export function uploadChunk(
+  file: Blob,
+  taskId: string,
+  chunkIndex: number,
+  chunkMd5: string
+) {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('taskId', taskId);
+  formData.append('chunkIndex', chunkIndex.toString());
+  formData.append('chunkMd5', chunkMd5);
 
-  // 合并分片
-  mergeChunks: (taskId: string) => {
-    return request.post('/apis/transfer/merge', { taskId });
-  },
+  return request.post('/apis/transfer/chunk', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+    timeout: 60000,
+  });
+}
 
-  // 取消任务
-  cancelTask: (taskId: string) => {
-    return request.post('/apis/transfer/cancel', { taskId });
-  },
+/**
+ * 查询已上传的分片
+ */
+export function getUploadedChunks(taskId: string) {
+  return request.get<number[]>(`/apis/transfer/chunks/${taskId}`);
+}
 
-  // 暂停任务
-  pauseTask: (taskId: string) => {
-    return request.post('/apis/transfer/pause', { taskId });
-  },
+/**
+ * 合并分片
+ */
+export function mergeChunks(taskId: string) {
+  return request.post<string>(`/apis/transfer/merge/${taskId}`);
+}
 
-  // 恢复任务
-  resumeTask: (taskId: string) => {
-    return request.post('/apis/transfer/resume', { taskId });
-  },
+/**
+ * 取消上传任务
+ */
+export function cancelUpload(taskId: string) {
+  return request.delete(`/apis/transfer/cancel/${taskId}`);
+}
 
-  // 获取任务列表
-  getTaskList: () => {
-    return request.get('/apis/transfer/tasks');
-  },
-};
+/**
+ * 获取传输文件列表
+ */
+export function getTransferFiles() {
+  return request.get<FileTransferTaskVO[]>('/apis/transfer/files');
+}
+
+/**
+ * 暂停上传任务
+ */
+export function pauseUpload(taskId: string) {
+  return request.post(`/apis/transfer/pause/${taskId}`);
+}
+
+/**
+ * 恢复上传任务
+ */
+export function resumeUpload(taskId: string) {
+  return request.post(`/apis/transfer/resume/${taskId}`);
+}

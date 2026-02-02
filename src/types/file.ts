@@ -13,6 +13,10 @@ export interface FileItem {
   updateTime: string;
   lastAccessTime?: string;
   isFavorite?: boolean;
+  // 文件夹详情字段
+  includeFiles?: number;
+  includeFolders?: number;
+  createTime?: string;
 }
 
 export interface FileRecycleItem {

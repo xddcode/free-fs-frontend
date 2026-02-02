@@ -28,7 +28,7 @@ export default function RegisterFormContent({ onSwitchForm }: Props) {
 
     // 只验证密码一致性
     if (formData.password !== formData.confirmPassword) {
-      toast.error('两次密码不一致');
+      toast.error('两次密码输入不一致');
       return;
     }
 
@@ -39,7 +39,7 @@ export default function RegisterFormContent({ onSwitchForm }: Props) {
         avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${formData.username}`,
       };
       await userApi.register(registerData);
-      toast.success('注册成功，即将前往登录');
+      toast.success('操作成功');
       setTimeout(() => {
         onSwitchForm('login');
       }, 1500);
@@ -57,7 +57,7 @@ export default function RegisterFormContent({ onSwitchForm }: Props) {
         <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           type="text"
-          placeholder="账号"
+          placeholder="用户名"
           value={formData.username}
           onChange={(e) => setFormData({ ...formData, username: e.target.value })}
           className="pl-10"
@@ -125,7 +125,7 @@ export default function RegisterFormContent({ onSwitchForm }: Props) {
 
       {/* 注册按钮 */}
       <Button type="submit" className="w-full" disabled={loading}>
-        {loading ? '注册中...' : '注册'}
+        {loading ? '注册...' : '注册'}
       </Button>
 
       {/* 返回登录 */}

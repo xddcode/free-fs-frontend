@@ -165,7 +165,7 @@ export function AccountForm() {
             </FormItem>
           )}
         />
-        <Button type='submit'>Update account</Button>
+        <Button type='submit'>保存设置</Button>
       </form>
     </Form>
   )

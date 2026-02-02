@@ -10,7 +10,7 @@ import {
 } from '@/api/file';
 import type { FileItem } from '@/types/file';
 
-export function useFileOperations(refreshCallback: () => void, clearSelectionCallback?: () => void) {
+export function useFileOperations(refreshCallback: () => void, clearSelectionCallback?: () => void, onCreateFolderSuccess?: () => void) {
   // 模态框状态
   const [createFolderModalVisible, setCreateFolderModalVisible] = useState(false);
   const [renameModalVisible, setRenameModalVisible] = useState(false);
@@ -44,12 +44,13 @@ export function useFileOperations(refreshCallback: () => void, clearSelectionCal
         await createFolder({ folderName: folderName.trim(), parentId });
         toast.success('文件夹创建成功');
         setCreateFolderModalVisible(false);
+        onCreateFolderSuccess?.();
         refreshCallback();
       } catch (error) {
         toast.error('创建文件夹失败');
       }
     },
-    [refreshCallback]
+    [refreshCallback, onCreateFolderSuccess]
   );
 
   /**
@@ -182,19 +183,23 @@ export function useFileOperations(refreshCallback: () => void, clearSelectionCal
    */
   const handleDownload = useCallback((files: FileItem | FileItem[]) => {
     const fileArray = Array.isArray(files) ? files : [files];
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
 
     fileArray.forEach((file) => {
-      const downloadUrl = `${import.meta.env.VITE_API_BASE_URL}/apis/file/download/${file.id}?token=${token}`;
+      // 构建下载链接，将 token 放到 URL 参数中（需要包含 Bearer 前缀）
+      const downloadUrl = `${import.meta.env.VITE_API_BASE_URL}/apis/transfer/download/${file.id}?Authorization=Bearer ${token}`;
+      
       const link = document.createElement('a');
       link.href = downloadUrl;
       link.download = file.displayName;
+      link.style.display = 'none';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
     });
 
-    toast.success(`开始下载 ${fileArray.length} 个文件`);
+    const successMsg = fileArray.length === 1 ? '开始下载文件' : `开始下载 ${fileArray.length} 个文件`;
+    toast.success(successMsg);
   }, []);
 
   /**

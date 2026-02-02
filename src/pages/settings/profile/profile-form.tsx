@@ -60,12 +60,6 @@ export function ProfileForm() {
     }
   }
 
-  function handleReset() {
-    form.reset({
-      nickname: user?.nickname || '',
-    })
-  }
-
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-6'>
@@ -86,12 +80,9 @@ export function ProfileForm() {
           )}
         />
         
-        <div className='flex gap-4 pt-4'>
+        <div className='pt-4'>
           <Button type='submit' disabled={loading}>
-            {loading ? '保存中...' : '保存'}
-          </Button>
-          <Button type='button' variant='outline' onClick={handleReset}>
-            重置
+            {loading ? '保存中...' : '保存设置'}
           </Button>
         </div>
       </form>

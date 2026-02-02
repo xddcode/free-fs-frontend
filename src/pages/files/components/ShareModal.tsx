@@ -17,7 +17,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
@@ -31,6 +30,7 @@ interface ShareModalProps {
 }
 
 export function ShareModal({ open, onOpenChange, file, files, onSuccess }: ShareModalProps) {
+  
   // 表单状态
   const [expireType, setExpireType] = useState<number>(1); // 1-7天 2-30天 3-自定义 4-永久
   const [customExpireTime, setCustomExpireTime] = useState<string>('');
@@ -48,10 +48,20 @@ export function ShareModal({ open, onOpenChange, file, files, onSuccess }: Share
   const [isPermanent, setIsPermanent] = useState(false);
   
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(false);
 
   const sharingFiles = file ? [file] : files;
   const isBatchShare = sharingFiles.length > 1;
   const displayFiles = sharingFiles.slice(0, 3);
+
+  // 判断是否永久分享
+  const isPermanentShare = () => {
+    if (shareLink) {
+      return isPermanent;
+    }
+    return expireType === 4;
+  };
 
   // 文件数量提示文本
   const filesCountText = useMemo(() => {
@@ -78,28 +88,12 @@ export function ShareModal({ open, onOpenChange, file, files, onSuccess }: Share
     setIsPermanent(false);
   };
 
-  // 获取分享文本
-  const getShareText = () => {
-    if (shareCode) {
-      return `${shareLink}\n提取码：${shareCode}`;
-    }
-    return shareLink;
-  };
-
-  // 判断是否永久分享
-  const isPermanentShare = () => {
-    if (shareLink) {
-      return isPermanent;
-    }
-    return expireType === 4;
-  };
-
   // 获取过期时间文本
   const getExpireText = () => {
     if (shareExpireTime) {
       return shareExpireTime;
     }
-    if (expireType === 4) return '永不';
+    if (expireType === 4) return '永久有效';
     if (expireType === 3 && customExpireTime) {
       return customExpireTime;
     }
@@ -107,7 +101,7 @@ export function ShareModal({ open, onOpenChange, file, files, onSuccess }: Share
       1: '7天',
       2: '30天',
     };
-    return expireMap[expireType] || '未知';
+    return expireMap[expireType] || '';
   };
 
   // 生成分享链接
@@ -156,7 +150,7 @@ export function ShareModal({ open, onOpenChange, file, files, onSuccess }: Share
         const successMsg =
           fileIds.length === 1
             ? '分享链接已生成'
-            : `成功生成 ${fileIds.length} 个文件的分享链接`;
+            : `成功分享 ${fileIds.length} 个文件`;
         toast.success(successMsg);
         onSuccess?.();
       }
@@ -168,22 +162,36 @@ export function ShareModal({ open, onOpenChange, file, files, onSuccess }: Share
   };
 
   // 复制链接
-  const handleCopy = async () => {
-    const textToCopy = getShareText();
-
+  const handleCopyLink = async () => {
     try {
-      await navigator.clipboard.writeText(textToCopy);
-      toast.success(shareCode ? '链接和提取码已复制到剪贴板' : '链接已复制到剪贴板');
+      await navigator.clipboard.writeText(shareLink);
+      setCopiedLink(true);
+      setTimeout(() => {
+        setCopiedLink(false);
+      }, 2000);
+      toast.success('已复制');
     } catch (error) {
-      toast.error('复制失败，请手动复制');
+      toast.error('复制失败');
+    }
+  };
+
+  // 复制提取码
+  const handleCopyCode = async () => {
+    try {
+      await navigator.clipboard.writeText(shareCode);
+      setCopiedCode(true);
+      setTimeout(() => {
+        setCopiedCode(false);
+      }, 2000);
+      toast.success('已复制');
+    } catch (error) {
+      toast.error('复制失败');
     }
   };
 
   // 处理确认按钮点击
   const handleOk = async () => {
-    if (shareLink) {
-      await handleCopy();
-    } else {
+    if (!shareLink) {
       await handleShare();
     }
   };
@@ -200,7 +208,11 @@ export function ShareModal({ open, onOpenChange, file, files, onSuccess }: Share
   // 关闭时重置
   useEffect(() => {
     if (!open) {
-      setTimeout(resetForm, 300);
+      setTimeout(() => {
+        resetForm();
+        setCopiedLink(false);
+        setCopiedCode(false);
+      }, 300);
     }
   }, [open]);
 
@@ -208,15 +220,7 @@ export function ShareModal({ open, onOpenChange, file, files, onSuccess }: Share
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>
-            {isBatchShare ? (
-              <>
-                分享文件 <span className="text-muted-foreground">({sharingFiles.length} 项)</span>
-              </>
-            ) : (
-              '分享文件'
-            )}
-          </DialogTitle>
+          <DialogTitle>分享文件</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6 px-6 pb-4">
@@ -278,7 +282,7 @@ export function ShareModal({ open, onOpenChange, file, files, onSuccess }: Share
                   </div>
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="4" id="expire-permanent" />
-                    <Label htmlFor="expire-permanent" className="cursor-pointer font-normal">永久</Label>
+                    <Label htmlFor="expire-permanent" className="cursor-pointer font-normal">永久有效</Label>
                   </div>
                 </RadioGroup>
                 {expireType === 3 && (
@@ -413,21 +417,63 @@ export function ShareModal({ open, onOpenChange, file, files, onSuccess }: Share
                 </AlertDescription>
               </Alert>
 
-              <div className="space-y-2">
-                <Label>分享信息</Label>
-                <Textarea
-                  value={getShareText()}
-                  readOnly
-                  rows={shareCode ? 2 : 1}
-                  className="resize-none"
-                />
+              <div className="space-y-4">
+                {/* 分享链接 */}
+                <div className="space-y-2">
+                  <Label>分享链接</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value={shareLink}
+                      readOnly
+                      className="flex-1 font-mono text-sm"
+                    />
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8 shrink-0"
+                      onClick={handleCopyLink}
+                    >
+                      {copiedLink ? (
+                        <Check className="h-4 w-4 text-green-600" />
+                      ) : (
+                        <Copy className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* 提取码 */}
+                {shareCode && (
+                  <div className="space-y-2">
+                    <Label>提取码</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        value={shareCode}
+                        readOnly
+                        className="flex-1 font-mono text-sm tracking-wider"
+                      />
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8 shrink-0"
+                        onClick={handleCopyCode}
+                      >
+                        {copiedCode ? (
+                          <Check className="h-4 w-4 text-green-600" />
+                        ) : (
+                          <Copy className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="text-sm text-center text-muted-foreground">
                 {isPermanentShare() ? (
                   '分享链接永久有效'
                 ) : (
-                  `分享链接将在 ${getExpireText()} 后失效`
+                  `分享链接将在 ${getExpireText()} 后过期`
                 )}
               </div>
             </>
@@ -447,10 +493,11 @@ export function ShareModal({ open, onOpenChange, file, files, onSuccess }: Share
               </Button>
             </>
           ) : (
-            <Button onClick={handleOk} className="w-full">
-              <Copy className="h-4 w-4 mr-2" />
-              复制链接
-            </Button>
+            <DialogClose asChild>
+              <Button variant="outline" className="w-full">
+                关闭
+              </Button>
+            </DialogClose>
           )}
         </DialogFooter>
       </DialogContent>

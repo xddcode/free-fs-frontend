@@ -23,9 +23,9 @@ const sidebarNavItems = [
 
 export function Settings() {
   return (
-    <div className="p-5 bg-background min-h-screen">
+    <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
       {/* Page Header */}
-      <div className="flex justify-between items-center mb-5 pb-4">
+      <div className="flex justify-between items-center">
         <div className="flex items-center gap-4">
           <SettingsIcon className="h-8 w-8 text-primary" />
           <div>
@@ -35,13 +35,13 @@ export function Settings() {
         </div>
       </div>
 
-      <Separator className="mb-5" />
+      <Separator />
       
-      <div className='flex flex-1 space-y-2 md:space-y-2 lg:flex-row lg:space-y-0 lg:space-x-12'>
-        <aside className='top-0 lg:sticky lg:w-1/5'>
+      <div className='flex flex-1 flex-col space-y-8 lg:flex-row lg:space-x-12 lg:space-y-0'>
+        <aside className='lg:w-1/5'>
           <SidebarNav items={sidebarNavItems} />
         </aside>
-        <div className='flex-1 w-full pl-4 pr-6'>
+        <div className='flex-1 lg:max-w-2xl'>
           <Outlet />
         </div>
       </div>

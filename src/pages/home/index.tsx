@@ -114,9 +114,9 @@ export default function HomePage() {
   };
 
   return (
-    <div className="max-w-[1400px] mx-auto p-8 bg-background min-h-screen">
+    <div className="flex-1 space-y-4 p-4 pt-6 md:p-8">
       {/* Header */}
-      <header className="flex justify-between items-end mb-10">
+      <header className="flex justify-between items-end">
         <div>
           <h1 className="text-3xl font-semibold text-foreground mb-2">
             {getTimeState()}，{user?.nickname || user?.username || '管理员'}
@@ -141,12 +141,12 @@ export default function HomePage() {
         </div>
       </header>
 
-      <div className="grid grid-cols-[1fr_320px] gap-8">
+      <div className="grid grid-cols-[1fr_320px] gap-8 max-w-[1400px]">
         {/* Main Column */}
         <div>
           {/* Quick Tiles */}
-          <section className="mb-10">
-            <h2 className="text-lg font-semibold mb-5">快捷入口</h2>
+          <section className="space-y-4">
+            <h2 className="text-lg font-semibold mb-4">快捷入口</h2>
             <div className="grid grid-cols-4 gap-5">
               {quickTiles.map((tile) => (
                 <Card

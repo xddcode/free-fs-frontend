@@ -1,87 +1,174 @@
 /**
- * 用户传输设置类型定义
+ * 任务状态联合类型（9 种状态）
  */
+export type TaskStatus =
+  | 'idle'
+  | 'initialized'
+  | 'checking'
+  | 'uploading'
+  | 'paused'
+  | 'merging'
+  | 'completed'
+  | 'failed'
+  | 'cancelled';
 
 /**
- * 用户传输设置接口
+ * 传输任务接口
  */
-export interface TransferSetting {
-  /** 主键ID */
-  id?: number
-
-  /** 用户ID */
-  userId: string
-
-  /** 文件下载位置 */
-  downloadLocation?: string
-
-  /** 是否默认该路径为下载路径，如果否则每次下载询问保存地址 */
-  isDefaultDownloadLocation: number // 0-否 1-是
-
-  /** 下载速率限制 单位：MB/S */
-  downloadSpeedLimit: number
-
-  /** 并发上传数量 */
-  concurrentUploadQuantity: number
-
-  /** 并发下载数量 */
-  concurrentDownloadQuantity: number
-
-  /** 分片大小 单位：字节 */
-  chunkSize: number
-
-  /** 创建时间 */
-  createdAt?: string
-
-  /** 修改时间 */
-  updatedAt?: string
+export interface TransferTask {
+  taskId: string;
+  fileName: string;
+  fileSize: number;
+  status: TaskStatus;
+  progress: number;
+  uploadedBytes: number;
+  speed: number;
+  remainingTime: number;
+  errorMessage?: string;
+  createdAt: number;
+  updatedAt: number;
+  parentId?: string;
+  mimeType?: string;
+  fileMd5?: string;
+  totalChunks?: number;
+  uploadedChunks?: number;
+  chunkSize?: number;
 }
 
 /**
- * 更新传输设置请求参数
+ * 进度更新数据
  */
-export interface UpdateTransferSettingCmd {
-  /** 文件下载位置（必填） */
-  downloadLocation: string
-
-  /** 是否默认该路径为下载路径（必填，0或1） */
-  isDefaultDownloadLocation: number
-
-  /** 下载速率限制 单位：MB/S（必填，-1表示不限制） */
-  downloadSpeedLimit: number
-
-  /** 并发上传数量（必填，最大3） */
-  concurrentUploadQuantity: number
-
-  /** 并发下载数量（必填，最大3） */
-  concurrentDownloadQuantity: number
-
-  /** 分片大小（必填，单位：字节） */
-  chunkSize: number
+export interface ProgressUpdate {
+  uploadedBytes: number;
+  totalBytes: number;
+  uploadedChunks?: number;
+  totalChunks?: number;
 }
 
 /**
- * 传输设置表单数据（用于前端表单）
+ * SSE 消息类型
+ */
+export type SSEMessageType = 'progress' | 'status' | 'complete' | 'error';
+
+/**
+ * SSE 进度数据
+ */
+export interface SSEProgressData {
+  uploadedBytes: number;
+  totalBytes: number;
+  uploadedChunks: number;
+  totalChunks: number;
+}
+
+/**
+ * SSE 状态变更数据
+ */
+export interface SSEStatusData {
+  status: TaskStatus;
+  message?: string;
+}
+
+/**
+ * SSE 完成数据
+ */
+export interface SSECompleteData {
+  fileId: string;
+  fileName: string;
+  fileSize: number;
+}
+
+/**
+ * SSE 错误数据
+ */
+export interface SSEErrorData {
+  code: string;
+  message: string;
+}
+
+/**
+ * SSE 消息联合类型
+ */
+export type SSEMessageData =
+  | SSEProgressData
+  | SSEStatusData
+  | SSECompleteData
+  | SSEErrorData;
+
+/**
+ * SSE 消息接口
+ */
+export interface SSEMessage {
+  type: SSEMessageType;
+  taskId: string;
+  data: SSEMessageData;
+}
+
+/**
+ * 初始化上传请求参数
+ */
+export interface InitUploadCmd {
+  fileName: string;
+  fileSize: number;
+  parentId?: string;
+  totalChunks: number;
+  chunkSize: number;
+  mimeType: string;
+}
+
+/**
+ * 校验上传请求参数
+ */
+export interface CheckUploadCmd {
+  taskId: string;
+  fileMd5: string;
+  fileName: string;
+}
+
+/**
+ * 校验上传响应结果
+ */
+export interface CheckUploadResultVO {
+  isQuickUpload: boolean;
+  fileId?: string;
+  taskId: string;
+  message?: string;
+}
+
+/**
+ * 文件传输任务VO
+ */
+export interface FileTransferTaskVO {
+  taskId: string;
+  taskType: 'upload' | 'download';
+  userId: string;
+  parentId?: string;
+  objectKey: string;
+  fileName: string;
+  fileSize: number;
+  suffix?: string;
+  totalChunks: number;
+  uploadedChunks: number;
+  chunkSize: number;
+  storagePlatformSettingId: string;
+  status: TaskStatus;
+  errorMsg?: string;
+  startTime?: string;
+  completeTime?: string;
+  progress?: number;
+  speed?: number;
+  remainTime?: number;
+  uploadedSize?: number;
+}
+
+/**
+ * 传输设置表单
  */
 export interface TransferSettingForm {
-  /** 文件下载位置 */
-  downloadLocation: string
-
-  /** 是否默认该路径为下载路径 */
-  isDefaultDownloadLocation: boolean
-
-  /** 下载速率限制 单位：MB/S，-1 表示不限制 */
-  downloadSpeedLimit: number
-
-  /** 是否启用下载速率限制 */
-  enableDownloadSpeedLimit: boolean
-
-  /** 并发上传数量 */
-  concurrentUploadQuantity: number
-
-  /** 并发下载数量 */
-  concurrentDownloadQuantity: number
-
-  /** 分片大小 单位：字节 */
-  chunkSize: number
+  downloadLocation: string;
+  isDefaultDownloadLocation: boolean;
+  downloadSpeedLimit: number;
+  enableDownloadSpeedLimit: boolean;
+  concurrentUploadQuantity: number;
+  concurrentDownloadQuantity: number;
+  chunkSize: number;
 }

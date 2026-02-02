@@ -85,7 +85,7 @@ export function SelectionDock({
                     size="icon"
                     className="size-12 rounded-full"
                     onClick={onFavorite}
-                    aria-label={hasUnfavorited ? '收藏' : '取消收藏'}
+                    aria-label="收藏"
                   >
                     <Heart 
                       className="size-5" 
@@ -94,7 +94,7 @@ export function SelectionDock({
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>{hasUnfavorited ? '收藏' : '取消收藏'}</p>
+                  <p>收藏</p>
                 </TooltipContent>
               </Tooltip>
             </DockIcon>
@@ -147,13 +147,13 @@ export function SelectionDock({
                     size="icon"
                     className="size-12 rounded-full"
                     onClick={onClear}
-                    aria-label="取消选择"
+                    aria-label="清空"
                   >
                     <X className="size-5" />
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>取消选择</p>
+                  <p>清空</p>
                 </TooltipContent>
               </Tooltip>
             </DockIcon>

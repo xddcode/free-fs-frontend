@@ -44,7 +44,7 @@ export default function LoginFormContent({ onSwitchForm }: Props) {
       // 4. 一次性保存 token 和用户信息到 context
       await login(accessToken, userInfo, formData.isRemember);
       
-      toast.success('登录成功');
+      toast.success('操作成功');
       navigate('/');
     } catch (error) {
       // Error handled by interceptor
@@ -54,7 +54,7 @@ export default function LoginFormContent({ onSwitchForm }: Props) {
   };
 
   const handleSocialLogin = (platform: string) => {
-    toast.info(`${platform} 登录功能开发中...`);
+    toast.info(`${platform} 登录...`);
   };
 
   return (
@@ -64,7 +64,7 @@ export default function LoginFormContent({ onSwitchForm }: Props) {
         <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           type="text"
-          placeholder="账号"
+          placeholder="用户名"
           value={formData.username}
           onChange={(e) => setFormData({ ...formData, username: e.target.value })}
           className="pl-10"
@@ -99,7 +99,7 @@ export default function LoginFormContent({ onSwitchForm }: Props) {
             htmlFor="remember"
             className="text-sm text-muted-foreground cursor-pointer select-none"
           >
-            记住我？
+            记住我
           </label>
         </div>
         <button
@@ -113,7 +113,7 @@ export default function LoginFormContent({ onSwitchForm }: Props) {
 
       {/* 登录按钮 */}
       <Button type="submit" className="w-full" disabled={loading}>
-        {loading ? '登录中...' : '登录'}
+        {loading ? '登录...' : '登录'}
       </Button>
 
       {/* 注册按钮 */}
@@ -123,7 +123,7 @@ export default function LoginFormContent({ onSwitchForm }: Props) {
         className="w-full text-muted-foreground"
         onClick={() => onSwitchForm('register')}
       >
-        注册账号
+        立即注册
       </Button>
 
       {/* 第三方登录分隔线 */}

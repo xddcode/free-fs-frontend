@@ -5,6 +5,7 @@ import {
   SidebarMenuButton,
 } from '@/components/ui/sidebar'
 import { Logo } from '@/components/logo'
+import { APP_VERSION } from '@/config/version'
 
 export function AppTitle() {
   return (
@@ -17,6 +18,9 @@ export function AppTitle() {
             </div>
             <div className="grid flex-1 text-left text-sm leading-tight">
               <span className="truncate text-base font-bold">Free Fs</span>
+              <span className="truncate text-xs text-muted-foreground font-mono">
+                v{APP_VERSION}
+              </span>
             </div>
           </Link>
         </SidebarMenuButton>

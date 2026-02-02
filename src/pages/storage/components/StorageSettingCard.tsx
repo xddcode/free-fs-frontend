@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Database, Eye, Settings, Trash2, Link as LinkIcon, Copy, Check } from 'lucide-react';
+import { Database, Eye, Settings, Trash2, Link as LinkIcon, Copy, Check, AlertCircle } from 'lucide-react';
 import type { StorageSetting, ConfigScheme } from '@/types/storage';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -36,7 +36,9 @@ export function StorageSettingCard({ setting, onRefresh }: StorageSettingCardPro
   const [isLoading, setIsLoading] = useState(false);
   const [editFormData, setEditFormData] = useState<Record<string, string>>({});
   const [editRemark, setEditRemark] = useState('');
+  const [editErrors, setEditErrors] = useState<Record<string, string>>({});
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [copiedConfig, setCopiedConfig] = useState(false);
 
   const schemes: ConfigScheme[] = JSON.parse(setting.storagePlatform.configScheme);
   const configData = setting.configData ? JSON.parse(setting.configData) : {};
@@ -72,7 +74,9 @@ export function StorageSettingCard({ setting, onRefresh }: StorageSettingCardPro
 
     try {
       await navigator.clipboard.writeText(configText.join('\n'));
-      toast.success('配置信息已复制到剪贴板');
+      setCopiedConfig(true);
+      setTimeout(() => setCopiedConfig(false), 2000);
+      toast.success('已复制');
     } catch (error) {
       toast.error('复制失败');
     }
@@ -98,11 +102,41 @@ export function StorageSettingCard({ setting, onRefresh }: StorageSettingCardPro
     });
     setEditFormData(initialData);
     setEditRemark(setting.remark || '');
+    setEditErrors({});
     setEditModalOpen(true);
+  };
+
+  // 清除单个字段错误
+  const clearEditFieldError = (fieldName: string) => {
+    if (editErrors[fieldName]) {
+      setEditErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[fieldName];
+        return newErrors;
+      });
+    }
+  };
+
+  // 验证编辑表单
+  const validateEditForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    schemes.forEach((field) => {
+      if (field.validation.required && !editFormData[field.identifier]?.trim()) {
+        newErrors[field.identifier] = `请输入${field.label}`;
+      }
+    });
+
+    setEditErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   // 保存编辑
   const handleSaveEdit = async () => {
+    if (!validateEditForm()) {
+      return;
+    }
+
     setIsLoading(true);
     try {
       await updateStorageSetting({
@@ -246,77 +280,90 @@ export function StorageSettingCard({ setting, onRefresh }: StorageSettingCardPro
 
       {/* View Modal */}
       <Dialog open={viewModalOpen} onOpenChange={setViewModalOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Eye className="h-5 w-5" />
-              {setting.storagePlatform.name} - 查看配置
-            </DialogTitle>
+            <DialogTitle>详细信息</DialogTitle>
           </DialogHeader>
-          <div className="grid gap-4 px-6">
-            {schemes.map((field) => (
-              <div key={field.identifier} className="grid gap-3">
-                <Label>{field.label}</Label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    value={maskValue(field.identifier, configData[field.identifier])}
-                    readOnly
-                    className="font-mono text-sm"
-                  />
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => handleCopyField(field.identifier, configData[field.identifier])}
-                  >
-                    {copiedField === field.identifier ? (
-                      <Check className="h-4 w-4 text-green-600" />
-                    ) : (
-                      <Copy className="h-4 w-4" />
-                    )}
-                  </Button>
+          
+          <div className="space-y-6 px-6 pb-4">
+            <div className="space-y-3">
+              {schemes.map((field) => (
+                <div key={field.identifier} className="space-y-1.5">
+                  <div className="text-xs text-muted-foreground">{field.label}</div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 text-sm text-foreground break-all">
+                      {maskValue(field.identifier, configData[field.identifier])}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8 shrink-0"
+                      onClick={() => handleCopyField(field.identifier, configData[field.identifier])}
+                    >
+                      {copiedField === field.identifier ? (
+                        <Check className="h-4 w-4 text-green-600" />
+                      ) : (
+                        <Copy className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              ))}
+              <div className="space-y-1.5">
+                <div className="text-xs text-muted-foreground">配置备注</div>
+                <div className="text-sm text-foreground break-all">
+                  {setting.remark || '未设置备注'}
                 </div>
               </div>
-            ))}
-            <div className="grid gap-3">
-              <Label>配置备注</Label>
-              <Input value={setting.remark || '未设置备注'} readOnly />
             </div>
           </div>
+          
           <DialogFooter>
             <DialogClose asChild>
-              <Button variant="outline">关闭</Button>
+              <Button variant="outline">取消</Button>
             </DialogClose>
-            <Button onClick={handleCopyConfig}>复制配置</Button>
+            <Button onClick={handleCopyConfig} size="icon">
+              {copiedConfig ? (
+                <Check className="h-4 w-4 text-green-600" />
+              ) : (
+                <Copy className="h-4 w-4" />
+              )}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Edit Modal */}
       <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Settings className="h-5 w-5" />
-              {setting.storagePlatform.name} - 编辑配置
-            </DialogTitle>
+            <DialogTitle>编辑配置</DialogTitle>
           </DialogHeader>
-          <div className="grid gap-4 px-6">
+          <div className="space-y-6 px-6 pb-4">
             {schemes.map((field) => (
-              <div key={field.identifier} className="grid gap-3">
+              <div key={field.identifier} className="space-y-3">
                 <Label htmlFor={`edit-${field.identifier}`}>
-                  {field.label} {field.validation.required && '*'}
+                  {field.label} {field.validation.required && <span className="text-red-500 align-middle">*</span>}
                 </Label>
                 <Input
                   id={`edit-${field.identifier}`}
                   value={editFormData[field.identifier] || ''}
-                  onChange={(e) =>
-                    setEditFormData({ ...editFormData, [field.identifier]: e.target.value })
-                  }
+                  onChange={(e) => {
+                    setEditFormData({ ...editFormData, [field.identifier]: e.target.value });
+                    clearEditFieldError(field.identifier);
+                  }}
                   placeholder={`请输入${field.label}`}
+                  className={editErrors[field.identifier] ? 'border-red-500' : ''}
                 />
+                {editErrors[field.identifier] && (
+                  <div className="flex items-center gap-1 text-sm text-red-500">
+                    <AlertCircle className="h-3 w-3" />
+                    <span>{editErrors[field.identifier]}</span>
+                  </div>
+                )}
               </div>
             ))}
-            <div className="grid gap-3">
+            <div className="space-y-3">
               <Label htmlFor="edit-remark">配置备注</Label>
               <Input
                 id="edit-remark"

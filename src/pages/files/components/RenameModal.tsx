@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,6 +14,7 @@ interface RenameModalProps {
 
 export function RenameModal({ open, onOpenChange, file, onConfirm }: RenameModalProps) {
   const [newName, setNewName] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (open && file) {
@@ -29,6 +30,14 @@ export function RenameModal({ open, onOpenChange, file, onConfirm }: RenameModal
         // 文件夹或无后缀文件，显示完整名称
         setNewName(file.displayName);
       }
+      
+      // 延迟聚焦并选中文本，确保在 Dialog 完全打开后执行
+      setTimeout(() => {
+        if (inputRef.current) {
+          inputRef.current.focus();
+          inputRef.current.select();
+        }
+      }, 100);
     } else if (!open) {
       setNewName('');
     }
@@ -59,9 +68,9 @@ export function RenameModal({ open, onOpenChange, file, onConfirm }: RenameModal
         <DialogHeader>
           <DialogTitle>重命名</DialogTitle>
         </DialogHeader>
-        <div className="py-3 pb-4 px-5">
+        <div className="space-y-6 px-6 pb-4">
           {/* 文件图标预览 */}
-          <div className="flex justify-center mb-6">
+          <div className="flex justify-center">
             <FileIcon
               type={file?.isDir ? 'dir' : file?.suffix || ''}
               size={88}
@@ -69,11 +78,11 @@ export function RenameModal({ open, onOpenChange, file, onConfirm }: RenameModal
           </div>
           {/* 输入框 */}
           <Input
+            ref={inputRef}
             placeholder="请输入新名称"
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             onKeyDown={handleKeyDown}
-            autoFocus
             maxLength={100}
           />
         </div>

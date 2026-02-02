@@ -45,11 +45,11 @@ export const userApi = {
 
   // 获取传输设置
   getTransferSetting: () => {
-    return request.get<TransferSetting>('/apis/user/transfer-setting');
+    return request.get<TransferSetting>('/apis/user/transfer/setting');
   },
 
   // 更新传输设置
   updateTransferSetting: (data: UpdateTransferSettingCmd) => {
-    return request.put<TransferSetting>('/apis/user/transfer-setting', data);
+    return request.put<TransferSetting>('/apis/user/transfer/setting', data);
   },
 };

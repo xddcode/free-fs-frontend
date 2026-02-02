@@ -5,14 +5,14 @@ import ForgotPasswordContent from './ForgotPasswordContent';
 
 type FormType = 'login' | 'register' | 'forgotPassword';
 
-const formTitles: Record<FormType, string> = {
-  login: '登录',
-  register: '注册',
-  forgotPassword: '忘记密码',
-};
-
 export default function LoginForm() {
   const [currentForm, setCurrentForm] = useState<FormType>('login');
+
+  const formTitles: Record<FormType, string> = {
+    login: '登录',
+    register: '注册',
+    forgotPassword: '忘记密码',
+  };
 
   return (
     <div className="login-form-wrapper">

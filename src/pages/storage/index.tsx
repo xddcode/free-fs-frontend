@@ -57,7 +57,7 @@ export default function StoragePage() {
       <div className="flex items-end justify-between sm:items-center">
         <div className="flex flex-col gap-4 sm:flex-row">
           <Input
-            placeholder="搜索配置..."
+            placeholder="搜索存储配置..."
             className="h-9 w-40 lg:w-[250px]"
             value={searchTerm}
             onChange={handleSearch}
@@ -91,7 +91,7 @@ export default function StoragePage() {
           </Button>
           <Button onClick={() => setAddModalVisible(true)}>
             <Plus className="h-4 w-4 mr-2" />
-            添加配置
+            添加存储
           </Button>
         </div>
       </div>
@@ -108,12 +108,12 @@ export default function StoragePage() {
           <p className="text-muted-foreground mb-4">暂无存储配置</p>
           <Button onClick={() => setAddModalVisible(true)}>
             <Plus className="h-4 w-4 mr-2" />
-            添加第一个配置
+            添加您的第一个存储配置
           </Button>
         </div>
       ) : filteredSettings.length === 0 ? (
         <div className="flex items-center justify-center h-64 border-2 border-dashed rounded-lg">
-          <p className="text-muted-foreground">没有找到匹配的配置</p>
+          <p className="text-muted-foreground">暂无文件</p>
         </div>
       ) : (
         <ul className="faded-bottom no-scrollbar grid gap-4 overflow-auto pb-16 grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">

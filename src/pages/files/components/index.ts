@@ -10,3 +10,4 @@ export { SelectionDock } from './SelectionDock';
 export { default as RecycleBinView } from './RecycleBinView';
 export { DeleteConfirmDialog } from './DeleteConfirmDialog';
 export { FileDetailModal } from './FileDetailModal';
+export { MySharesView } from './MySharesView';

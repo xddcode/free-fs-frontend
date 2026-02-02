@@ -26,8 +26,8 @@ export function DeleteConfirmDialog({
       handleConfirm={onConfirm}
       isLoading={isLoading}
       title="确认删除"
-      desc={`确定要将选中的 ${fileCount} 个文件放入回收站吗？`}
-      confirmText="确定"
+      desc="确定要删除选中的文件吗？此操作不可恢复。"
+      confirmText="确认"
       cancelBtnText="取消"
     />
   );

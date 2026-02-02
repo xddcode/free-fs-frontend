@@ -30,14 +30,14 @@ export default function ForgotPasswordContent({ onSwitchForm }: Props) {
 
   const handleSendCode = async () => {
     if (!formData.mail) {
-      toast.warning('请先输入邮箱');
+      toast.warning('请输入访问密码');
       return;
     }
 
     setCodeLoading(true);
     try {
       await userApi.sendForgetPasswordCode(formData.mail);
-      toast.success('验证码已发送，请查收');
+      toast.success('重置链接已发送到您的邮箱');
       setCountdown(60);
     } catch (error) {
       // Error handled by interceptor
@@ -51,14 +51,14 @@ export default function ForgotPasswordContent({ onSwitchForm }: Props) {
 
     // 只验证密码一致性
     if (formData.newPassword !== formData.confirmPassword) {
-      toast.error('两次输入的密码不一致');
+      toast.error('两次密码输入不一致');
       return;
     }
 
     setLoading(true);
     try {
       await userApi.updateForgetPassword(formData);
-      toast.success('密码重置成功，请重新登录');
+      toast.success('操作成功');
       setFormData({
         mail: '',
         code: '',
@@ -80,7 +80,7 @@ export default function ForgotPasswordContent({ onSwitchForm }: Props) {
         <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           type="email"
-          placeholder="请输入邮箱"
+          placeholder="邮箱"
           value={formData.mail}
           onChange={(e) => setFormData({ ...formData, mail: e.target.value })}
           className="pl-10"
@@ -93,7 +93,7 @@ export default function ForgotPasswordContent({ onSwitchForm }: Props) {
         <Shield className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           type="text"
-          placeholder="请输入验证码"
+          placeholder="请输入访问密码"
           value={formData.code}
           onChange={(e) => setFormData({ ...formData, code: e.target.value })}
           maxLength={6}
@@ -108,7 +108,7 @@ export default function ForgotPasswordContent({ onSwitchForm }: Props) {
           onClick={handleSendCode}
           disabled={countdown > 0 || codeLoading}
         >
-          {countdown > 0 ? `${countdown}秒后重试` : '发送验证码'}
+          {countdown > 0 ? `${countdown}秒后重试` : '发送重置链接'}
         </Button>
       </div>
 
@@ -117,7 +117,7 @@ export default function ForgotPasswordContent({ onSwitchForm }: Props) {
         <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           type="password"
-          placeholder="请输入新密码"
+          placeholder="新密码"
           value={formData.newPassword}
           onChange={(e) => setFormData({ ...formData, newPassword: e.target.value })}
           className="pl-10"
@@ -131,7 +131,7 @@ export default function ForgotPasswordContent({ onSwitchForm }: Props) {
         <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           type="password"
-          placeholder="请再次输入新密码"
+          placeholder="确认新密码"
           value={formData.confirmPassword}
           onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
           className="pl-10"
@@ -142,7 +142,7 @@ export default function ForgotPasswordContent({ onSwitchForm }: Props) {
 
       {/* 重置密码按钮 */}
       <Button type="submit" className="w-full" disabled={loading}>
-        {loading ? '重置中...' : '重置密码'}
+        {loading ? '重置...' : '重置'}
       </Button>
 
       {/* 返回登录 */}

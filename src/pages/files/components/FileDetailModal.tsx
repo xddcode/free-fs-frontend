@@ -1,58 +1,124 @@
-import type { FileItem } from '@/types/file';
+import { useState, useEffect } from 'react';
+import type { FileItem, BreadcrumbItem } from '@/types/file';
 import { formatFileSize, formatTime } from '@/utils/format';
 import { FileIcon } from '@/components/file-icon';
+import { getFileDetail } from '@/api/file';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Skeleton } from '@/components/ui/skeleton';
+import { toast } from 'sonner';
 
 interface FileDetailModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   file: FileItem | null;
+  breadcrumbPath: BreadcrumbItem[];
 }
 
 export function FileDetailModal({
   open,
   onOpenChange,
   file,
+  breadcrumbPath,
 }: FileDetailModalProps) {
+  const [loading, setLoading] = useState(false);
+  const [detailData, setDetailData] = useState<FileItem | null>(null);
+
+  // 加载文件详情
+  useEffect(() => {
+    if (open && file) {
+      loadFileDetail();
+    } else {
+      setDetailData(null);
+    }
+  }, [open, file]);
+
+  const loadFileDetail = async () => {
+    if (!file) return;
+    
+    setLoading(true);
+    try {
+      const data = await getFileDetail(file.id);
+      setDetailData(data);
+    } catch (error) {
+      toast.error('获取文件详情失败');
+      setDetailData(file); // 降级使用传入的基本信息
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (!file) return null;
 
+  const displayFile = detailData || file;
+
+  // 格式化大小显示
+  const formatSizeDisplay = () => {
+    if (displayFile.isDir) {
+      const sizeStr = formatFileSize(displayFile.size || 0);
+      const fileCount = displayFile.includeFiles ?? 0;
+      const folderCount = displayFile.includeFolders ?? 0;
+      return `${sizeStr}（包含 ${fileCount} 个文件，${folderCount} 个文件夹）`;
+    }
+    return formatFileSize(displayFile.size || 0);
+  };
+
+  // 格式化文件位置
+  const formatFileLocation = () => {
+    if (breadcrumbPath.length === 0) {
+      return '全部文件';
+    }
+    return '全部文件 / ' + breadcrumbPath.map(item => item.name).join(' / ');
+  };
+
   const detailItems = [
-    { label: '文件名', value: file.displayName },
-    { label: '大小', value: file.isDir ? '-' : formatFileSize(file.size) },
-    { label: '文件位置', value: '全部文件' },
-    { label: '云端创建时间', value: formatTime(file.createTime) },
-    { label: '最后修改时间', value: formatTime(file.updateTime) },
+    { label: '文件名', value: displayFile.displayName },
+    { label: '大小', value: formatSizeDisplay() },
+    { label: '文件位置', value: formatFileLocation() },
+    { label: '上传时间', value: formatTime(displayFile.uploadTime) },
+    { label: '最后访问时间', value: displayFile.lastAccessTime ? formatTime(displayFile.lastAccessTime) : '-' },
   ];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px]" onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>详细信息</DialogTitle>
         </DialogHeader>
         
-        <div className="py-3 pb-4 px-5">
+        <div className="space-y-6 px-6 pb-4">
           {/* 文件图标 */}
-          <div className="flex justify-center mb-8">
+          <div className="flex justify-center">
             <FileIcon
-              type={file.isDir ? 'dir' : file.suffix || ''}
+              type={displayFile.isDir ? 'dir' : displayFile.suffix || ''}
               size={100}
             />
           </div>
 
           {/* 详细信息列表 */}
-          <div className="space-y-5">
-            {detailItems.map((item, index) => (
-              <div key={index} className="space-y-1.5">
-                <div className="text-xs text-muted-foreground">{item.label}</div>
-                <div className="text-sm text-foreground break-all">{item.value}</div>
-              </div>
-            ))}
+          <div className="space-y-3">
+            {loading ? (
+              // 加载骨架屏
+              <>
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <div key={i} className="space-y-1.5">
+                    <Skeleton className="h-3 w-20" />
+                    <Skeleton className="h-4 w-full" />
+                  </div>
+                ))}
+              </>
+            ) : (
+              detailItems.map((item, index) => (
+                <div key={index} className="space-y-1.5">
+                  <div className="text-xs text-muted-foreground">{item.label}</div>
+                  <div className="text-sm text-foreground break-all">{item.value}</div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </DialogContent>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Info, AlertCircle, Tag } from 'lucide-react';
+import { Info, AlertCircle, Tag } from 'lucide-react';
 import { getStoragePlatforms, addStorageSetting, getUserStorageSettings } from '@/api/storage';
 import type { ConfigScheme } from '@/types/storage';
 import {
@@ -150,21 +150,18 @@ export function AddStorageModal({ open, onOpenChange, onSuccess }: AddStorageMod
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Plus className="h-5 w-5" />
-            添加存储平台配置
-          </DialogTitle>
+          <DialogTitle>添加存储平台配置</DialogTitle>
           <DialogDescription>
             配置您的对象存储平台，支持 MinIO、阿里云 OSS、腾讯云 COS 等
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-4 px-6">
+        <div className="space-y-6 px-6 pb-4">
           {/* 选择平台 */}
-          <div className="grid gap-3">
-            <Label htmlFor="platform">选择存储平台 *</Label>
+          <div className="space-y-3">
+            <Label htmlFor="platform">选择存储平台 <span className="text-red-500 align-middle">*</span></Label>
             <Select
               value={selectedPlatformId}
               onValueChange={(value) => {
@@ -199,9 +196,9 @@ export function AddStorageModal({ open, onOpenChange, onSuccess }: AddStorageMod
           {schemes.length > 0 && (
             <>
               {schemes.map((field) => (
-                <div key={field.identifier} className="grid gap-3">
+                <div key={field.identifier} className="space-y-3">
                   <Label htmlFor={field.identifier}>
-                    {field.label} {field.validation.required && '*'}
+                    {field.label} {field.validation.required && <span className="text-red-500 align-middle">*</span>}
                   </Label>
                   <Input
                     id={field.identifier}
@@ -223,7 +220,7 @@ export function AddStorageModal({ open, onOpenChange, onSuccess }: AddStorageMod
               ))}
 
               {/* 备注 */}
-              <div className="grid gap-3">
+              <div className="space-y-3">
                 <Label htmlFor="remark">配置备注</Label>
                 <div className="relative">
                   <Tag className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -257,7 +254,7 @@ export function AddStorageModal({ open, onOpenChange, onSuccess }: AddStorageMod
           {!selectedPlatformId && (
             <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
               <AlertCircle className="h-12 w-12 mb-4" />
-              <p>请先选择存储平台</p>
+              <p className="text-sm">请先选择存储平台</p>
             </div>
           )}
         </div>

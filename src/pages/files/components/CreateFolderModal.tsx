@@ -39,14 +39,14 @@ export function CreateFolderModal({ open, onOpenChange, parentId, onConfirm }: C
         <DialogHeader>
           <DialogTitle>新建文件夹</DialogTitle>
         </DialogHeader>
-        <div className="flex flex-col items-center gap-6 py-6 px-5">
+        <div className="space-y-6 px-6 pb-4">
           {/* 文件夹图标 */}
           <div className="flex items-center justify-center">
             <FileIcon type="folder" size={80} />
           </div>
           {/* 输入框 */}
           <Input
-            placeholder="新建文件夹"
+            placeholder="请输入文件夹名称"
             value={folderName}
             onChange={(e) => setFolderName(e.target.value)}
             onKeyDown={handleKeyDown}
