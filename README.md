@@ -207,7 +207,7 @@ free-fs-frontend/
 
 ### 微信公众号
 
-<img alt="mp.png" height="300" src="https://gitee.com/dromara/free-fs/raw/feature-vue/.images/mp.png" width="250"/>
+<img alt="mp.png" src="https://gitee.com/dromara/free-fs/raw/feature-vue/.images/mp.png"/>
 
 ---
 
