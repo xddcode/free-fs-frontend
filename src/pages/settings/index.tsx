@@ -1,5 +1,5 @@
 import { Outlet } from 'react-router-dom'
-import { Palette, UserCog, Upload, Settings as SettingsIcon } from 'lucide-react'
+import { Palette, UserCog, Upload, Settings as SettingsIcon, Shield } from 'lucide-react'
 import { Separator } from '@/components/ui/separator'
 import { SidebarNav } from './components/sidebar-nav'
 
@@ -8,6 +8,11 @@ const sidebarNavItems = [
     title: '个人资料',
     href: '/settings',
     icon: <UserCog size={18} />,
+  },
+  {
+    title: '账户设置',
+    href: '/settings/account',
+    icon: <Shield size={18} />,
   },
   {
     title: '外观',

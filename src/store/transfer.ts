@@ -15,6 +15,7 @@ import {
   resumeUpload,
   cancelUpload,
   initUpload,
+  clearCompletedTasks as clearCompletedTasksApi,
 } from '@/api/transfer';
 import { sseService } from '@/services/sse.service';
 import { uploadExecutor } from '@/services/upload-executor';
@@ -48,6 +49,7 @@ interface TransferStore {
   resumeTask: (taskId: string) => Promise<void>;
   cancelTask: (taskId: string) => Promise<void>;
   retryTask: (taskId: string) => Promise<void>;
+  clearCompletedTasks: () => Promise<void>;
   initSSE: (userId: string) => Promise<void>;
   disconnectSSE: () => void;
   getDisplayData: (taskId: string) => { progress: number; speed: number; remainingTime: number };
@@ -591,6 +593,28 @@ export const useTransferStore = create<TransferStore>((set, get) => ({
     uploadExecutor.start(taskId, file, currentConcurrency, currentChunkSize).catch(() => {
       // Silent
     });
+  },
+
+  clearCompletedTasks: async () => {
+    try {
+      await clearCompletedTasksApi();
+      
+      const { tasks } = get();
+      const newTasks = new Map(tasks);
+      
+      // 删除所有已完成、失败和取消的任务
+      Array.from(newTasks.values()).forEach((task) => {
+        if (['completed', 'failed', 'cancelled'].includes(task.status)) {
+          newTasks.delete(task.taskId);
+          progressCalculator.clear(task.taskId);
+        }
+      });
+      
+      set({ tasks: newTasks });
+    } catch (error) {
+      console.error('清空已完成任务失败:', error);
+      throw error;
+    }
   },
 
   initSSE: async (userId: string) => {

@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import type { UserInfo } from '@/types/user';
 import { setToken as saveToken, clearToken as removeToken, getToken } from '@/utils/auth';
+import { getActiveStoragePlatforms } from '@/api/storage';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -26,7 +27,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // 初始化时检查本地存储的认证信息
   useEffect(() => {
-    const initAuth = () => {
+    const initAuth = async () => {
       try {
         const storedToken = getToken();
         const storedUser = localStorage.getItem('userInfo') || sessionStorage.getItem('userInfo');
@@ -36,6 +37,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
           setToken(storedToken);
           setUser(userInfo);
           setIsAuthenticated(true);
+          
+          // 获取当前启用的存储平台配置
+          try {
+            const activePlatforms = await getActiveStoragePlatforms();
+            if (activePlatforms && activePlatforms.length > 0) {
+              // 找到已启用的平台
+              const enabledPlatform = activePlatforms.find(p => p.isEnabled);
+              if (enabledPlatform) {
+                localStorage.setItem('current-storage-platform', JSON.stringify({
+                  settingId: enabledPlatform.settingId,
+                  platformName: enabledPlatform.platformName,
+                }));
+              }
+            }
+          } catch (error) {
+            console.error('获取存储平台配置失败:', error);
+            // 不影响登录流程
+          }
         }
       } catch (error) {
         console.error('初始化认证信息失败:', error);
@@ -69,6 +88,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
       } else {
         localStorage.removeItem('userInfo');
       }
+      
+      // 获取当前启用的存储平台配置
+      try {
+        const activePlatforms = await getActiveStoragePlatforms();
+        if (activePlatforms && activePlatforms.length > 0) {
+          // 找到已启用的平台
+          const enabledPlatform = activePlatforms.find(p => p.isEnabled);
+          if (enabledPlatform) {
+            localStorage.setItem('current-storage-platform', JSON.stringify({
+              settingId: enabledPlatform.settingId,
+              platformName: enabledPlatform.platformName,
+            }));
+          }
+        }
+      } catch (error) {
+        console.error('获取存储平台配置失败:', error);
+        // 不影响登录流程
+      }
     } catch (error) {
       console.error('登录失败:', error);
       throw error;
@@ -84,6 +121,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     removeToken();
     localStorage.removeItem('userInfo');
     sessionStorage.removeItem('userInfo');
+    localStorage.removeItem('current-storage-platform');
     
     // 跳转到登录页
     window.location.hash = '#/login';

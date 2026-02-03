@@ -10,6 +10,12 @@ export interface HttpResponse<T = unknown> {
 }
 
 let isShowingLogoutModal = false;
+let logoutDialogCallback: (() => void) | null = null;
+
+// 设置登录过期回调
+export const setLogoutCallback = (callback: () => void) => {
+  logoutDialogCallback = callback;
+};
 
 const service = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
@@ -67,14 +73,19 @@ service.interceptors.response.use(
     if ([401, 403].includes(res.code)) {
       if (response.config.url !== '/apis/user/info' && !isShowingLogoutModal) {
         isShowingLogoutModal = true;
-        toast.error('登录已过期，请重新登录');
-        setTimeout(() => {
-          clearToken();
-          localStorage.removeItem('userInfo');
-          sessionStorage.removeItem('userInfo');
-          window.location.hash = '#/login';
-          isShowingLogoutModal = false;
-        }, 1500);
+        if (logoutDialogCallback) {
+          logoutDialogCallback();
+        } else {
+          // 降级方案：如果没有设置回调，使用 toast
+          toast.error('登录已过期，请重新登录');
+          setTimeout(() => {
+            clearToken();
+            localStorage.removeItem('userInfo');
+            sessionStorage.removeItem('userInfo');
+            window.location.href = '/login';
+            isShowingLogoutModal = false;
+          }, 1500);
+        }
       }
     } else if (showError) {
       toast.error(res.msg || '操作失败');
@@ -103,13 +114,18 @@ service.interceptors.response.use(
             errorMessage = '登录已过期，请重新登录';
             if (!isShowingLogoutModal) {
               isShowingLogoutModal = true;
-              setTimeout(() => {
-                clearToken();
-                localStorage.removeItem('userInfo');
-                sessionStorage.removeItem('userInfo');
-                window.location.hash = '#/login';
-                isShowingLogoutModal = false;
-              }, 1500);
+              if (logoutDialogCallback) {
+                logoutDialogCallback();
+              } else {
+                // 降级方案
+                setTimeout(() => {
+                  clearToken();
+                  localStorage.removeItem('userInfo');
+                  sessionStorage.removeItem('userInfo');
+                  window.location.href = '/login';
+                  isShowingLogoutModal = false;
+                }, 1500);
+              }
             }
             break;
           case 404:

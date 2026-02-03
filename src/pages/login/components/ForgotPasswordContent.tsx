@@ -30,14 +30,14 @@ export default function ForgotPasswordContent({ onSwitchForm }: Props) {
 
   const handleSendCode = async () => {
     if (!formData.mail) {
-      toast.warning('请输入访问密码');
+      toast.warning('请输入邮箱');
       return;
     }
 
     setCodeLoading(true);
     try {
       await userApi.sendForgetPasswordCode(formData.mail);
-      toast.success('重置链接已发送到您的邮箱');
+      toast.success('验证码已发送到您的邮箱');
       setCountdown(60);
     } catch (error) {
       // Error handled by interceptor
@@ -93,7 +93,7 @@ export default function ForgotPasswordContent({ onSwitchForm }: Props) {
         <Shield className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           type="text"
-          placeholder="请输入访问密码"
+          placeholder="请输入验证码"
           value={formData.code}
           onChange={(e) => setFormData({ ...formData, code: e.target.value })}
           maxLength={6}
@@ -108,7 +108,7 @@ export default function ForgotPasswordContent({ onSwitchForm }: Props) {
           onClick={handleSendCode}
           disabled={countdown > 0 || codeLoading}
         >
-          {countdown > 0 ? `${countdown}秒后重试` : '发送重置链接'}
+          {countdown > 0 ? `${countdown}秒后重试` : '发送验证码'}
         </Button>
       </div>
 

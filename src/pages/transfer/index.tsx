@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, Upload, Trash2 } from 'lucide-react';
 import { useTransferStore } from '@/store/transfer';
 import { Button } from '@/components/ui/button';
 import { SidebarTrigger } from '@/components/ui/sidebar';
@@ -26,6 +26,7 @@ export default function TransferPage() {
     resumeTask,
     cancelTask,
     retryTask,
+    clearCompletedTasks,
     sseConnected,
   } = useTransferStore();
 
@@ -56,12 +57,27 @@ export default function TransferPage() {
     initTransfer();
   }, [sseConnected]);
 
+  // 监听tab切换，刷新数据
+  useEffect(() => {
+    if (sseConnected && activeTab === 'completed') {
+      const refreshData = async () => {
+        setLoading(true);
+        try {
+          await fetchTasks();
+        } catch (error) {
+          console.error('刷新数据失败:', error);
+        } finally {
+          setLoading(false);
+        }
+      };
+      refreshData();
+    }
+  }, [activeTab, sseConnected, fetchTasks]);
+
   const handleRefresh = async () => {
     setLoading(true);
     try {
       await fetchTasks();
-    } catch (error) {
-      toast.error('刷新失败');
     } finally {
       setLoading(false);
     }
@@ -71,8 +87,8 @@ export default function TransferPage() {
     try {
       await pauseTask(taskId);
       toast.success('已暂停');
-    } catch (error) {
-      toast.error('暂停失败');
+    } finally {
+      // 无需处理
     }
   };
 
@@ -80,8 +96,8 @@ export default function TransferPage() {
     try {
       await resumeTask(taskId);
       toast.success('已恢复');
-    } catch (error) {
-      toast.error('恢复失败');
+    } finally {
+      // 无需处理
     }
   };
 
@@ -89,8 +105,8 @@ export default function TransferPage() {
     try {
       await cancelTask(taskId);
       toast.success('已取消');
-    } catch (error) {
-      toast.error('取消失败');
+    } finally {
+      // 无需处理
     }
   };
 
@@ -98,8 +114,22 @@ export default function TransferPage() {
     try {
       await retryTask(taskId);
       toast.success('已重试');
-    } catch (error) {
-      toast.error('重试失败');
+    } finally {
+      // 无需处理
+    }
+  };
+
+  const handleClearCompleted = async () => {
+    if (completedTasks.length === 0) {
+      toast.warning('没有可清空的任务');
+      return;
+    }
+
+    try {
+      await clearCompletedTasks();
+      toast.success('已清空所有已完成任务');
+    } finally {
+      // 无需处理
     }
   };
 
@@ -110,15 +140,26 @@ export default function TransferPage() {
         <SidebarTrigger className="md:hidden" />
         
         <div className="flex-1">
-          <h1 className="text-lg font-semibold">传输列表</h1>
+          <h2 className="text-base font-normal">传输列表</h2>
         </div>
 
         <Button variant="outline" size="icon" onClick={handleRefresh}>
           <RefreshCw className="h-4 w-4" />
         </Button>
+        
+        {activeTab === 'completed' && completedTasks.length > 0 && (
+          <Button 
+            variant="destructive" 
+            size="sm"
+            onClick={handleClearCompleted}
+          >
+            <Trash2 className="h-4 w-4 mr-2" />
+            全部清空
+          </Button>
+        )}
       </div>
 
-      {/* 次级工具栏：标签页 */}
+      {/* 标签页和操作按钮 */}
       <div className="flex items-center justify-between border-b px-6 py-3">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList>
@@ -130,9 +171,11 @@ export default function TransferPage() {
           </TabsList>
         </Tabs>
 
-        <span className="text-sm text-muted-foreground">
-          {currentDisplayTasks.length > 0 && `共 ${currentDisplayTasks.length} 项`}
-        </span>
+        {currentDisplayTasks.length > 0 && (
+          <span className="text-sm text-muted-foreground">
+            共 {currentDisplayTasks.length} 项
+          </span>
+        )}
       </div>
 
       {/* 主内容区域 */}
@@ -146,7 +189,7 @@ export default function TransferPage() {
             <Empty className="border-none">
               <EmptyHeader>
                 <EmptyMedia variant="icon">
-                  <div className="text-6xl">📦</div>
+                  <Upload className="h-12 w-12" />
                 </EmptyMedia>
                 <EmptyTitle>
                   {activeTab === 'uploading'

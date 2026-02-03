@@ -39,7 +39,7 @@ export function Toolbar({
           className="pl-9"
         />
       </div>
-      <Button variant="ghost" size="icon" onClick={onRefresh}>
+      <Button variant="outline" size="icon" onClick={onRefresh}>
         <RefreshCw className="h-4 w-4" />
       </Button>
       {!hideActions && (

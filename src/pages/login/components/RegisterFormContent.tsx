@@ -10,8 +10,6 @@ interface Props {
   onSwitchForm: (form: 'login' | 'register' | 'forgotPassword') => void;
 }
 
-const DEFAULT_AVATAR = 'https://api.dicebear.com/7.x/avataaars/svg?seed=default';
-
 export default function RegisterFormContent({ onSwitchForm }: Props) {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<UserRegisterParams>({
@@ -20,13 +18,11 @@ export default function RegisterFormContent({ onSwitchForm }: Props) {
     confirmPassword: '',
     email: '',
     nickname: '',
-    avatar: DEFAULT_AVATAR,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // 只验证密码一致性
     if (formData.password !== formData.confirmPassword) {
       toast.error('两次密码输入不一致');
       return;
@@ -34,17 +30,11 @@ export default function RegisterFormContent({ onSwitchForm }: Props) {
 
     setLoading(true);
     try {
-      const registerData = {
-        ...formData,
-        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${formData.username}`,
-      };
-      await userApi.register(registerData);
+      await userApi.register(formData);
       toast.success('操作成功');
       setTimeout(() => {
         onSwitchForm('login');
       }, 1500);
-    } catch (error) {
-      // Error handled by interceptor
     } finally {
       setLoading(false);
     }

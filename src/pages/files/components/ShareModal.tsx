@@ -139,7 +139,6 @@ export function ShareModal({ open, onOpenChange, file, files, onSuccess }: Share
       });
 
       if (response) {
-        // 前端根据 shareToken 拼接完整的分享链接
         const shareToken = response.id;
         const baseUrl = window.location.origin;
         setShareLink(`${baseUrl}/s/${shareToken}`);
@@ -154,8 +153,6 @@ export function ShareModal({ open, onOpenChange, file, files, onSuccess }: Share
         toast.success(successMsg);
         onSuccess?.();
       }
-    } catch (error) {
-      toast.error('生成分享链接失败');
     } finally {
       setIsSubmitting(false);
     }
@@ -164,7 +161,12 @@ export function ShareModal({ open, onOpenChange, file, files, onSuccess }: Share
   // 复制链接
   const handleCopyLink = async () => {
     try {
-      await navigator.clipboard.writeText(shareLink);
+      // 如果有提取码，格式为：链接\n提取码：xxxx
+      const textToCopy = shareCode 
+        ? `${shareLink}\n提取码：${shareCode}`
+        : shareLink;
+      
+      await navigator.clipboard.writeText(textToCopy);
       setCopiedLink(true);
       setTimeout(() => {
         setCopiedLink(false);
@@ -417,63 +419,26 @@ export function ShareModal({ open, onOpenChange, file, files, onSuccess }: Share
                 </AlertDescription>
               </Alert>
 
-              <div className="space-y-4">
-                {/* 分享链接 */}
-                <div className="space-y-2">
-                  <Label>分享链接</Label>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      value={shareLink}
-                      readOnly
-                      className="flex-1 font-mono text-sm"
-                    />
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8 shrink-0"
-                      onClick={handleCopyLink}
-                    >
-                      {copiedLink ? (
-                        <Check className="h-4 w-4 text-green-600" />
-                      ) : (
-                        <Copy className="h-4 w-4" />
-                      )}
-                    </Button>
+             <div className="space-y-3 bg-muted/100 p-4 rounded-lg">
+                {/* 分享链接和提取码 */}
+                <div className="space-y-1">
+                  <div className="text-sm break-all">
+                    {shareLink}
                   </div>
-                </div>
-
-                {/* 提取码 */}
-                {shareCode && (
-                  <div className="space-y-2">
-                    <Label>提取码</Label>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        value={shareCode}
-                        readOnly
-                        className="flex-1 font-mono text-sm tracking-wider"
-                      />
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8 shrink-0"
-                        onClick={handleCopyCode}
-                      >
-                        {copiedCode ? (
-                          <Check className="h-4 w-4 text-green-600" />
-                        ) : (
-                          <Copy className="h-4 w-4" />
-                        )}
-                      </Button>
+                  {shareCode && (
+                    <div className="text-sm">
+                      <span>提取码：</span>
+                      <span>{shareCode}</span>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
 
               <div className="text-sm text-center text-muted-foreground">
                 {isPermanentShare() ? (
                   '分享链接永久有效'
                 ) : (
-                  `分享链接将在 ${getExpireText()} 后过期`
+                  `分享链接将在 ${getExpireText()} 后失效`
                 )}
               </div>
             </>
@@ -493,11 +458,26 @@ export function ShareModal({ open, onOpenChange, file, files, onSuccess }: Share
               </Button>
             </>
           ) : (
-            <DialogClose asChild>
-              <Button variant="outline" className="w-full">
-                关闭
+            <>
+              <DialogClose asChild>
+                <Button variant="outline">
+                  取消
+                </Button>
+              </DialogClose>
+              <Button onClick={handleCopyLink}>
+                {copiedLink ? (
+                  <>
+                    <Check className="h-4 w-4 mr-2" />
+                    已复制
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-4 w-4 mr-2" />
+                    复制链接
+                  </>
+                )}
               </Button>
-            </DialogClose>
+            </>
           )}
         </DialogFooter>
       </DialogContent>

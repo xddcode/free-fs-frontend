@@ -67,8 +67,6 @@ export function MySharesView() {
     try {
       const data = await getMyShareList();
       setShareList(data);
-    } catch (error) {
-      toast.error('获取分享列表失败');
     } finally {
       setLoading(false);
     }
@@ -195,15 +193,11 @@ export function MySharesView() {
     try {
       const data = await getShareDetailById(share.id);
       setCurrentShare(data);
-    } catch (error) {
-      toast.error('获取分享详情失败');
-      setShareDetailVisible(false);
     } finally {
       setShareDetailLoading(false);
     }
   };
 
-  // 查看访问记录
   const handleViewAccessRecords = async (share: ShareItem) => {
     setCurrentShareForRecords(share);
     setAccessRecordsVisible(true);
@@ -212,15 +206,11 @@ export function MySharesView() {
     try {
       const data = await getShareAccessRecords(share.id);
       setAccessRecords(data);
-    } catch (error) {
-      toast.error('获取访问记录失败');
-      setAccessRecordsVisible(false);
     } finally {
       setAccessRecordsLoading(false);
     }
   };
 
-  // 取消分享
   const handleCancelShare = (share: ShareItem) => {
     setDeletingShare(share);
     setDeleteDialogVisible(true);
@@ -234,12 +224,11 @@ export function MySharesView() {
       setDeleteDialogVisible(false);
       setDeletingShare(null);
       fetchShareList();
-    } catch (error) {
-      toast.error('取消分享失败');
+    } finally {
+      // 无需处理
     }
   };
 
-  // 批量取消分享
   const handleBatchCancel = () => {
     if (selectedKeys.length === 0) {
       toast.warning('请选择要取消的分享');
@@ -255,8 +244,8 @@ export function MySharesView() {
       setBatchDeleteDialogVisible(false);
       setSelectedKeys([]);
       fetchShareList();
-    } catch (error) {
-      toast.error('批量取消分享失败');
+    } finally {
+      // 无需处理
     }
   };
 
@@ -599,11 +588,17 @@ export function MySharesView() {
             <DialogClose asChild>
               <Button variant="outline">关闭</Button>
             </DialogClose>
-            <Button onClick={handleCopyShareDetail} size="icon">
+            <Button onClick={handleCopyShareDetail}>
               {copiedShareDetail ? (
-                <Check className="h-4 w-4 text-green-600" />
+                <>
+                  <Check className="h-4 w-4 mr-2" />
+                  已复制
+                </>
               ) : (
-                <Copy className="h-4 w-4" />
+                <>
+                  <Copy className="h-4 w-4 mr-2" />
+                  复制分享
+                </>
               )}
             </Button>
           </DialogFooter>

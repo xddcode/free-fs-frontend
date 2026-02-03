@@ -1,18 +1,12 @@
+import { useState } from 'react'
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
-import { CaretSortIcon, CheckIcon } from '@radix-ui/react-icons'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { showSubmittedData } from '@/lib/show-submitted-data'
-import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
+import { Eye, EyeOff, Loader2 } from 'lucide-react'
+import { useAuth } from '@/contexts/auth-context'
+import { userApi } from '@/api/user'
 import { Button } from '@/components/ui/button'
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@/components/ui/command'
 import {
   Form,
   FormControl,
@@ -23,150 +17,274 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
-import { DatePicker } from '@/components/date-picker'
+import { Separator } from '@/components/ui/separator'
 
-const languages = [
-  { label: 'English', value: 'en' },
-  { label: 'French', value: 'fr' },
-  { label: 'German', value: 'de' },
-  { label: 'Spanish', value: 'es' },
-  { label: 'Portuguese', value: 'pt' },
-  { label: 'Russian', value: 'ru' },
-  { label: 'Japanese', value: 'ja' },
-  { label: 'Korean', value: 'ko' },
-  { label: 'Chinese', value: 'zh' },
-] as const
-
-const accountFormSchema = z.object({
-  name: z
+const changePasswordSchema = z.object({
+  oldPassword: z.string().min(1, '请输入当前密码'),
+  newPassword: z
     .string()
-    .min(1, 'Please enter your name.')
-    .min(2, 'Name must be at least 2 characters.')
-    .max(30, 'Name must not be longer than 30 characters.'),
-  dob: z.date({ message: 'Please select your date of birth.' }),
-  language: z.string({ message: 'Please select a language.' }),
+    .min(6, '新密码至少需要6个字符')
+    .max(32, '新密码不能超过32个字符'),
+  confirmPassword: z.string().min(1, '请确认新密码'),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: '两次输入的密码不一致',
+  path: ['confirmPassword'],
 })
 
-type AccountFormValues = z.infer<typeof accountFormSchema>
+const changeEmailSchema = z.object({
+  email: z.string().email('请输入有效的邮箱地址'),
+  password: z.string().min(1, '请输入密码以验证身份'),
+})
 
-const defaultValues: Partial<AccountFormValues> = {
-  name: '',
-}
+type ChangePasswordValues = z.infer<typeof changePasswordSchema>
+type ChangeEmailValues = z.infer<typeof changeEmailSchema>
 
 export function AccountForm() {
-  const form = useForm<AccountFormValues>({
-    resolver: zodResolver(accountFormSchema),
-    defaultValues,
+  const { user, updateUser } = useAuth()
+  const [showOldPassword, setShowOldPassword] = useState(false)
+  const [showNewPassword, setShowNewPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [showEmailPassword, setShowEmailPassword] = useState(false)
+  const [isChangingPassword, setIsChangingPassword] = useState(false)
+  const [isChangingEmail, setIsChangingEmail] = useState(false)
+
+  const passwordForm = useForm<ChangePasswordValues>({
+    resolver: zodResolver(changePasswordSchema),
+    defaultValues: {
+      oldPassword: '',
+      newPassword: '',
+      confirmPassword: '',
+    },
   })
 
-  function onSubmit(data: AccountFormValues) {
-    showSubmittedData(data)
+  const emailForm = useForm<ChangeEmailValues>({
+    resolver: zodResolver(changeEmailSchema),
+    defaultValues: {
+      email: user?.email || '',
+      password: '',
+    },
+  })
+
+  async function onPasswordSubmit(data: ChangePasswordValues) {
+    setIsChangingPassword(true)
+    try {
+      await userApi.changePassword(data)
+      toast.success('密码修改成功')
+      passwordForm.reset()
+    } finally {
+      setIsChangingPassword(false)
+    }
+  }
+
+  async function onEmailSubmit(data: ChangeEmailValues) {
+    if (!user) return
+    
+    setIsChangingEmail(true)
+    try {
+      await userApi.updateUserInfo({ email: data.email })
+      
+      updateUser({
+        ...user,
+        email: data.email,
+      })
+      
+      toast.success('邮箱修改成功')
+      emailForm.setValue('password', '')
+    } finally {
+      setIsChangingEmail(false)
+    }
   }
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-8'>
-        <FormField
-          control={form.control}
-          name='name'
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Name</FormLabel>
-              <FormControl>
-                <Input placeholder='Your name' {...field} />
-              </FormControl>
-              <FormDescription>
-                This is the name that will be displayed on your profile and in
-                emails.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name='dob'
-          render={({ field }) => (
-            <FormItem className='flex flex-col'>
-              <FormLabel>Date of birth</FormLabel>
-              <DatePicker selected={field.value} onSelect={field.onChange} />
-              <FormDescription>
-                Your date of birth is used to calculate your age.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name='language'
-          render={({ field }) => (
-            <FormItem className='flex flex-col'>
-              <FormLabel>Language</FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
+    <div className='space-y-8'>
+      {/* 修改密码 */}
+      <div className='space-y-4'>
+        <div>
+          <h4 className='text-base font-medium'>修改密码</h4>
+          <p className='text-sm text-muted-foreground'>
+            定期更新您的密码以保护账户安全
+          </p>
+        </div>
+        <Form {...passwordForm}>
+          <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className='space-y-4'>
+            <FormField
+              control={passwordForm.control}
+              name='oldPassword'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>当前密码</FormLabel>
                   <FormControl>
-                    <Button
-                      variant='outline'
-                      role='combobox'
-                      className={cn(
-                        'w-[200px] justify-between',
-                        !field.value && 'text-muted-foreground'
-                      )}
-                    >
-                      {field.value
-                        ? languages.find(
-                            (language) => language.value === field.value
-                          )?.label
-                        : 'Select language'}
-                      <CaretSortIcon className='ms-2 h-4 w-4 shrink-0 opacity-50' />
-                    </Button>
+                    <div className='relative'>
+                      <Input
+                        type={showOldPassword ? 'text' : 'password'}
+                        placeholder='请输入当前密码'
+                        {...field}
+                      />
+                      <Button
+                        type='button'
+                        variant='ghost'
+                        size='sm'
+                        className='absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent'
+                        onClick={() => setShowOldPassword(!showOldPassword)}
+                      >
+                        {showOldPassword ? (
+                          <EyeOff className='h-4 w-4' />
+                        ) : (
+                          <Eye className='h-4 w-4' />
+                        )}
+                      </Button>
+                    </div>
                   </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className='w-[200px] p-0'>
-                  <Command>
-                    <CommandInput placeholder='Search language...' />
-                    <CommandEmpty>No language found.</CommandEmpty>
-                    <CommandGroup>
-                      <CommandList>
-                        {languages.map((language) => (
-                          <CommandItem
-                            value={language.label}
-                            key={language.value}
-                            onSelect={() => {
-                              form.setValue('language', language.value)
-                            }}
-                          >
-                            <CheckIcon
-                              className={cn(
-                                'size-4',
-                                language.value === field.value
-                                  ? 'opacity-100'
-                                  : 'opacity-0'
-                              )}
-                            />
-                            {language.label}
-                          </CommandItem>
-                        ))}
-                      </CommandList>
-                    </CommandGroup>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-              <FormDescription>
-                This is the language that will be used in the dashboard.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <Button type='submit'>保存设置</Button>
-      </form>
-    </Form>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={passwordForm.control}
+              name='newPassword'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>新密码</FormLabel>
+                  <FormControl>
+                    <div className='relative'>
+                      <Input
+                        type={showNewPassword ? 'text' : 'password'}
+                        placeholder='请输入新密码'
+                        {...field}
+                      />
+                      <Button
+                        type='button'
+                        variant='ghost'
+                        size='sm'
+                        className='absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent'
+                        onClick={() => setShowNewPassword(!showNewPassword)}
+                      >
+                        {showNewPassword ? (
+                          <EyeOff className='h-4 w-4' />
+                        ) : (
+                          <Eye className='h-4 w-4' />
+                        )}
+                      </Button>
+                    </div>
+                  </FormControl>
+                  <FormDescription>
+                    密码长度为6-32个字符
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={passwordForm.control}
+              name='confirmPassword'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>确认新密码</FormLabel>
+                  <FormControl>
+                    <div className='relative'>
+                      <Input
+                        type={showConfirmPassword ? 'text' : 'password'}
+                        placeholder='请再次输入新密码'
+                        {...field}
+                      />
+                      <Button
+                        type='button'
+                        variant='ghost'
+                        size='sm'
+                        className='absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent'
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      >
+                        {showConfirmPassword ? (
+                          <EyeOff className='h-4 w-4' />
+                        ) : (
+                          <Eye className='h-4 w-4' />
+                        )}
+                      </Button>
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <Button type='submit' disabled={isChangingPassword}>
+              {isChangingPassword && <Loader2 className='mr-2 h-4 w-4 animate-spin' />}
+              修改密码
+            </Button>
+          </form>
+        </Form>
+      </div>
+
+      <Separator />
+
+      {/* 修改邮箱 */}
+      <div className='space-y-4'>
+        <div>
+          <h4 className='text-base font-medium'>修改邮箱</h4>
+          <p className='text-sm text-muted-foreground'>
+            更新您的邮箱地址，用于接收通知和找回密码
+          </p>
+        </div>
+        <Form {...emailForm}>
+          <form onSubmit={emailForm.handleSubmit(onEmailSubmit)} className='space-y-4'>
+            <FormField
+              control={emailForm.control}
+              name='email'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>邮箱地址</FormLabel>
+                  <FormControl>
+                    <Input
+                      type='email'
+                      placeholder='请输入新的邮箱地址'
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    当前邮箱：{user?.email || '未设置'}
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={emailForm.control}
+              name='password'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>确认密码</FormLabel>
+                  <FormControl>
+                    <div className='relative'>
+                      <Input
+                        type={showEmailPassword ? 'text' : 'password'}
+                        placeholder='请输入密码以验证身份'
+                        {...field}
+                      />
+                      <Button
+                        type='button'
+                        variant='ghost'
+                        size='sm'
+                        className='absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent'
+                        onClick={() => setShowEmailPassword(!showEmailPassword)}
+                      >
+                        {showEmailPassword ? (
+                          <EyeOff className='h-4 w-4' />
+                        ) : (
+                          <Eye className='h-4 w-4' />
+                        )}
+                      </Button>
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <Button type='submit' disabled={isChangingEmail}>
+              {isChangingEmail && <Loader2 className='mr-2 h-4 w-4 animate-spin' />}
+              修改邮箱
+            </Button>
+          </form>
+        </Form>
+      </div>
+    </div>
   )
 }

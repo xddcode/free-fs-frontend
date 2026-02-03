@@ -43,12 +43,8 @@ export function MoveModal({ open, onOpenChange, file, files, onConfirm, onRefres
     setLoading(true);
     try {
       const response = await getFolders(parentId);
-      // 过滤掉正在移动的文件夹（避免移动到自己或子文件夹）
       const filteredFolders = response.filter((folder) => !movingFileIds.includes(folder.id));
       setFolders(filteredFolders);
-    } catch (error) {
-      toast.error('操作失败');
-      setFolders([]);
     } finally {
       setLoading(false);
     }
@@ -92,12 +88,10 @@ export function MoveModal({ open, onOpenChange, file, files, onConfirm, onRefres
       toast.success('创建文件夹成功');
       setIsCreatingFolder(false);
       setNewFolderName('');
-      // 刷新弹窗内的目录列表
       loadFolders(currentParentId);
-      // 通知外部刷新文件列表
       onRefresh?.();
-    } catch (error) {
-      toast.error('操作失败');
+    } finally {
+      // 无需处理
     }
   };
 
@@ -142,8 +136,6 @@ export function MoveModal({ open, onOpenChange, file, files, onConfirm, onRefres
     try {
       await onConfirm(movingFileIds, targetDirId);
       onOpenChange(false);
-    } catch (error) {
-      // 错误已在 onConfirm 中处理
     } finally {
       setIsSubmitting(false);
     }

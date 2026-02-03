@@ -123,8 +123,6 @@ export function TransferForm() {
         concurrentDownloadQuantity: settings.concurrentDownloadQuantity || 3,
         chunkSize: settings.chunkSize || 5 * 1024 * 1024,
       })
-    } catch (error) {
-      toast.error('加载设置失败')
     } finally {
       setLoading(false)
     }
@@ -145,8 +143,6 @@ export function TransferForm() {
       })
       toast.success('保存成功')
       await loadSettings()
-    } catch (error) {
-      toast.error('保存失败')
     } finally {
       setLoading(false)
     }

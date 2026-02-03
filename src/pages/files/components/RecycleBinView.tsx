@@ -64,9 +64,6 @@ export default function RecycleBinView() {
     try {
       const response = await getRecycleList(keyword || undefined);
       setFileList(response || []);
-    } catch (error) {
-      setFileList([]);
-      toast.error('获取回收站列表失败');
     } finally {
       setLoading(false);
     }
@@ -107,8 +104,8 @@ export default function RecycleBinView() {
       setSelectedIds([]);
       setOperatingItem(null);
       fetchRecycleList(searchKeyword || undefined);
-    } catch (error) {
-      toast.error('还原失败');
+    } finally {
+      // 无需处理
     }
   };
 
@@ -142,8 +139,8 @@ export default function RecycleBinView() {
       setSelectedIds([]);
       setOperatingItem(null);
       fetchRecycleList(searchKeyword || undefined);
-    } catch (error) {
-      toast.error('删除失败');
+    } finally {
+      // 无需处理
     }
   };
 
@@ -173,8 +170,8 @@ export default function RecycleBinView() {
       setSelectedIds([]);
       setSearchKeyword('');
       fetchRecycleList(undefined);
-    } catch (error) {
-      toast.error('清空回收站失败');
+    } finally {
+      // 无需处理
     }
   };
 

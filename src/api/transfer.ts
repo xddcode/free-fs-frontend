@@ -84,3 +84,10 @@ export function pauseUpload(taskId: string) {
 export function resumeUpload(taskId: string) {
   return request.post(`/apis/transfer/resume/${taskId}`);
 }
+
+/**
+ * 清空已完成任务
+ */
+export function clearCompletedTasks() {
+  return request.delete('/apis/transfer/clears');
+}

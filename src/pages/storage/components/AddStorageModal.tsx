@@ -141,8 +141,6 @@ export function AddStorageModal({ open, onOpenChange, onSuccess }: AddStorageMod
       toast.success('配置添加成功');
       onSuccess();
       onOpenChange(false);
-    } catch (error) {
-      toast.error('添加配置失败');
     } finally {
       setIsSubmitting(false);
     }

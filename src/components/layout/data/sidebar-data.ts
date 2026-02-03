@@ -16,6 +16,7 @@ import {
   Music,
   MoreHorizontal,
   Folder,
+  Shield,
 } from 'lucide-react'
 import { type SidebarData } from '../types'
 
@@ -123,6 +124,11 @@ export const sidebarData: SidebarData = {
               title: '个人资料',
               url: '/settings',
               icon: User,
+            },
+            {
+              title: '账户设置',
+              url: '/settings/account',
+              icon: Shield,
             },
             {
               title: '外观',

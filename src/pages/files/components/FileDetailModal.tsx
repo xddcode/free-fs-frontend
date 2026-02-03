@@ -44,9 +44,6 @@ export function FileDetailModal({
     try {
       const data = await getFileDetail(file.id);
       setDetailData(data);
-    } catch (error) {
-      toast.error('获取文件详情失败');
-      setDetailData(file); // 降级使用传入的基本信息
     } finally {
       setLoading(false);
     }

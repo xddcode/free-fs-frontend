@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
-import { Clock, User, Lock, RefreshCw, XCircle, FileText, List, LayoutGrid, Share2 } from 'lucide-react';
+import { Clock, Lock, RefreshCw, XCircle, FileText, List, LayoutGrid, Share2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getShareDetail, validateShareCode, getShareItemList } from '@/api/share';
 import type { ShareThin } from '@/types/share';
@@ -13,6 +13,7 @@ import { ShareFileListView, ShareFileGridView } from './components';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { FileIcon } from '@/components/file-icon';
 import { getToken } from '@/utils/auth';
+import { getAvatarFallback } from '@/utils/avatar';
 
 type ViewMode = 'list' | 'grid';
 
@@ -66,8 +67,6 @@ export default function SharePage() {
       } else {
         toast.error('提取码错误');
       }
-    } catch (error) {
-      toast.error('验证失败');
     } finally {
       setVerifying(false);
     }
@@ -120,8 +119,6 @@ export default function SharePage() {
     try {
       const data = await getShareItemList(shareToken!, parentId);
       setFileList(data);
-    } catch (error) {
-      toast.error('获取文件列表失败');
     } finally {
       setBodyLoading(false);
     }
@@ -268,16 +265,20 @@ export default function SharePage() {
 
   // 需要验证码状态
   if (!isVerified) {
+    const avatarFallback = getAvatarFallback(shareData.shareName || 'Free-fs');
+    
     return (
       <div className="min-h-screen bg-gradient-to-b from-blue-50 to-gray-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-lg p-10 max-w-md w-full">
           <div className="text-center mb-8">
-            <Avatar className="h-16 w-16 mx-auto mb-4 bg-primary/10">
-              <AvatarFallback>
-                <User className="h-8 w-8 text-primary" />
+            <Avatar className="h-16 w-16 mx-auto mb-4">
+              <AvatarFallback 
+                className="font-semibold text-xl bg-sidebar-accent text-sidebar-accent-foreground"
+              >
+                {avatarFallback}
               </AvatarFallback>
             </Avatar>
-            <h2 className="text-xl font-semibold mb-2">Free-fs 的文件分享</h2>
+            <h2 className="text-xl font-semibold mb-2">{shareData.shareName || 'Free-fs'} 的文件分享</h2>
             <p className="text-muted-foreground">需要提取码才能访问</p>
           </div>
           <div className="space-y-4">

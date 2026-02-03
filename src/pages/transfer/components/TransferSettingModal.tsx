@@ -52,8 +52,6 @@ export default function TransferSettingModal({
       // TODO: 调用 API 加载设置
       // const response = await getTransferSetting();
       // setFormData(response.data);
-    } catch (error) {
-      toast.error('加载设置失败');
     } finally {
       setLoading(false);
     }
@@ -71,8 +69,6 @@ export default function TransferSettingModal({
       // await updateTransferSetting(formData);
       toast.success('保存成功');
       onOpenChange(false);
-    } catch (error) {
-      toast.error('保存失败');
     } finally {
       setLoading(false);
     }

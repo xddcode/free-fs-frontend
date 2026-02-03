@@ -148,14 +148,11 @@ export function StorageSettingCard({ setting, onRefresh }: StorageSettingCardPro
       toast.success('配置保存成功');
       onRefresh();
       setEditModalOpen(false);
-    } catch (error) {
-      toast.error('保存失败');
     } finally {
       setIsLoading(false);
     }
   };
 
-  // 删除配置
   const handleDelete = async () => {
     setIsLoading(true);
     try {
@@ -163,14 +160,11 @@ export function StorageSettingCard({ setting, onRefresh }: StorageSettingCardPro
       toast.success(`${setting.storagePlatform.name} 配置已删除`);
       onRefresh();
       setDeleteDialogOpen(false);
-    } catch (error) {
-      toast.error('删除失败');
     } finally {
       setIsLoading(false);
     }
   };
 
-  // 切换启用状态
   const handleToggle = async () => {
     const action = setting.enabled === 1 ? 0 : 1;
     setIsLoading(true);
@@ -185,7 +179,6 @@ export function StorageSettingCard({ setting, onRefresh }: StorageSettingCardPro
         window.location.reload();
       }, 800);
     } catch (error) {
-      toast.error('操作失败');
       setIsLoading(false);
     }
   };
@@ -322,11 +315,17 @@ export function StorageSettingCard({ setting, onRefresh }: StorageSettingCardPro
             <DialogClose asChild>
               <Button variant="outline">取消</Button>
             </DialogClose>
-            <Button onClick={handleCopyConfig} size="icon">
+            <Button onClick={handleCopyConfig}>
               {copiedConfig ? (
-                <Check className="h-4 w-4 text-green-600" />
+                <>
+                  <Check className="h-4 w-4 mr-2" />
+                  已复制
+                </>
               ) : (
-                <Copy className="h-4 w-4" />
+                <>
+                  <Copy className="h-4 w-4 mr-2" />
+                  复制配置
+                </>
               )}
             </Button>
           </DialogFooter>

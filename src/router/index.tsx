@@ -7,6 +7,7 @@ import SharePage from '@/pages/share';
 import TransferPage from '@/pages/transfer';
 import { Settings } from '@/pages/settings';
 import { SettingsProfile } from '@/pages/settings/profile';
+import { SettingsAccount } from '@/pages/settings/account';
 import { SettingsAppearance } from '@/pages/settings/appearance';
 import { SettingsTransfer } from '@/pages/settings/transfer';
 import { AppLayout } from '@/components/layout/app-layout';
@@ -84,6 +85,10 @@ export const router = createBrowserRouter([
       {
         index: true,
         element: <SettingsProfile />,
+      },
+      {
+        path: 'account',
+        element: <SettingsAccount />,
       },
       {
         path: 'appearance',

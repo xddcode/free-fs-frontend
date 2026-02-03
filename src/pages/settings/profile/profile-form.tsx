@@ -27,7 +27,7 @@ const profileFormSchema = z.object({
 type ProfileFormValues = z.infer<typeof profileFormSchema>
 
 export function ProfileForm() {
-  const { user } = useAuth()
+  const { user, updateUser } = useAuth()
   const [loading, setLoading] = useState(false)
 
   const form = useForm<ProfileFormValues>({
@@ -37,7 +37,6 @@ export function ProfileForm() {
     },
   })
 
-  // 初始化表单数据
   useEffect(() => {
     if (user?.nickname) {
       form.reset({
@@ -47,14 +46,20 @@ export function ProfileForm() {
   }, [user, form])
 
   async function onSubmit(data: ProfileFormValues) {
+    if (!user) return
+    
     setLoading(true)
     try {
       await userApi.updateUserInfo({
         nickname: data.nickname,
       })
+      
+      updateUser({
+        ...user,
+        nickname: data.nickname,
+      })
+      
       toast.success('昵称修改成功')
-    } catch (error) {
-      toast.error('昵称修改失败')
     } finally {
       setLoading(false)
     }

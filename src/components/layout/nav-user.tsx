@@ -16,6 +16,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from '@/components/ui/sidebar'
+import { getAvatarFallback } from '@/utils/avatar'
 
 interface NavUserProps {
   user: {
@@ -39,6 +40,8 @@ export function NavUser({ user }: NavUserProps) {
     navigate('/settings')
   }
 
+  const avatarFallback = getAvatarFallback(user.name)
+
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -50,8 +53,10 @@ export function NavUser({ user }: NavUserProps) {
             >
               <Avatar className="h-8 w-8 rounded-lg">
                 <AvatarImage src={user.avatar} alt={user.name} />
-                <AvatarFallback className="rounded-lg">
-                  {user.name.slice(0, 2).toUpperCase()}
+                <AvatarFallback 
+                  className="rounded-lg font-medium bg-sidebar-accent text-sidebar-accent-foreground"
+                >
+                  {avatarFallback}
                 </AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-start text-sm leading-tight">
@@ -71,8 +76,10 @@ export function NavUser({ user }: NavUserProps) {
               <div className="flex items-center gap-2 px-1 py-1.5 text-start text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
                   <AvatarImage src={user.avatar} alt={user.name} />
-                  <AvatarFallback className="rounded-lg">
-                    {user.name.slice(0, 2).toUpperCase()}
+                  <AvatarFallback 
+                    className="rounded-lg font-medium bg-sidebar-accent text-sidebar-accent-foreground"
+                  >
+                    {avatarFallback}
                   </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-start text-sm leading-tight">
