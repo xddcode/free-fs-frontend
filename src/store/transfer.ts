@@ -19,6 +19,7 @@ import {
 } from '@/api/transfer';
 import { sseService } from '@/services/sse.service';
 import { uploadExecutor } from '@/services/upload-executor';
+import { useUserStore } from './user';
 
 interface TransferStore {
   tasks: Map<string, TransferTask>;
@@ -414,6 +415,16 @@ export const useTransferStore = create<TransferStore>((set, get) => ({
   },
 
   createTask: async (file, parentId, sessionId) => {
+    // 从用户 store 获取传输设置
+    const userStore = useUserStore.getState();
+    if (!userStore.transferSetting) {
+      await userStore.loadTransferSetting();
+    }
+
+    const settings = userStore.transferSetting!;
+    const chunkSize = settings.chunkSize;
+    const concurrency = settings.concurrentUploadQuantity;
+
     if (!callbacksInitialized) {
       callbacksInitialized = true;
       uploadExecutor.setCallbacks({
@@ -429,7 +440,6 @@ export const useTransferStore = create<TransferStore>((set, get) => ({
       });
     }
 
-    const chunkSize = 5 * 1024 * 1024;
     const totalChunks = Math.ceil(file.size / chunkSize);
 
     const taskId = await initUpload({
@@ -480,8 +490,7 @@ export const useTransferStore = create<TransferStore>((set, get) => ({
 
     get().transitionTo(taskId, 'initialized');
 
-    const currentConcurrency = 3;
-    uploadExecutor.start(taskId, file, currentConcurrency, chunkSize).catch(() => {
+    uploadExecutor.start(taskId, file, concurrency, chunkSize).catch(() => {
       // Silent
     });
 
@@ -588,8 +597,9 @@ export const useTransferStore = create<TransferStore>((set, get) => ({
       set({ tasks: newTasks });
     }
 
-    const currentConcurrency = 3;
-    const currentChunkSize = 5 * 1024 * 1024;
+    const userStore = useUserStore.getState();
+    const currentConcurrency = userStore.transferSetting?.concurrentUploadQuantity || 3;
+    const currentChunkSize = userStore.transferSetting?.chunkSize || 5 * 1024 * 1024;
     uploadExecutor.start(taskId, file, currentConcurrency, currentChunkSize).catch(() => {
       // Silent
     });

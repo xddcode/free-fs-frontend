@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   MoreVertical,
   Download,
@@ -37,6 +37,7 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useFileDragDrop } from '../hooks/useFileDragDrop';
 
 interface FileListViewProps {
   fileList: FileItem[];
@@ -49,9 +50,11 @@ interface FileListViewProps {
   onDelete: (file: FileItem) => void;
   onRename: (file: FileItem) => void;
   onMove: (file: FileItem) => void;
+  onMoveFiles: (fileIds: string[], targetDirId: string) => Promise<void>;
   onFavorite: (file: FileItem) => void;
   onPreview: (file: FileItem) => void;
   onDetail: (file: FileItem) => void;
+  onDragStateChange?: (dropTargetName: string | null, draggedCount: number) => void;
 }
 
 export function FileListView({
@@ -65,11 +68,31 @@ export function FileListView({
   onDelete,
   onRename,
   onMove,
+  onMoveFiles,
   onFavorite,
   onPreview,
   onDetail,
+  onDragStateChange,
 }: FileListViewProps) {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+
+  // 拖拽功能
+  const {
+    dragState,
+    handleDragStart,
+    handleDragEnd,
+    handleDragEnter,
+    handleDragOver,
+    handleDragLeave,
+    handleDrop,
+  } = useFileDragDrop(selectedKeys, fileList, onMoveFiles);
+
+  // 通知父组件拖拽状态变化
+  useEffect(() => {
+    if (onDragStateChange) {
+      onDragStateChange(dragState.dropTargetName, dragState.draggedItems.length);
+    }
+  }, [dragState.dropTargetName, dragState.draggedItems.length, onDragStateChange]);
 
   const handleSelectChange = (fileId: string, checked: boolean) => {
     if (checked) {
@@ -135,11 +158,25 @@ export function FileListView({
         <TableBody>
           {fileList.map((file) => {
             const isSelected = selectedKeys.includes(file.id);
+            const isDragging = dragState.draggedItems.some((f) => f.id === file.id);
+            const isDropTarget = file.isDir && dragState.dropTargetId === file.id;
             return (
               <ContextMenu key={file.id}>
                 <ContextMenuTrigger asChild>
                   <TableRow
-                    className={cn('transition-colors group', isSelected && 'bg-primary/5')}
+                    className={cn(
+                      'transition-colors group',
+                      isSelected && !isDropTarget && 'bg-primary/5',
+                      isDragging && 'opacity-50 cursor-move',
+                      isDropTarget && 'bg-primary/15'
+                    )}
+                    draggable={!openMenuId}
+                    onDragStart={(e) => handleDragStart(e, file)}
+                    onDragEnd={handleDragEnd}
+                    onDragEnter={(e) => handleDragEnter(e, file)}
+                    onDragOver={(e) => handleDragOver(e, file)}
+                    onDragLeave={(e) => handleDragLeave(e, file)}
+                    onDrop={(e) => handleDrop(e, file)}
                     onClick={(e) => handleRowClick(file, e)}
                     onDoubleClick={() => handleDoubleClick(file)}
                   >

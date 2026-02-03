@@ -1,6 +1,6 @@
 import { request } from './request';
 import { LoginParams, LoginRes, UserInfo, UserRegisterParams, ChangePasswordParams, ForgotPasswordParams } from '@/types/user';
-import { TransferSetting, UpdateTransferSettingCmd } from '@/types/transfer';
+import { TransferSetting, UpdateTransferSettingCmd } from '@/types/transfer-setting';
 
 export const userApi = {
   // 登录

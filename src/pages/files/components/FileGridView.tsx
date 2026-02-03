@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   MoreVertical,
   Download,
@@ -29,6 +29,7 @@ import {
 } from '@/components/ui/context-menu';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useFileDragDrop } from '../hooks/useFileDragDrop';
 
 interface FileGridViewProps {
   fileList: FileItem[];
@@ -40,9 +41,11 @@ interface FileGridViewProps {
   onDelete: (file: FileItem) => void;
   onRename: (file: FileItem) => void;
   onMove: (file: FileItem) => void;
+  onMoveFiles: (fileIds: string[], targetDirId: string) => Promise<void>;
   onFavorite: (file: FileItem) => void;
   onPreview: (file: FileItem) => void;
   onDetail: (file: FileItem) => void;
+  onDragStateChange?: (dropTargetName: string | null, draggedCount: number) => void;
 }
 
 export function FileGridView({
@@ -55,11 +58,31 @@ export function FileGridView({
   onDelete,
   onRename,
   onMove,
+  onMoveFiles,
   onFavorite,
   onPreview,
   onDetail,
+  onDragStateChange,
 }: FileGridViewProps) {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+
+  // 拖拽功能
+  const {
+    dragState,
+    handleDragStart,
+    handleDragEnd,
+    handleDragEnter,
+    handleDragOver,
+    handleDragLeave,
+    handleDrop,
+  } = useFileDragDrop(selectedKeys, fileList, onMoveFiles);
+
+  // 通知父组件拖拽状态变化
+  useEffect(() => {
+    if (onDragStateChange) {
+      onDragStateChange(dragState.dropTargetName, dragState.draggedItems.length);
+    }
+  }, [dragState.dropTargetName, dragState.draggedItems.length, onDragStateChange]);
 
   const handleItemClick = (file: FileItem, event: React.MouseEvent) => {
     const isMultiSelect = event.ctrlKey || event.metaKey;
@@ -100,6 +123,8 @@ export function FileGridView({
       <div className="grid grid-cols-[repeat(auto-fill,minmax(130px,1fr))] gap-4">
         {fileList.map((file) => {
           const isSelected = selectedKeys.includes(file.id);
+          const isDragging = dragState.draggedItems.some((f) => f.id === file.id);
+          const isDropTarget = file.isDir && dragState.dropTargetId === file.id;
 
           return (
             <ContextMenu key={file.id}>
@@ -108,8 +133,17 @@ export function FileGridView({
                   className={cn(
                     'relative rounded-lg p-4 pb-2 text-center transition-all cursor-pointer group',
                     'hover:bg-accent',
-                    isSelected && 'bg-primary/10'
+                    isSelected && 'bg-primary/10',
+                    isDragging && 'opacity-50 cursor-move',
+                    isDropTarget && 'bg-primary/15'
                   )}
+                  draggable={!openMenuId}
+                  onDragStart={(e) => handleDragStart(e, file)}
+                  onDragEnd={handleDragEnd}
+                  onDragEnter={(e) => handleDragEnter(e, file)}
+                  onDragOver={(e) => handleDragOver(e, file)}
+                  onDragLeave={(e) => handleDragLeave(e, file)}
+                  onDrop={(e) => handleDrop(e, file)}
                   onClick={(e) => handleItemClick(file, e)}
                   onDoubleClick={() => handleDoubleClick(file)}
                 >

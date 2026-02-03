@@ -31,6 +31,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { userApi } from '@/api/user'
+import { useUserStore } from '@/store/user'
 
 // 路径格式校验
 const validatePath = (value: string) => {
@@ -86,6 +87,7 @@ type TransferFormValues = z.infer<typeof transferFormSchema>
 
 export function TransferForm() {
   const [loading, setLoading] = useState(false)
+  const { loadTransferSetting } = useUserStore()
 
   const form = useForm<TransferFormValues>({
     resolver: zodResolver(transferFormSchema),
@@ -142,7 +144,10 @@ export function TransferForm() {
         chunkSize: data.chunkSize,
       })
       toast.success('保存成功')
+      // 重新加载设置到表单
       await loadSettings()
+      // 更新用户 store 中的传输设置
+      await loadTransferSetting()
     } finally {
       setLoading(false)
     }

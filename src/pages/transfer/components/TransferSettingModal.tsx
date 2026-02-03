@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type { TransferSettingForm } from '@/types/transfer';
+import type { TransferSettingForm } from '@/types/transfer-setting';
 
 interface TransferSettingModalProps {
   open: boolean;

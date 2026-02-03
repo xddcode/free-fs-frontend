@@ -30,13 +30,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const initAuth = async () => {
       try {
         const storedToken = getToken();
-        const storedUser = localStorage.getItem('userInfo') || sessionStorage.getItem('userInfo');
         
-        if (storedToken && storedUser) {
-          const userInfo = JSON.parse(storedUser);
-          setToken(storedToken);
-          setUser(userInfo);
-          setIsAuthenticated(true);
+        if (storedToken) {
+          // 从 Zustand store 读取用户信息
+          const { useUserStore } = await import('@/store/user');
+          const userStore = useUserStore.getState();
+          
+          if (userStore.id) {
+            setToken(storedToken);
+            setUser({
+              id: userStore.id,
+              username: userStore.username,
+              nickname: userStore.nickname,
+              email: userStore.email,
+              avatar: userStore.avatar,
+              status: userStore.status,
+            });
+            setIsAuthenticated(true);
+          }
           
           // 获取当前启用的存储平台配置
           try {
@@ -60,8 +71,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
         console.error('初始化认证信息失败:', error);
         // 清除可能损坏的数据
         removeToken();
-        localStorage.removeItem('userInfo');
-        sessionStorage.removeItem('userInfo');
       } finally {
         setIsLoading(false);
       }
@@ -78,16 +87,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setUser(userInfo);
       setIsAuthenticated(true);
       
-      // 根据remember参数决定存储位置
-      const storage = remember ? localStorage : sessionStorage;
-      storage.setItem('userInfo', JSON.stringify(userInfo));
-      
-      // 清除另一个存储中的数据
-      if (remember) {
-        sessionStorage.removeItem('userInfo');
-      } else {
-        localStorage.removeItem('userInfo');
-      }
+      // 使用 Zustand store 统一管理用户信息和传输设置
+      const { useUserStore } = await import('@/store/user');
+      const userStore = useUserStore.getState();
+      userStore.setUserInfo(userInfo);
+      await userStore.loadTransferSetting();
       
       // 获取当前启用的存储平台配置
       try {
@@ -119,9 +123,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
     
     // 清除所有存储的认证信息
     removeToken();
-    localStorage.removeItem('userInfo');
-    sessionStorage.removeItem('userInfo');
     localStorage.removeItem('current-storage-platform');
+    
+    // 清除 Zustand store
+    import('@/store/user').then(({ useUserStore }) => {
+      useUserStore.getState().clearUserInfo();
+    });
     
     // 跳转到登录页
     window.location.hash = '#/login';
@@ -130,9 +137,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const updateUser = (userInfo: UserInfo) => {
     setUser(userInfo);
     
-    // 更新存储的用户信息
-    const storage = localStorage.getItem('accessToken') ? localStorage : sessionStorage;
-    storage.setItem('userInfo', JSON.stringify(userInfo));
+    // 同步更新 Zustand store
+    import('@/store/user').then(({ useUserStore }) => {
+      useUserStore.getState().setUserInfo(userInfo);
+    });
   };
 
   const value: AuthContextType = {

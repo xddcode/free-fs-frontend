@@ -57,6 +57,10 @@ export default function FilesPage() {
   // 上传弹窗状态
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
 
+  // 拖拽状态
+  const [dragTargetName, setDragTargetName] = useState<string | null>(null);
+  const [draggedCount, setDraggedCount] = useState(0);
+
   // 使用 hooks
   const fileList = useFileList();
   
@@ -209,6 +213,21 @@ export default function FilesPage() {
     operations.openBatchDeleteConfirm(selectedFiles);
   };
 
+  /**
+   * 拖拽移动文件
+   */
+  const handleMoveFiles = async (fileIds: string[], targetDirId: string) => {
+    await operations.handleMove(fileIds, targetDirId);
+  };
+
+  /**
+   * 处理拖拽状态变化
+   */
+  const handleDragStateChange = (dropTargetName: string | null, draggedCount: number) => {
+    setDragTargetName(dropTargetName);
+    setDraggedCount(draggedCount);
+  };
+
   const isAllSelected = fileList.fileList.length > 0 && selectedKeys.length === fileList.fileList.length;
 
   // 如果是回收站或我的分享视图,显示对应的特殊组件
@@ -267,6 +286,18 @@ export default function FilesPage() {
           hideActions={false}
         />
       </div>
+
+      {/* 拖拽提示 */}
+      {dragTargetName && (
+        <div className="px-6 py-3 bg-blue-50 dark:bg-blue-950/20 border-b border-blue-200 dark:border-blue-900">
+          <div className="flex items-center gap-2 text-sm text-blue-800 dark:text-blue-300">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+            </svg>
+            <span>移动至 "{dragTargetName}" {draggedCount > 1 && `(共 ${draggedCount} 项)`}</span>
+          </div>
+        </div>
+      )}
 
       {/* 次级工具栏：统计信息和视图切换 */}
       <div className="flex items-center justify-between border-b px-6 py-3">
@@ -351,9 +382,11 @@ export default function FilesPage() {
                       onDelete={operations.openDeleteConfirm}
                       onRename={operations.openRenameModal}
                       onMove={operations.openMoveModal}
+                      onMoveFiles={handleMoveFiles}
                       onFavorite={operations.handleFavorite}
                       onPreview={operations.openPreview}
                       onDetail={operations.openDetail}
+                      onDragStateChange={handleDragStateChange}
                   />
                   ) : (
                     <FileListView
@@ -367,9 +400,11 @@ export default function FilesPage() {
                       onDelete={operations.openDeleteConfirm}
                       onRename={operations.openRenameModal}
                       onMove={operations.openMoveModal}
+                      onMoveFiles={handleMoveFiles}
                       onFavorite={operations.handleFavorite}
                       onPreview={operations.openPreview}
                       onDetail={operations.openDetail}
+                      onDragStateChange={handleDragStateChange}
                     />
                   )}
                 </div>

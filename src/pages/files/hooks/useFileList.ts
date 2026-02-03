@@ -11,7 +11,7 @@ export function useFileList() {
   const [loading, setLoading] = useState(false);
   const [fileList, setFileList] = useState<FileItem[]>([]);
   const [breadcrumbPath, setBreadcrumbPath] = useState<BreadcrumbItem[]>([]);
-  const [searchKeyword, setSearchKeyword] = useState('');
+  const [searchKeyword, setSearchKeyword] = useState(searchParams.get('keyword') || '');
   const [orderBy, setOrderBy] = useState('updateTime');
   const [orderDirection, setOrderDirection] = useState<SortOrder>('DESC');
 
@@ -137,6 +137,15 @@ export function useFileList() {
     fetchFileList();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentParentId, viewType, fileType, orderBy, orderDirection, searchKeyword]);
+
+  // 监听 URL 中的 keyword 参数变化
+  useEffect(() => {
+    const urlKeyword = searchParams.get('keyword') || '';
+    if (urlKeyword !== searchKeyword) {
+      setSearchKeyword(urlKeyword);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   return {
     loading,

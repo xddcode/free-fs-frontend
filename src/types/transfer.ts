@@ -159,16 +159,3 @@ export interface FileTransferTaskVO {
   remainTime?: number;
   uploadedSize?: number;
 }
-
-/**
- * 传输设置表单
- */
-export interface TransferSettingForm {
-  downloadLocation: string;
-  isDefaultDownloadLocation: boolean;
-  downloadSpeedLimit: number;
-  enableDownloadSpeedLimit: boolean;
-  concurrentUploadQuantity: number;
-  concurrentDownloadQuantity: number;
-  chunkSize: number;
-}
