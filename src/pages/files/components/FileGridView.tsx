@@ -36,16 +36,19 @@ interface FileGridViewProps {
   selectedKeys: string[];
   onSelectionChange: (keys: string[]) => void;
   onFileClick: (file: FileItem) => void;
-  onDownload: (file: FileItem) => void;
+  onDownload: (file: FileItem | FileItem[]) => void;
   onShare: (file: FileItem) => void;
   onDelete: (file: FileItem) => void;
   onRename: (file: FileItem) => void;
   onMove: (file: FileItem) => void;
   onMoveFiles: (fileIds: string[], targetDirId: string) => Promise<void>;
-  onFavorite: (file: FileItem) => void;
+  onFavorite: (file: FileItem | FileItem[]) => void;
   onPreview: (file: FileItem) => void;
   onDetail: (file: FileItem) => void;
   onDragStateChange?: (dropTargetName: string | null, draggedCount: number) => void;
+  onBatchShare?: (files: FileItem[]) => void;
+  onBatchMove?: (files: FileItem[]) => void;
+  onBatchDelete?: (files: FileItem[]) => void;
 }
 
 export function FileGridView({
@@ -63,6 +66,9 @@ export function FileGridView({
   onPreview,
   onDetail,
   onDragStateChange,
+  onBatchShare,
+  onBatchMove,
+  onBatchDelete,
 }: FileGridViewProps) {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
@@ -125,6 +131,10 @@ export function FileGridView({
           const isSelected = selectedKeys.includes(file.id);
           const isDragging = dragState.draggedItems.some((f) => f.id === file.id);
           const isDropTarget = file.isDir && dragState.dropTargetId === file.id;
+          const isMultiSelected = selectedKeys.length > 1 && isSelected;
+          const selectedFiles = fileList.filter((f) => selectedKeys.includes(f.id));
+          const hasUnfavorited = selectedFiles.some((f) => !f.isFavorite);
+          const downloadableFiles = selectedFiles.filter((f) => !f.isDir);
 
           return (
             <ContextMenu key={file.id}>
@@ -234,48 +244,87 @@ export function FileGridView({
                 </div>
               </ContextMenuTrigger>
               <ContextMenuContent>
-                {!file.isDir && (
+                {isMultiSelected ? (
+                  // 多选菜单
                   <>
-                    <ContextMenuItem onClick={(e) => { e.stopPropagation(); onPreview(file); }}>
-                      <Eye className="h-4 w-4 mr-2" />
-                      预览
+                    {downloadableFiles.length > 0 && (
+                      <ContextMenuItem onClick={(e) => { e.stopPropagation(); onDownload(downloadableFiles); }}>
+                        <Download className="h-4 w-4 mr-2" />
+                        下载
+                      </ContextMenuItem>
+                    )}
+                    {onBatchShare && (
+                      <ContextMenuItem onClick={(e) => { e.stopPropagation(); onBatchShare(selectedFiles); }}>
+                        <Share2 className="h-4 w-4 mr-2" />
+                        分享
+                      </ContextMenuItem>
+                    )}
+                    <ContextMenuItem onClick={(e) => { e.stopPropagation(); onFavorite(selectedFiles); }}>
+                      <Heart className={cn('h-4 w-4 mr-2', !hasUnfavorited && 'fill-current text-red-500')} />
+                      {hasUnfavorited ? '收藏' : '取消收藏'}
+                    </ContextMenuItem>
+                    <ContextMenuSeparator />
+                    {onBatchMove && (
+                      <ContextMenuItem onClick={(e) => { e.stopPropagation(); onBatchMove(selectedFiles); }}>
+                        <Move className="h-4 w-4 mr-2" />
+                        移动到
+                      </ContextMenuItem>
+                    )}
+                    <ContextMenuSeparator />
+                    {onBatchDelete && (
+                      <ContextMenuItem onClick={(e) => { e.stopPropagation(); onBatchDelete(selectedFiles); }} className="text-destructive focus:text-destructive">
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        放入回收站
+                      </ContextMenuItem>
+                    )}
+                  </>
+                ) : (
+                  // 单选菜单
+                  <>
+                    {!file.isDir && (
+                      <>
+                        <ContextMenuItem onClick={(e) => { e.stopPropagation(); onPreview(file); }}>
+                          <Eye className="h-4 w-4 mr-2" />
+                          预览
+                        </ContextMenuItem>
+                      </>
+                    )}
+                    <ContextMenuItem onClick={(e) => { e.stopPropagation(); onShare(file); }}>
+                      <Share2 className="h-4 w-4 mr-2" />
+                      分享
+                    </ContextMenuItem>
+                    <ContextMenuItem onClick={(e) => { e.stopPropagation(); onFavorite(file); }}>
+                      <Heart
+                        className={cn('h-4 w-4 mr-2', file.isFavorite && 'fill-current text-red-500')}
+                      />
+                      {file.isFavorite ? '取消收藏' : '收藏'}
+                    </ContextMenuItem>
+                    {!file.isDir && (
+                      <ContextMenuItem onClick={(e) => { e.stopPropagation(); onDownload(file); }}>
+                        <Download className="h-4 w-4 mr-2" />
+                        下载
+                      </ContextMenuItem>
+                    )}
+                    <ContextMenuSeparator />
+                    <ContextMenuItem onClick={(e) => { e.stopPropagation(); onRename(file); }}>
+                      <Edit className="h-4 w-4 mr-2" />
+                      重命名
+                    </ContextMenuItem>
+                    <ContextMenuItem onClick={(e) => { e.stopPropagation(); onMove(file); }}>
+                      <Move className="h-4 w-4 mr-2" />
+                      移动到
+                    </ContextMenuItem>
+                    <ContextMenuItem onClick={(e) => { e.stopPropagation(); onDetail(file); }}>
+                      <Info className="h-4 w-4 mr-2" />
+                      详细信息
+                    </ContextMenuItem>
+                    <ContextMenuSeparator />
+                    <ContextMenuItem onClick={(e) => { e.stopPropagation(); onDelete(file); }} className="text-destructive focus:text-destructive">
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      放入回收站
                     </ContextMenuItem>
                   </>
                 )}
-                <ContextMenuItem onClick={(e) => { e.stopPropagation(); onShare(file); }}>
-                  <Share2 className="h-4 w-4 mr-2" />
-                  分享
-                </ContextMenuItem>
-                <ContextMenuItem onClick={(e) => { e.stopPropagation(); onFavorite(file); }}>
-                  <Heart
-                    className={cn('h-4 w-4 mr-2', file.isFavorite && 'fill-current text-red-500')}
-                  />
-                  {file.isFavorite ? '取消收藏' : '收藏'}
-                </ContextMenuItem>
-                {!file.isDir && (
-                  <ContextMenuItem onClick={(e) => { e.stopPropagation(); onDownload(file); }}>
-                    <Download className="h-4 w-4 mr-2" />
-                    下载
-                  </ContextMenuItem>
-                )}
-                <ContextMenuSeparator />
-                <ContextMenuItem onClick={(e) => { e.stopPropagation(); onRename(file); }}>
-                  <Edit className="h-4 w-4 mr-2" />
-                  重命名
-                </ContextMenuItem>
-                <ContextMenuItem onClick={(e) => { e.stopPropagation(); onMove(file); }}>
-                  <Move className="h-4 w-4 mr-2" />
-                  移动到
-                </ContextMenuItem>
-                <ContextMenuItem onClick={(e) => { e.stopPropagation(); onDetail(file); }}>
-                  <Info className="h-4 w-4 mr-2" />
-                  详细信息
-                </ContextMenuItem>
-                <ContextMenuSeparator />
-                <ContextMenuItem onClick={(e) => { e.stopPropagation(); onDelete(file); }} className="text-destructive focus:text-destructive">
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  放入回收站
-                </ContextMenuItem>
               </ContextMenuContent>
             </ContextMenu>
           );

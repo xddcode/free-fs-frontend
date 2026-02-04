@@ -387,6 +387,9 @@ export default function FilesPage() {
                       onPreview={operations.openPreview}
                       onDetail={operations.openDetail}
                       onDragStateChange={handleDragStateChange}
+                      onBatchShare={handleBatchShare}
+                      onBatchMove={handleBatchMove}
+                      onBatchDelete={handleBatchDelete}
                   />
                   ) : (
                     <FileListView
@@ -405,6 +408,9 @@ export default function FilesPage() {
                       onPreview={operations.openPreview}
                       onDetail={operations.openDetail}
                       onDragStateChange={handleDragStateChange}
+                      onBatchShare={handleBatchShare}
+                      onBatchMove={handleBatchMove}
+                      onBatchDelete={handleBatchDelete}
                     />
                   )}
                 </div>

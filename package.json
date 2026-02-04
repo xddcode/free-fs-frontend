@@ -1,7 +1,7 @@
 {
   "name": "free-fs-frontend",
   "description": "free-fs 前端项目 - 基于 React 19 的文件存储管理系统",
-  "version": "2.0.3",
+  "version": "2.1.0",
   "private": true,
   "type": "module",
   "scripts": {
