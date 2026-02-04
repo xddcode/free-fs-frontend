@@ -61,6 +61,7 @@
     "react-dom": "^19.1.1",
     "react-hook-form": "^7.71.1",
     "react-i18next": "^16.5.4",
+    "react-icons": "^5.5.0",
     "react-router-dom": "^7.12.0",
     "react-top-loading-bar": "^3.0.2",
     "recharts": "2.15.4",

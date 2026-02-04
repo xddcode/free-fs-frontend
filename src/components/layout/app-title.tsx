@@ -3,25 +3,34 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
+  useSidebar,
 } from '@/components/ui/sidebar'
 import { Logo } from '@/components/logo'
 import { APP_VERSION } from '@/config/version'
 
 export function AppTitle() {
+  const { state } = useSidebar()
+  
   return (
     <SidebarMenu>
       <SidebarMenuItem>
-        <SidebarMenuButton size="lg" asChild className="hover:bg-sidebar-accent">
+        <SidebarMenuButton 
+          size="lg" 
+          asChild 
+          className="hover:bg-sidebar-accent group-data-[collapsible=icon]:w-auto! group-data-[collapsible=icon]:h-auto! group-data-[collapsible=icon]:p-2! group-data-[collapsible=icon]:hover:bg-transparent"
+        >
           <Link to="/" className="flex items-center gap-3">
             <div className="flex aspect-square size-10 items-center justify-center rounded-lg">
               <Logo className="size-10 text-sidebar-primary" />
             </div>
-            <div className="grid flex-1 text-left text-sm leading-tight">
-              <span className="truncate text-base font-bold">Free Fs</span>
-              <span className="truncate text-xs text-muted-foreground font-mono">
-                v{APP_VERSION}
-              </span>
-            </div>
+            {state === 'expanded' && (
+              <div className="grid flex-1 text-left text-sm leading-tight">
+                <span className="truncate text-base font-bold">Free Fs</span>
+                <span className="truncate text-xs text-muted-foreground font-mono">
+                  v{APP_VERSION}
+                </span>
+              </div>
+            )}
           </Link>
         </SidebarMenuButton>
       </SidebarMenuItem>

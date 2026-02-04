@@ -1,11 +1,8 @@
 import {
   Home,
   FolderOpen,
-  ArrowDownUp,
-  Cloud,
-  Settings,
-  User,
-  Palette,
+  ArrowLeftRight,
+  Server,
   Star,
   Clock,
   Share2,
@@ -16,7 +13,6 @@ import {
   Music,
   MoreHorizontal,
   Folder,
-  Shield,
 } from 'lucide-react'
 import { type SidebarData } from '../types'
 
@@ -44,12 +40,12 @@ export const sidebarData: SidebarData = {
         {
           title: '传输',
           url: '/transfer',
-          icon: ArrowDownUp,
+          icon: ArrowLeftRight,
         },
         {
           title: '云存储配置',
           url: '/storage',
-          icon: Cloud,
+          icon: Server,
         },
       ],
     },
@@ -110,37 +106,6 @@ export const sidebarData: SidebarData = {
           title: '其它',
           url: '/files?type=other',
           icon: MoreHorizontal,
-        },
-      ],
-    },
-    {
-      title: '设置',
-      items: [
-        {
-          title: '设置',
-          icon: Settings,
-          items: [
-            {
-              title: '个人资料',
-              url: '/settings',
-              icon: User,
-            },
-            {
-              title: '账户设置',
-              url: '/settings/account',
-              icon: Shield,
-            },
-            {
-              title: '外观',
-              url: '/settings/appearance',
-              icon: Palette,
-            },
-            {
-              title: '传输设置',
-              url: '/settings/transfer',
-              icon: ArrowDownUp,
-            },
-          ],
         },
       ],
     },

@@ -29,7 +29,7 @@ interface NavUserProps {
 export function NavUser({ user }: NavUserProps) {
   const navigate = useNavigate()
   const { logout } = useAuth()
-  const { isMobile } = useSidebar()
+  const { isMobile, state } = useSidebar()
 
   const handleLogout = () => {
     logout()
@@ -49,21 +49,25 @@ export function NavUser({ user }: NavUserProps) {
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
               size="lg"
-              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground border-0 ring-0 focus-visible:ring-0"
+              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground border-0 ring-0 focus-visible:ring-0 group-data-[collapsible=icon]:w-16! group-data-[collapsible=icon]:h-16! group-data-[collapsible=icon]:p-2! group-data-[collapsible=icon]:justify-center!"
             >
-              <Avatar className="h-8 w-8 rounded-lg">
+              <Avatar className="h-8 w-8 rounded-lg group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:rounded-full">
                 <AvatarImage src={user.avatar} alt={user.name} />
                 <AvatarFallback 
-                  className="rounded-lg font-medium bg-sidebar-accent text-sidebar-accent-foreground"
+                  className="rounded-lg font-medium bg-sidebar-accent text-sidebar-accent-foreground group-data-[collapsible=icon]:rounded-full"
                 >
                   {avatarFallback}
                 </AvatarFallback>
               </Avatar>
-              <div className="grid flex-1 text-start text-sm leading-tight">
-                <span className="truncate font-semibold">{user.name}</span>
-                <span className="truncate text-xs">{user.email}</span>
-              </div>
-              <ChevronsUpDown className="ms-auto size-4" />
+              {state === 'expanded' && (
+                <>
+                  <div className="grid flex-1 text-start text-sm leading-tight">
+                    <span className="truncate font-semibold">{user.name}</span>
+                    <span className="truncate text-xs">{user.email}</span>
+                  </div>
+                  <ChevronsUpDown className="ms-auto size-4" />
+                </>
+              )}
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
