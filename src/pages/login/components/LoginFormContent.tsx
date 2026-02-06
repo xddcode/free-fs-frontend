@@ -1,126 +1,135 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { User, Lock, Github } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Separator } from '@/components/ui/separator';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { toast } from 'sonner';
-import { useAuth } from '@/contexts/auth-context';
-import { setToken } from '@/utils/auth';
-import { userApi } from '@/api';
-import { LoginParams } from '@/types/user';
+import { useState } from 'react'
+import { userApi } from '@/api'
+import { useAuth } from '@/contexts/auth-context'
+import { LoginParams } from '@/types/user'
+import { User, Lock, Github } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { toast } from 'sonner'
+import { setToken } from '@/utils/auth'
+import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Input } from '@/components/ui/input'
+import { Separator } from '@/components/ui/separator'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 interface Props {
-  onSwitchForm: (form: 'login' | 'register' | 'forgotPassword') => void;
+  onSwitchForm: (form: 'login' | 'register' | 'forgotPassword') => void
 }
 
 export default function LoginFormContent({ onSwitchForm }: Props) {
-  const navigate = useNavigate();
-  const { login } = useAuth();
-  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate()
+  const { login } = useAuth()
+  const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState<LoginParams>({
     username: '',
     password: '',
     isRemember: true,
-  });
+  })
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault()
 
-    setLoading(true);
+    setLoading(true)
     try {
       // 1. 登录获取 token
-      const res = await userApi.login(formData);
-      const { accessToken } = res;
-      
+      const res = await userApi.login(formData)
+      const { accessToken } = res
+
       // 2. 先临时保存 token 到 auth utils（这样后续请求才能带上 Authorization header）
-      setToken(accessToken, formData.isRemember);
-      
+      setToken(accessToken, formData.isRemember)
+
       // 3. 获取完整的用户信息
-      const userInfo = await userApi.getUserInfo();
-      
+      const userInfo = await userApi.getUserInfo()
+
       // 4. 一次性保存 token 和用户信息到 context
-      await login(accessToken, userInfo, formData.isRemember);
-      
-      toast.success('操作成功');
-      navigate('/');
+      await login(accessToken, userInfo, formData.isRemember)
+
+      toast.success('操作成功')
+      navigate('/')
     } catch (error) {
       // Error handled by interceptor
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const handleSocialLogin = (platform: string) => {
-    toast.info(`${platform} 登录...`);
-  };
+    toast.info(`${platform} 登录...`)
+  }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 mt-8">
+    <form onSubmit={handleSubmit} className='mt-8 space-y-4'>
       {/* 账号输入 */}
-      <div className="relative">
-        <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+      <div className='relative'>
+        <User className='absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
         <Input
-          type="text"
-          placeholder="用户名"
+          type='text'
+          placeholder='用户名'
           value={formData.username}
-          onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-          className="pl-10"
+          onChange={(e) =>
+            setFormData({ ...formData, username: e.target.value })
+          }
+          className='pl-10'
           required
         />
       </div>
 
       {/* 密码输入 */}
-      <div className="relative">
-        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+      <div className='relative'>
+        <Lock className='absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
         <Input
-          type="password"
-          placeholder="密码"
+          type='password'
+          placeholder='密码'
           value={formData.password}
-          onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-          className="pl-10"
+          onChange={(e) =>
+            setFormData({ ...formData, password: e.target.value })
+          }
+          className='pl-10'
           required
         />
       </div>
 
       {/* 记住我 & 忘记密码 */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-2">
+      <div className='flex items-center justify-between'>
+        <div className='flex items-center space-x-2'>
           <Checkbox
-            id="remember"
+            id='remember'
             checked={formData.isRemember}
             onCheckedChange={(checked) =>
               setFormData({ ...formData, isRemember: checked as boolean })
             }
           />
           <label
-            htmlFor="remember"
-            className="text-sm text-muted-foreground cursor-pointer select-none"
+            htmlFor='remember'
+            className='cursor-pointer text-sm text-muted-foreground select-none'
           >
             记住我
           </label>
         </div>
         <button
-          type="button"
+          type='button'
           onClick={() => onSwitchForm('forgotPassword')}
-          className="text-sm text-primary hover:underline"
+          className='text-sm text-primary hover:underline'
         >
           忘记密码
         </button>
       </div>
 
       {/* 登录按钮 */}
-      <Button type="submit" className="w-full" disabled={loading}>
+      <Button type='submit' className='w-full' disabled={loading}>
         {loading ? '登录...' : '登录'}
       </Button>
 
       {/* 注册按钮 */}
       <Button
-        type="button"
-        variant="ghost"
-        className="w-full text-muted-foreground"
+        type='button'
+        variant='ghost'
+        className='w-full text-muted-foreground'
         onClick={() => onSwitchForm('register')}
       >
         立即注册
@@ -182,5 +191,5 @@ export default function LoginFormContent({ onSwitchForm }: Props) {
         </TooltipProvider>
       </div> */}
     </form>
-  );
+  )
 }

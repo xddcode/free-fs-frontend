@@ -1,8 +1,23 @@
-import { useState } from 'react';
-import { Database, Eye, Settings, Trash2, Link as LinkIcon, Copy, Check, AlertCircle } from 'lucide-react';
-import type { StorageSetting, ConfigScheme } from '@/types/storage';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { useState } from 'react'
+import type { StorageSetting, ConfigScheme } from '@/types/storage'
+import {
+  Database,
+  Eye,
+  Settings,
+  Trash2,
+  Link as LinkIcon,
+  Copy,
+  Check,
+  AlertCircle,
+} from 'lucide-react'
+import { toast } from 'sonner'
+import {
+  deleteStorageSetting,
+  toggleStorageSetting,
+  updateStorageSetting,
+} from '@/api/storage'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogClose,
@@ -10,193 +25,200 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from '@/components/ui/tooltip';
-import { ConfirmDialog } from '@/components/confirm-dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { toast } from 'sonner';
-import { deleteStorageSetting, toggleStorageSetting, updateStorageSetting } from '@/api/storage';
+} from '@/components/ui/tooltip'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 
 interface StorageSettingCardProps {
-  setting: StorageSetting;
-  onRefresh: () => void;
+  setting: StorageSetting
+  onRefresh: () => void
 }
 
-export function StorageSettingCard({ setting, onRefresh }: StorageSettingCardProps) {
-  const [viewModalOpen, setViewModalOpen] = useState(false);
-  const [editModalOpen, setEditModalOpen] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [toggleDialogOpen, setToggleDialogOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [editFormData, setEditFormData] = useState<Record<string, string>>({});
-  const [editRemark, setEditRemark] = useState('');
-  const [editErrors, setEditErrors] = useState<Record<string, string>>({});
-  const [copiedField, setCopiedField] = useState<string | null>(null);
-  const [copiedConfig, setCopiedConfig] = useState(false);
+export function StorageSettingCard({
+  setting,
+  onRefresh,
+}: StorageSettingCardProps) {
+  const [viewModalOpen, setViewModalOpen] = useState(false)
+  const [editModalOpen, setEditModalOpen] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [toggleDialogOpen, setToggleDialogOpen] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [editFormData, setEditFormData] = useState<Record<string, string>>({})
+  const [editRemark, setEditRemark] = useState('')
+  const [editErrors, setEditErrors] = useState<Record<string, string>>({})
+  const [copiedField, setCopiedField] = useState<string | null>(null)
+  const [copiedConfig, setCopiedConfig] = useState(false)
 
-  const schemes: ConfigScheme[] = JSON.parse(setting.storagePlatform.configScheme);
-  const configData = setting.configData ? JSON.parse(setting.configData) : {};
+  const schemes: ConfigScheme[] = JSON.parse(
+    setting.storagePlatform.configScheme
+  )
+  const configData = setting.configData ? JSON.parse(setting.configData) : {}
 
   // 脱敏处理
   const maskValue = (identifier: string, value: string): string => {
-    const lowerIdentifier = identifier.toLowerCase();
-    const isAccessKey = lowerIdentifier.includes('access') && lowerIdentifier.includes('key');
+    const lowerIdentifier = identifier.toLowerCase()
+    const isAccessKey =
+      lowerIdentifier.includes('access') && lowerIdentifier.includes('key')
     const isSecretKey =
       (lowerIdentifier.includes('secret') && lowerIdentifier.includes('key')) ||
       lowerIdentifier.includes('password') ||
-      lowerIdentifier.includes('token');
+      lowerIdentifier.includes('token')
 
     if (isSecretKey && !isAccessKey && value) {
       if (value.length > 8) {
-        return `${value.substring(0, 4)}${'*'.repeat(Math.min(value.length - 8, 20))}${value.substring(value.length - 4)}`;
+        return `${value.substring(0, 4)}${'*'.repeat(Math.min(value.length - 8, 20))}${value.substring(value.length - 4)}`
       }
-      return '****';
+      return '****'
     }
-    return value || '未配置';
-  };
+    return value || '未配置'
+  }
 
   // 复制配置
   const handleCopyConfig = async () => {
-    const configText: string[] = [];
-    configText.push(`${setting.storagePlatform.name} 配置信息`);
-    configText.push('='.repeat(30));
+    const configText: string[] = []
+    configText.push(`${setting.storagePlatform.name} 配置信息`)
+    configText.push('='.repeat(30))
     schemes.forEach((field) => {
-      const value = configData[field.identifier] || '未配置';
-      configText.push(`${field.label}: ${value}`);
-    });
-    configText.push(`配置备注: ${setting.remark || '未设置备注'}`);
+      const value = configData[field.identifier] || '未配置'
+      configText.push(`${field.label}: ${value}`)
+    })
+    configText.push(`配置备注: ${setting.remark || '未设置备注'}`)
 
     try {
-      await navigator.clipboard.writeText(configText.join('\n'));
-      setCopiedConfig(true);
-      setTimeout(() => setCopiedConfig(false), 2000);
-      toast.success('已复制');
+      await navigator.clipboard.writeText(configText.join('\n'))
+      setCopiedConfig(true)
+      setTimeout(() => setCopiedConfig(false), 2000)
+      toast.success('已复制')
     } catch (error) {
-      toast.error('复制失败');
+      toast.error('复制失败')
     }
-  };
+  }
 
   // 复制单个字段
   const handleCopyField = async (identifier: string, value: string) => {
     try {
-      await navigator.clipboard.writeText(value);
-      setCopiedField(identifier);
-      setTimeout(() => setCopiedField(null), 2000);
-      toast.success('已复制');
+      await navigator.clipboard.writeText(value)
+      setCopiedField(identifier)
+      setTimeout(() => setCopiedField(null), 2000)
+      toast.success('已复制')
     } catch (error) {
-      toast.error('复制失败');
+      toast.error('复制失败')
     }
-  };
+  }
 
   // 打开编辑模态框
   const handleOpenEdit = () => {
-    const initialData: Record<string, string> = {};
+    const initialData: Record<string, string> = {}
     schemes.forEach((field) => {
-      initialData[field.identifier] = configData[field.identifier] || '';
-    });
-    setEditFormData(initialData);
-    setEditRemark(setting.remark || '');
-    setEditErrors({});
-    setEditModalOpen(true);
-  };
+      initialData[field.identifier] = configData[field.identifier] || ''
+    })
+    setEditFormData(initialData)
+    setEditRemark(setting.remark || '')
+    setEditErrors({})
+    setEditModalOpen(true)
+  }
 
   // 清除单个字段错误
   const clearEditFieldError = (fieldName: string) => {
     if (editErrors[fieldName]) {
       setEditErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[fieldName];
-        return newErrors;
-      });
+        const newErrors = { ...prev }
+        delete newErrors[fieldName]
+        return newErrors
+      })
     }
-  };
+  }
 
   // 验证编辑表单
   const validateEditForm = (): boolean => {
-    const newErrors: Record<string, string> = {};
+    const newErrors: Record<string, string> = {}
 
     schemes.forEach((field) => {
-      if (field.validation.required && !editFormData[field.identifier]?.trim()) {
-        newErrors[field.identifier] = `请输入${field.label}`;
+      if (
+        field.validation.required &&
+        !editFormData[field.identifier]?.trim()
+      ) {
+        newErrors[field.identifier] = `请输入${field.label}`
       }
-    });
+    })
 
-    setEditErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+    setEditErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
 
   // 保存编辑
   const handleSaveEdit = async () => {
     if (!validateEditForm()) {
-      return;
+      return
     }
 
-    setIsLoading(true);
+    setIsLoading(true)
     try {
       await updateStorageSetting({
         settingId: setting.id.toString(),
         platformIdentifier: setting.storagePlatform.identifier,
         configData: JSON.stringify(editFormData),
         remark: editRemark.trim(),
-      });
-      toast.success('配置保存成功');
-      onRefresh();
-      setEditModalOpen(false);
+      })
+      toast.success('配置保存成功')
+      onRefresh()
+      setEditModalOpen(false)
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   const handleDelete = async () => {
-    setIsLoading(true);
+    setIsLoading(true)
     try {
-      await deleteStorageSetting(setting.id);
-      toast.success(`${setting.storagePlatform.name} 配置已删除`);
-      onRefresh();
-      setDeleteDialogOpen(false);
+      await deleteStorageSetting(setting.id)
+      toast.success(`${setting.storagePlatform.name} 配置已删除`)
+      onRefresh()
+      setDeleteDialogOpen(false)
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   const handleToggle = async () => {
-    const action = setting.enabled === 1 ? 0 : 1;
-    setIsLoading(true);
+    const action = setting.enabled === 1 ? 0 : 1
+    setIsLoading(true)
     try {
-      await toggleStorageSetting(setting.id.toString(), action);
+      await toggleStorageSetting(setting.id.toString(), action)
       toast.success(
         action === 1
           ? `${setting.storagePlatform.name} 已启用，页面即将刷新...`
           : `${setting.storagePlatform.name} 已禁用，正在切换到默认平台...`
-      );
+      )
       setTimeout(() => {
-        window.location.reload();
-      }, 800);
+        window.location.reload()
+      }, 800)
     } catch (error) {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   return (
     <>
-      <li className="rounded-lg border p-4 hover:shadow-md">
+      <li className='rounded-lg border p-4 hover:shadow-md'>
         {/* Header */}
-        <div className="mb-8 flex items-center justify-between">
+        <div className='mb-8 flex items-center justify-between'>
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <div className="flex size-10 items-center justify-center rounded-lg bg-muted p-2 cursor-help">
-                  <Database className="h-5 w-5" />
+                <div className='flex size-10 cursor-help items-center justify-center rounded-lg bg-muted p-2'>
+                  <Database className='h-5 w-5' />
                 </div>
               </TooltipTrigger>
               <TooltipContent>
-                <p className="text-xs">ID: {setting.id}</p>
+                <p className='text-xs'>ID: {setting.id}</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -204,7 +226,7 @@ export function StorageSettingCard({ setting, onRefresh }: StorageSettingCardPro
             variant={setting.enabled === 1 ? 'default' : 'secondary'}
             className={
               setting.enabled === 1
-                ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-50 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800'
+                ? 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-50 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300'
                 : ''
             }
           >
@@ -214,58 +236,66 @@ export function StorageSettingCard({ setting, onRefresh }: StorageSettingCardPro
 
         {/* Content */}
         <div>
-          <div className="mb-1 flex items-center gap-2">
-            <h2 className="font-semibold">{setting.storagePlatform.name}</h2>
+          <div className='mb-1 flex items-center gap-2'>
+            <h2 className='font-semibold'>{setting.storagePlatform.name}</h2>
             {setting.storagePlatform.link && (
-              <a href={setting.storagePlatform.link} target="_blank" rel="noopener noreferrer">
-                <LinkIcon className="h-3 w-3 text-muted-foreground hover:text-primary" />
+              <a
+                href={setting.storagePlatform.link}
+                target='_blank'
+                rel='noopener noreferrer'
+              >
+                <LinkIcon className='h-3 w-3 text-muted-foreground hover:text-primary' />
               </a>
             )}
           </div>
-          <div className="mb-2 h-4">
+          <div className='mb-2 h-4'>
             {setting.remark && (
-              <p className="text-xs text-muted-foreground truncate">{setting.remark}</p>
+              <p className='truncate text-xs text-muted-foreground'>
+                {setting.remark}
+              </p>
             )}
           </div>
-          <p className="line-clamp-2 text-xs text-gray-500">{setting.storagePlatform.desc || '暂无描述信息'}</p>
+          <p className='line-clamp-2 text-xs text-gray-500'>
+            {setting.storagePlatform.desc || '暂无描述信息'}
+          </p>
         </div>
 
         {/* Actions Menu */}
-        <div className="mt-4 flex items-center gap-2">
+        <div className='mt-4 flex items-center gap-2'>
           <Button
             variant={setting.enabled === 1 ? 'outline' : 'default'}
-            size="sm"
+            size='sm'
             onClick={() => setToggleDialogOpen(true)}
             disabled={isLoading}
           >
             {setting.enabled === 1 ? '禁用' : '启用'}
           </Button>
-          <div className="h-6 w-px bg-border" />
+          <div className='h-6 w-px bg-border' />
           <Button
-            variant="outline"
-            size="sm"
-            className="flex-1"
+            variant='outline'
+            size='sm'
+            className='flex-1'
             onClick={() => setViewModalOpen(true)}
           >
-            <Eye className="h-3 w-3 mr-1.5" />
+            <Eye className='mr-1.5 h-3 w-3' />
             查看
           </Button>
           <Button
-            variant="outline"
-            size="sm"
-            className="flex-1"
+            variant='outline'
+            size='sm'
+            className='flex-1'
             onClick={handleOpenEdit}
           >
-            <Settings className="h-3 w-3 mr-1.5" />
+            <Settings className='mr-1.5 h-3 w-3' />
             编辑
           </Button>
           <Button
-            variant="outline"
-            size="sm"
-            className="flex-1 text-red-600 hover:text-red-700 hover:border-red-300"
+            variant='outline'
+            size='sm'
+            className='flex-1 text-red-600 hover:border-red-300 hover:text-red-700'
             onClick={() => setDeleteDialogOpen(true)}
           >
-            <Trash2 className="h-3 w-3 mr-1.5" />
+            <Trash2 className='mr-1.5 h-3 w-3' />
             删除
           </Button>
         </div>
@@ -273,57 +303,67 @@ export function StorageSettingCard({ setting, onRefresh }: StorageSettingCardPro
 
       {/* View Modal */}
       <Dialog open={viewModalOpen} onOpenChange={setViewModalOpen}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className='sm:max-w-[500px]'>
           <DialogHeader>
             <DialogTitle>详细信息</DialogTitle>
           </DialogHeader>
-          
-          <div className="space-y-6 px-6 pb-4">
-            <div className="space-y-3">
+
+          <div className='space-y-6 px-6 pb-4'>
+            <div className='space-y-3'>
               {schemes.map((field) => (
-                <div key={field.identifier} className="space-y-1.5">
-                  <div className="text-xs text-muted-foreground">{field.label}</div>
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 text-sm text-foreground break-all">
-                      {maskValue(field.identifier, configData[field.identifier])}
+                <div key={field.identifier} className='space-y-1.5'>
+                  <div className='text-xs text-muted-foreground'>
+                    {field.label}
+                  </div>
+                  <div className='flex items-center gap-2'>
+                    <div className='flex-1 text-sm break-all text-foreground'>
+                      {maskValue(
+                        field.identifier,
+                        configData[field.identifier]
+                      )}
                     </div>
                     <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-8 w-8 shrink-0"
-                      onClick={() => handleCopyField(field.identifier, configData[field.identifier])}
+                      variant='outline'
+                      size='icon'
+                      className='h-8 w-8 shrink-0'
+                      onClick={() =>
+                        handleCopyField(
+                          field.identifier,
+                          configData[field.identifier]
+                        )
+                      }
                     >
                       {copiedField === field.identifier ? (
-                        <Check className="h-4 w-4 text-green-600" />
+                        <Check className='h-4 w-4 text-green-600' />
                       ) : (
-                        <Copy className="h-4 w-4" />
+                        <Copy className='h-4 w-4' />
                       )}
                     </Button>
                   </div>
                 </div>
               ))}
-              <div className="space-y-1.5">
-                <div className="text-xs text-muted-foreground">配置备注</div>
-                <div className="text-sm text-foreground break-all">
+              <div className='space-y-1.5'>
+                <div className='text-xs text-muted-foreground'>配置备注</div>
+                <div className='text-sm break-all text-foreground'>
                   {setting.remark || '未设置备注'}
                 </div>
               </div>
             </div>
           </div>
-          
+
           <DialogFooter>
             <DialogClose asChild>
-              <Button variant="outline">取消</Button>
+              <Button variant='outline'>取消</Button>
             </DialogClose>
             <Button onClick={handleCopyConfig}>
               {copiedConfig ? (
                 <>
-                  <Check className="h-4 w-4 mr-2" />
+                  <Check className='mr-2 h-4 w-4' />
                   已复制
                 </>
               ) : (
                 <>
-                  <Copy className="h-4 w-4 mr-2" />
+                  <Copy className='mr-2 h-4 w-4' />
                   复制配置
                 </>
               )}
@@ -334,47 +374,55 @@ export function StorageSettingCard({ setting, onRefresh }: StorageSettingCardPro
 
       {/* Edit Modal */}
       <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className='max-h-[85vh] max-w-2xl overflow-y-auto'>
           <DialogHeader>
             <DialogTitle>编辑配置</DialogTitle>
           </DialogHeader>
-          <div className="space-y-6 px-6 pb-4">
+          <div className='space-y-6 px-6 pb-4'>
             {schemes.map((field) => (
-              <div key={field.identifier} className="space-y-3">
+              <div key={field.identifier} className='space-y-3'>
                 <Label htmlFor={`edit-${field.identifier}`}>
-                  {field.label} {field.validation.required && <span className="text-red-500 align-middle">*</span>}
+                  {field.label}{' '}
+                  {field.validation.required && (
+                    <span className='align-middle text-red-500'>*</span>
+                  )}
                 </Label>
                 <Input
                   id={`edit-${field.identifier}`}
                   value={editFormData[field.identifier] || ''}
                   onChange={(e) => {
-                    setEditFormData({ ...editFormData, [field.identifier]: e.target.value });
-                    clearEditFieldError(field.identifier);
+                    setEditFormData({
+                      ...editFormData,
+                      [field.identifier]: e.target.value,
+                    })
+                    clearEditFieldError(field.identifier)
                   }}
                   placeholder={`请输入${field.label}`}
-                  className={editErrors[field.identifier] ? 'border-red-500' : ''}
+                  className={
+                    editErrors[field.identifier] ? 'border-red-500' : ''
+                  }
                 />
                 {editErrors[field.identifier] && (
-                  <div className="flex items-center gap-1 text-sm text-red-500">
-                    <AlertCircle className="h-3 w-3" />
+                  <div className='flex items-center gap-1 text-sm text-red-500'>
+                    <AlertCircle className='h-3 w-3' />
                     <span>{editErrors[field.identifier]}</span>
                   </div>
                 )}
               </div>
             ))}
-            <div className="space-y-3">
-              <Label htmlFor="edit-remark">配置备注</Label>
+            <div className='space-y-3'>
+              <Label htmlFor='edit-remark'>配置备注</Label>
               <Input
-                id="edit-remark"
+                id='edit-remark'
                 value={editRemark}
                 onChange={(e) => setEditRemark(e.target.value)}
-                placeholder="例如：生产环境、测试环境等"
+                placeholder='例如：生产环境、测试环境等'
               />
             </div>
           </div>
           <DialogFooter>
             <DialogClose asChild>
-              <Button variant="outline" disabled={isLoading}>
+              <Button variant='outline' disabled={isLoading}>
                 取消
               </Button>
             </DialogClose>
@@ -392,10 +440,10 @@ export function StorageSettingCard({ setting, onRefresh }: StorageSettingCardPro
         onOpenChange={setDeleteDialogOpen}
         handleConfirm={handleDelete}
         isLoading={isLoading}
-        title="确认删除"
+        title='确认删除'
         desc={`删除后，"${setting.storagePlatform.name}" 的配置信息将无法恢复。确定要继续吗？`}
         confirmText={isLoading ? '删除中...' : '确认删除'}
-        cancelBtnText="取消"
+        cancelBtnText='取消'
       />
 
       {/* Toggle Dialog */}
@@ -410,9 +458,13 @@ export function StorageSettingCard({ setting, onRefresh }: StorageSettingCardPro
             ? '禁用后将自动切换到默认存储平台。确定要继续吗？'
             : `启用后将自动切换到 "${setting.storagePlatform.name}" 存储平台，其他已启用的配置将被禁用。确定要继续吗？`
         }
-        confirmText={isLoading ? '处理中...' : `确认${setting.enabled === 1 ? '禁用' : '启用'}`}
-        cancelBtnText="取消"
+        confirmText={
+          isLoading
+            ? '处理中...'
+            : `确认${setting.enabled === 1 ? '禁用' : '启用'}`
+        }
+        cancelBtnText='取消'
       />
     </>
-  );
+  )
 }

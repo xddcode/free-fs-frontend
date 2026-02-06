@@ -88,7 +88,14 @@
 
 /* 品牌背景渐变 */
 .brand-background {
-  background: linear-gradient(135deg, #2d3035 0%, #30343a 30%, #343842 50%, #30343a 70%, #2d3035 100%);
+  background: linear-gradient(
+    135deg,
+    #2d3035 0%,
+    #30343a 30%,
+    #343842 50%,
+    #30343a 70%,
+    #2d3035 100%
+  );
 }
 
 /* 冒泡动画 - 从下往上 */
@@ -117,18 +124,102 @@
   opacity: 0;
 }
 
-.bubble-1 { left: 10%; animation-duration: 10s; animation-delay: -5s; width: 4px; height: 4px; background: rgba(34, 211, 238, 0.6); }
-.bubble-2 { left: 85%; animation-duration: 12s; animation-delay: -3s; width: 6px; height: 6px; background: rgba(34, 211, 238, 0.4); }
-.bubble-3 { left: 70%; animation-duration: 11s; animation-delay: -7s; width: 8px; height: 8px; background: rgba(34, 211, 238, 0.5); }
-.bubble-4 { left: 15%; animation-duration: 13s; animation-delay: -9s; width: 4px; height: 4px; background: rgba(34, 211, 238, 0.6); }
-.bubble-5 { left: 80%; animation-duration: 9s; animation-delay: -4s; width: 6px; height: 6px; background: rgba(34, 211, 238, 0.4); }
-.bubble-6 { left: 30%; animation-duration: 14s; animation-delay: -11s; width: 4px; height: 4px; background: rgba(96, 165, 250, 0.5); }
-.bubble-7 { left: 50%; animation-duration: 12s; animation-delay: -6s; width: 8px; height: 8px; background: rgba(96, 165, 250, 0.4); }
-.bubble-8 { left: 25%; animation-duration: 11s; animation-delay: -2s; width: 6px; height: 6px; background: rgba(34, 211, 238, 0.45); }
-.bubble-9 { left: 40%; animation-duration: 13s; animation-delay: -8s; width: 4px; height: 4px; background: rgba(96, 165, 250, 0.55); }
-.bubble-10 { left: 60%; animation-duration: 10s; animation-delay: -1s; width: 6px; height: 6px; background: rgba(34, 211, 238, 0.5); }
-.bubble-11 { left: 45%; animation-duration: 12s; animation-delay: -10s; width: 4px; height: 4px; background: rgba(34, 211, 238, 0.55); }
-.bubble-12 { left: 65%; animation-duration: 11s; animation-delay: -5.5s; width: 6px; height: 6px; background: rgba(96, 165, 250, 0.45); }
+.bubble-1 {
+  left: 10%;
+  animation-duration: 10s;
+  animation-delay: -5s;
+  width: 4px;
+  height: 4px;
+  background: rgba(34, 211, 238, 0.6);
+}
+.bubble-2 {
+  left: 85%;
+  animation-duration: 12s;
+  animation-delay: -3s;
+  width: 6px;
+  height: 6px;
+  background: rgba(34, 211, 238, 0.4);
+}
+.bubble-3 {
+  left: 70%;
+  animation-duration: 11s;
+  animation-delay: -7s;
+  width: 8px;
+  height: 8px;
+  background: rgba(34, 211, 238, 0.5);
+}
+.bubble-4 {
+  left: 15%;
+  animation-duration: 13s;
+  animation-delay: -9s;
+  width: 4px;
+  height: 4px;
+  background: rgba(34, 211, 238, 0.6);
+}
+.bubble-5 {
+  left: 80%;
+  animation-duration: 9s;
+  animation-delay: -4s;
+  width: 6px;
+  height: 6px;
+  background: rgba(34, 211, 238, 0.4);
+}
+.bubble-6 {
+  left: 30%;
+  animation-duration: 14s;
+  animation-delay: -11s;
+  width: 4px;
+  height: 4px;
+  background: rgba(96, 165, 250, 0.5);
+}
+.bubble-7 {
+  left: 50%;
+  animation-duration: 12s;
+  animation-delay: -6s;
+  width: 8px;
+  height: 8px;
+  background: rgba(96, 165, 250, 0.4);
+}
+.bubble-8 {
+  left: 25%;
+  animation-duration: 11s;
+  animation-delay: -2s;
+  width: 6px;
+  height: 6px;
+  background: rgba(34, 211, 238, 0.45);
+}
+.bubble-9 {
+  left: 40%;
+  animation-duration: 13s;
+  animation-delay: -8s;
+  width: 4px;
+  height: 4px;
+  background: rgba(96, 165, 250, 0.55);
+}
+.bubble-10 {
+  left: 60%;
+  animation-duration: 10s;
+  animation-delay: -1s;
+  width: 6px;
+  height: 6px;
+  background: rgba(34, 211, 238, 0.5);
+}
+.bubble-11 {
+  left: 45%;
+  animation-duration: 12s;
+  animation-delay: -10s;
+  width: 4px;
+  height: 4px;
+  background: rgba(34, 211, 238, 0.55);
+}
+.bubble-12 {
+  left: 65%;
+  animation-duration: 11s;
+  animation-delay: -5.5s;
+  width: 6px;
+  height: 6px;
+  background: rgba(96, 165, 250, 0.45);
+}
 
 /* Logo容器 */
 .brand-logo-wrapper {
@@ -149,7 +240,8 @@
   object-fit: contain;
   mix-blend-mode: lighten;
 }
-::view-transition-old(root), ::view-transition-new(root) {
-    animation: none;
-    mix-blend-mode: normal;
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
 }

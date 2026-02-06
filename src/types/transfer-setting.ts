@@ -7,34 +7,34 @@
  */
 export interface TransferSetting {
   /** 主键ID */
-  id?: number;
+  id?: number
 
   /** 用户ID */
-  userId: string;
+  userId: string
 
   /** 文件下载位置 */
-  downloadLocation?: string;
+  downloadLocation?: string
 
   /** 是否默认该路径为下载路径，如果否则每次下载询问保存地址 */
-  isDefaultDownloadLocation: number; // 0-否 1-是
+  isDefaultDownloadLocation: number // 0-否 1-是
 
   /** 下载速率限制 单位：MB/S */
-  downloadSpeedLimit: number;
+  downloadSpeedLimit: number
 
   /** 并发上传数量 */
-  concurrentUploadQuantity: number;
+  concurrentUploadQuantity: number
 
   /** 并发下载数量 */
-  concurrentDownloadQuantity: number;
+  concurrentDownloadQuantity: number
 
   /** 分片大小 单位：字节 */
-  chunkSize: number;
+  chunkSize: number
 
   /** 创建时间 */
-  createdAt?: string;
+  createdAt?: string
 
   /** 修改时间 */
-  updatedAt?: string;
+  updatedAt?: string
 }
 
 /**
@@ -42,22 +42,22 @@ export interface TransferSetting {
  */
 export interface UpdateTransferSettingCmd {
   /** 文件下载位置（必填） */
-  downloadLocation: string;
+  downloadLocation: string
 
   /** 是否默认该路径为下载路径（必填，0或1） */
-  isDefaultDownloadLocation: number;
+  isDefaultDownloadLocation: number
 
   /** 下载速率限制 单位：MB/S（必填，0表示不限制） */
-  downloadSpeedLimit: number;
+  downloadSpeedLimit: number
 
   /** 并发上传数量（必填，最大3） */
-  concurrentUploadQuantity: number;
+  concurrentUploadQuantity: number
 
   /** 并发下载数量（必填，最大3） */
-  concurrentDownloadQuantity: number;
+  concurrentDownloadQuantity: number
 
   /** 分片大小（必填，单位：字节） */
-  chunkSize: number;
+  chunkSize: number
 }
 
 /**
@@ -65,23 +65,23 @@ export interface UpdateTransferSettingCmd {
  */
 export interface TransferSettingForm {
   /** 文件下载位置 */
-  downloadLocation: string;
+  downloadLocation: string
 
   /** 是否默认该路径为下载路径 */
-  isDefaultDownloadLocation: boolean;
+  isDefaultDownloadLocation: boolean
 
   /** 下载速率限制 单位：MB/S，0 表示不限制 */
-  downloadSpeedLimit: number;
+  downloadSpeedLimit: number
 
   /** 是否启用下载速率限制 */
-  enableDownloadSpeedLimit: boolean;
+  enableDownloadSpeedLimit: boolean
 
   /** 并发上传数量 */
-  concurrentUploadQuantity: number;
+  concurrentUploadQuantity: number
 
   /** 并发下载数量 */
-  concurrentDownloadQuantity: number;
+  concurrentDownloadQuantity: number
 
   /** 分片大小 单位：字节 */
-  chunkSize: number;
+  chunkSize: number
 }

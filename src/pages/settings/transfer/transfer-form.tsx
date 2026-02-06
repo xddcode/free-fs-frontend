@@ -1,10 +1,13 @@
+import { useState, useEffect } from 'react'
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { useState, useEffect } from 'react'
-import { toast } from 'sonner'
 import { InfoCircledIcon } from '@radix-ui/react-icons'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useUserStore } from '@/store/user'
+import { toast } from 'sonner'
+import { userApi } from '@/api/user'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Form,
   FormControl,
@@ -15,7 +18,6 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { Checkbox } from '@/components/ui/checkbox'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import {
   Select,
@@ -30,8 +32,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { userApi } from '@/api/user'
-import { useUserStore } from '@/store/user'
 
 // 路径格式校验
 const validatePath = (value: string) => {
@@ -117,8 +117,7 @@ export function TransferForm() {
       form.reset({
         downloadLocation: settings.downloadLocation || '',
         isDefaultDownloadLocation: settings.isDefaultDownloadLocation === 1,
-        enableDownloadSpeedLimit:
-          settings.downloadSpeedLimit > 0,
+        enableDownloadSpeedLimit: settings.downloadSpeedLimit > 0,
         downloadSpeedLimit:
           settings.downloadSpeedLimit > 0 ? settings.downloadSpeedLimit : 5,
         concurrentUploadQuantity: settings.concurrentUploadQuantity || 3,
@@ -200,7 +199,7 @@ export function TransferForm() {
           control={form.control}
           name='isDefaultDownloadLocation'
           render={({ field }) => (
-            <FormItem className='flex flex-row items-start space-x-3 space-y-0'>
+            <FormItem className='flex flex-row items-start space-y-0 space-x-3'>
               <FormControl>
                 <Checkbox
                   checked={field.value}
@@ -226,7 +225,9 @@ export function TransferForm() {
               <FormLabel>下载速率限制</FormLabel>
               <FormControl>
                 <RadioGroup
-                  onValueChange={(value: string) => field.onChange(value === 'true')}
+                  onValueChange={(value: string) =>
+                    field.onChange(value === 'true')
+                  }
                   value={field.value ? 'true' : 'false'}
                   className='flex gap-4'
                 >
@@ -295,9 +296,7 @@ export function TransferForm() {
                   ))}
                 </SelectContent>
               </Select>
-              <FormDescription>
-                同时进行上传的文件数量
-              </FormDescription>
+              <FormDescription>同时进行上传的文件数量</FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -327,9 +326,7 @@ export function TransferForm() {
                   ))}
                 </SelectContent>
               </Select>
-              <FormDescription>
-                同时进行下载的文件数量
-              </FormDescription>
+              <FormDescription>同时进行下载的文件数量</FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -354,7 +351,9 @@ export function TransferForm() {
                 <SelectContent>
                   <SelectItem value={String(2 * 1024 * 1024)}>2 MB</SelectItem>
                   <SelectItem value={String(5 * 1024 * 1024)}>5 MB</SelectItem>
-                  <SelectItem value={String(10 * 1024 * 1024)}>10 MB</SelectItem>
+                  <SelectItem value={String(10 * 1024 * 1024)}>
+                    10 MB
+                  </SelectItem>
                 </SelectContent>
               </Select>
               <FormDescription>

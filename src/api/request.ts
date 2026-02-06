@@ -1,179 +1,183 @@
-import axios, { AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
-import { getToken, clearToken } from '@/utils/auth';
-import { toast } from 'sonner';
+import axios, {
+  AxiosRequestConfig,
+  AxiosResponse,
+  InternalAxiosRequestConfig,
+} from 'axios'
+import { toast } from 'sonner'
+import { getToken, clearToken } from '@/utils/auth'
 
 export interface HttpResponse<T = unknown> {
-  status: number;
-  msg: string;
-  code: number;
-  data: T;
+  status: number
+  msg: string
+  code: number
+  data: T
 }
 
-let isShowingLogoutModal = false;
-let logoutDialogCallback: (() => void) | null = null;
+let isShowingLogoutModal = false
+let logoutDialogCallback: (() => void) | null = null
 
 // 设置登录过期回调
 export const setLogoutCallback = (callback: () => void) => {
-  logoutDialogCallback = callback;
-};
+  logoutDialogCallback = callback
+}
 
 const service = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,
   timeout: 10000,
-});
+})
 
 const getCurrentStoragePlatformId = (): string | null => {
-  const storageInfo = localStorage.getItem('current-storage-platform');
+  const storageInfo = localStorage.getItem('current-storage-platform')
   if (storageInfo) {
     try {
-      const platform = JSON.parse(storageInfo);
-      return platform?.settingId || null;
+      const platform = JSON.parse(storageInfo)
+      return platform?.settingId || null
     } catch (error) {
-      return null;
+      return null
     }
   }
-  return null;
-};
+  return null
+}
 
 service.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = getToken();
+    const token = getToken()
     if (token) {
-      config.headers = config.headers || {};
-      config.headers.Authorization = `Bearer ${token}`;
+      config.headers = config.headers || {}
+      config.headers.Authorization = `Bearer ${token}`
     }
 
-    const platformId = getCurrentStoragePlatformId();
+    const platformId = getCurrentStoragePlatformId()
     if (platformId) {
-      config.headers = config.headers || {};
-      config.headers['X-Storage-Platform-Config-Id'] = platformId;
+      config.headers = config.headers || {}
+      config.headers['X-Storage-Platform-Config-Id'] = platformId
     }
 
-    return config;
+    return config
   },
   (error) => {
-    return Promise.reject(error);
+    return Promise.reject(error)
   }
-);
+)
 
 service.interceptors.response.use(
   (response: AxiosResponse<HttpResponse>) => {
-    const { data: res, config } = response;
+    const { data: res, config } = response
 
     if (config.responseType === 'blob') {
-      return response;
+      return response
     }
 
     if (res.code === 200) {
-      return response;
+      return response
     }
 
-    const showError = (config as any).showErrorMessage !== false;
+    const showError = (config as any).showErrorMessage !== false
 
     if ([401, 403].includes(res.code)) {
       if (response.config.url !== '/apis/user/info' && !isShowingLogoutModal) {
-        isShowingLogoutModal = true;
+        isShowingLogoutModal = true
         if (logoutDialogCallback) {
-          logoutDialogCallback();
+          logoutDialogCallback()
         } else {
           // 降级方案：如果没有设置回调，使用 toast
-          toast.error('登录已过期，请重新登录');
+          toast.error('登录已过期，请重新登录')
           setTimeout(() => {
-            clearToken();
-            localStorage.removeItem('userInfo');
-            sessionStorage.removeItem('userInfo');
-            window.location.href = '/login';
-            isShowingLogoutModal = false;
-          }, 1500);
+            clearToken()
+            localStorage.removeItem('userInfo')
+            sessionStorage.removeItem('userInfo')
+            window.location.href = '/login'
+            isShowingLogoutModal = false
+          }, 1500)
         }
       }
     } else if (showError) {
-      toast.error(res.msg || '操作失败');
+      toast.error(res.msg || '操作失败')
     }
 
-    const error: any = new Error(res.msg || 'Error');
-    error.code = res.code;
-    error.response = response;
-    return Promise.reject(error);
+    const error: any = new Error(res.msg || 'Error')
+    error.code = res.code
+    error.response = response
+    return Promise.reject(error)
   },
   (error) => {
-    const config = error.config || {};
-    const showError = (config as any).showErrorMessage !== false;
+    const config = error.config || {}
+    const showError = (config as any).showErrorMessage !== false
 
     if (showError && !error.isErrorShown) {
-      let errorMessage = '网络请求失败';
+      let errorMessage = '网络请求失败'
 
       if (error.response) {
-        const { status } = error.response;
+        const { status } = error.response
         switch (status) {
           case 400:
-            errorMessage = error.response.data?.msg || '请求参数错误';
-            break;
+            errorMessage = error.response.data?.msg || '请求参数错误'
+            break
           case 401:
           case 403:
-            errorMessage = '登录已过期，请重新登录';
+            errorMessage = '登录已过期，请重新登录'
             if (!isShowingLogoutModal) {
-              isShowingLogoutModal = true;
+              isShowingLogoutModal = true
               if (logoutDialogCallback) {
-                logoutDialogCallback();
+                logoutDialogCallback()
               } else {
                 // 降级方案
                 setTimeout(() => {
-                  clearToken();
-                  localStorage.removeItem('userInfo');
-                  sessionStorage.removeItem('userInfo');
-                  window.location.href = '/login';
-                  isShowingLogoutModal = false;
-                }, 1500);
+                  clearToken()
+                  localStorage.removeItem('userInfo')
+                  sessionStorage.removeItem('userInfo')
+                  window.location.href = '/login'
+                  isShowingLogoutModal = false
+                }, 1500)
               }
             }
-            break;
+            break
           case 404:
-            errorMessage = '请求的资源不存在';
-            break;
+            errorMessage = '请求的资源不存在'
+            break
           case 500:
-            errorMessage = error.response.data?.msg || '服务器内部错误';
-            break;
+            errorMessage = error.response.data?.msg || '服务器内部错误'
+            break
           default:
-            errorMessage = error.response.data?.msg || `请求失败(${status})`;
+            errorMessage = error.response.data?.msg || `请求失败(${status})`
         }
       } else if (error.message.includes('timeout')) {
-        errorMessage = '请求超时，请检查网络连接';
+        errorMessage = '请求超时，请检查网络连接'
       } else if (error.message.includes('Network Error')) {
-        errorMessage = '网络连接失败，请检查网络';
+        errorMessage = '网络连接失败，请检查网络'
       }
 
-      toast.error(errorMessage);
+      toast.error(errorMessage)
     }
 
-    return Promise.reject(error);
+    return Promise.reject(error)
   }
-);
+)
 
 export const request = {
   get<T = any>(url: string, config?: AxiosRequestConfig) {
     return service
       .get<T, AxiosResponse<HttpResponse<T>>>(url, config)
-      .then((response) => response.data.data);
+      .then((response) => response.data.data)
   },
 
   post<T = any>(url: string, data?: any, config?: AxiosRequestConfig) {
     return service
       .post<T, AxiosResponse<HttpResponse<T>>>(url, data, config)
-      .then((response) => response.data.data);
+      .then((response) => response.data.data)
   },
 
   put<T = any>(url: string, data?: any, config?: AxiosRequestConfig) {
     return service
       .put<T, AxiosResponse<HttpResponse<T>>>(url, data, config)
-      .then((response) => response.data.data);
+      .then((response) => response.data.data)
   },
 
   delete<T = any>(url: string, config?: AxiosRequestConfig) {
     return service
       .delete<T, AxiosResponse<HttpResponse<T>>>(url, config)
-      .then((response) => response.data.data);
+      .then((response) => response.data.data)
   },
-};
+}
 
-export default service;
+export default service

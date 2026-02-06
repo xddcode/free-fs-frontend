@@ -1,8 +1,34 @@
-import { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
-import { List, LayoutGrid, FileText, Upload, FolderPlus, RefreshCw } from 'lucide-react';
-import { useFileList } from './hooks/useFileList';
-import { useFileOperations } from './hooks/useFileOperations';
+import { useState, useEffect } from 'react'
+import type { FileItem } from '@/types/file'
+import {
+  List,
+  LayoutGrid,
+  FileText,
+  Upload,
+  FolderPlus,
+  RefreshCw,
+} from 'lucide-react'
+import { useSearchParams, useNavigate } from 'react-router-dom'
+import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu'
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '@/components/ui/empty'
+import { SidebarTrigger } from '@/components/ui/sidebar'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import {
   Toolbar,
   FileBreadcrumb,
@@ -17,80 +43,65 @@ import {
   DeleteConfirmDialog,
   FileDetailModal,
   MySharesView,
-} from './components';
-import UploadModal from './components/UploadModal';
-import UploadPanel from './components/UploadPanel';
-import type { FileItem } from '@/types/file';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { SidebarTrigger } from '@/components/ui/sidebar';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import {
-  Empty,
-  EmptyContent,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from '@/components/ui/empty';
-import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuSeparator,
-  ContextMenuTrigger,
-} from '@/components/ui/context-menu';
-import { toast } from 'sonner';
+} from './components'
+import UploadModal from './components/UploadModal'
+import UploadPanel from './components/UploadPanel'
+import { useFileList } from './hooks/useFileList'
+import { useFileOperations } from './hooks/useFileOperations'
 
-type ViewMode = 'list' | 'grid';
+type ViewMode = 'list' | 'grid'
 
 export default function FilesPage() {
-  const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
+  const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
 
   // 视图模式
-  const [viewMode, setViewMode] = useState<ViewMode>((searchParams.get('viewMode') as ViewMode) || 'grid');
+  const [viewMode, setViewMode] = useState<ViewMode>(
+    (searchParams.get('viewMode') as ViewMode) || 'grid'
+  )
 
   // 选中的文件
-  const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
+  const [selectedKeys, setSelectedKeys] = useState<string[]>([])
 
   // 上传弹窗状态
-  const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [uploadModalOpen, setUploadModalOpen] = useState(false)
 
   // 拖拽状态
-  const [dragTargetName, setDragTargetName] = useState<string | null>(null);
-  const [draggedCount, setDraggedCount] = useState(0);
+  const [dragTargetName, setDragTargetName] = useState<string | null>(null)
+  const [draggedCount, setDraggedCount] = useState(0)
 
   // 使用 hooks
-  const fileList = useFileList();
-  
+  const fileList = useFileList()
+
   /**
    * 清空选中
    */
   const clearSelection = () => {
-    setSelectedKeys([]);
-  };
-  
+    setSelectedKeys([])
+  }
+
   const operations = useFileOperations(fileList.refresh, clearSelection, () => {
     // 在特殊视图中创建文件夹后，返回全部文件页面
     if (isFavoritesView || isRecentsView || isTypeFilter || isDirFilter) {
-      navigate(`/files?viewMode=${viewMode}`);
+      navigate(`/files?viewMode=${viewMode}`)
     }
-  });
+  })
 
   // 计算当前视图类型
-  const viewType = searchParams.get('view');
-  const fileType = searchParams.get('type');
-  const isDirFilter = searchParams.get('isDir') === 'true';
-  const isFavoritesView = viewType === 'favorites';
-  const isRecentsView = viewType === 'recents';
-  const isRecycleBin = viewType === 'recycle';
-  const isSharesView = viewType === 'shares';
-  const isTypeFilter = !!fileType;
+  const viewType = searchParams.get('view')
+  const fileType = searchParams.get('type')
+  const isDirFilter = searchParams.get('isDir') === 'true'
+  const isFavoritesView = viewType === 'favorites'
+  const isRecentsView = viewType === 'recents'
+  const isRecycleBin = viewType === 'recycle'
+  const isSharesView = viewType === 'shares'
+  const isTypeFilter = !!fileType
 
   // 判断文件夹
-  const selectedFiles = fileList.fileList.filter((file) => selectedKeys.includes(file.id));
-  const hasUnfavorited = selectedFiles.some((f) => !f.isFavorite);
+  const selectedFiles = fileList.fileList.filter((file) =>
+    selectedKeys.includes(file.id)
+  )
+  const hasUnfavorited = selectedFiles.some((f) => !f.isFavorite)
 
   /**
    * 键盘快捷键
@@ -99,57 +110,59 @@ export default function FilesPage() {
     const handleKeyDown = (e: KeyboardEvent) => {
       // ESC 键取消多选
       if (e.key === 'Escape' && selectedKeys.length > 0) {
-        clearSelection();
+        clearSelection()
       }
-      
+
       // F2 键重命名（仅当选中单个文件时）
       if (e.key === 'F2' && selectedKeys.length === 1) {
-        e.preventDefault();
-        const selectedFile = fileList.fileList.find((file) => file.id === selectedKeys[0]);
+        e.preventDefault()
+        const selectedFile = fileList.fileList.find(
+          (file) => file.id === selectedKeys[0]
+        )
         if (selectedFile) {
-          operations.openRenameModal(selectedFile);
+          operations.openRenameModal(selectedFile)
         }
       }
-    };
+    }
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedKeys, fileList.fileList]);
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [selectedKeys, fileList.fileList])
 
   /**
    * 当目录变化时清空选中状态
    */
   useEffect(() => {
-    clearSelection();
-  }, [fileList.currentParentId, viewType, fileType, isDirFilter]);
+    clearSelection()
+  }, [fileList.currentParentId, viewType, fileType, isDirFilter])
 
   /**
    * 监听文件上传完成事件
    */
   useEffect(() => {
     const handleUploadComplete = (event: Event) => {
-      const customEvent = event as CustomEvent<{ parentId?: string }>;
-      const { parentId } = customEvent.detail;
-      
+      const customEvent = event as CustomEvent<{ parentId?: string }>
+      const { parentId } = customEvent.detail
+
       // 如果是当前目录的文件，刷新列表
       if (parentId === fileList.currentParentId) {
-        fileList.refresh();
+        fileList.refresh()
       }
-    };
+    }
 
-    window.addEventListener('file-upload-complete', handleUploadComplete);
+    window.addEventListener('file-upload-complete', handleUploadComplete)
 
     return () => {
-      window.removeEventListener('file-upload-complete', handleUploadComplete);
-    };
-  }, [fileList.currentParentId, fileList.refresh]);
+      window.removeEventListener('file-upload-complete', handleUploadComplete)
+    }
+  }, [fileList.currentParentId, fileList.refresh])
 
   /**
    * 打开上传弹窗
    */
   const handleOpenUploadModal = () => {
-    setUploadModalOpen(true);
-  };
+    setUploadModalOpen(true)
+  }
 
   /**
    * 处理文件点击
@@ -157,118 +170,124 @@ export default function FilesPage() {
   const handleFileClick = (file: FileItem) => {
     if (file.isDir) {
       // 进入文件夹时清空选中状态
-      clearSelection();
-      
+      clearSelection()
+
       // 如果是在特殊视图中，进入文件夹后清除筛选参数，回到全部文件
       if (isFavoritesView || isRecentsView || isTypeFilter || isDirFilter) {
         // 使用 navigate 跳转到全部文件视图
-        navigate(`/files?parentId=${file.id}&viewMode=${viewMode}`);
+        navigate(`/files?parentId=${file.id}&viewMode=${viewMode}`)
       } else {
-        fileList.enterFolder(file.id, viewMode);
+        fileList.enterFolder(file.id, viewMode)
       }
     }
-  };
+  }
 
   /**
    * 全选/取消全选
    */
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedKeys(fileList.fileList.map((f) => f.id));
+      setSelectedKeys(fileList.fileList.map((f) => f.id))
     } else {
-      setSelectedKeys([]);
+      setSelectedKeys([])
     }
-  };
+  }
 
   /**
    * 批量操作
    */
   const handleBatchDownload = () => {
-    const downloadableFiles = selectedFiles.filter((f) => !f.isDir);
+    const downloadableFiles = selectedFiles.filter((f) => !f.isDir)
     if (downloadableFiles.length === 0) {
-      toast.warning('没有可下载的文件');
-      return;
+      toast.warning('没有可下载的文件')
+      return
     }
-    operations.handleDownload(downloadableFiles);
-    clearSelection();
-  };
+    operations.handleDownload(downloadableFiles)
+    clearSelection()
+  }
 
   const handleBatchShare = () => {
-    if (selectedFiles.length === 0) return;
-    operations.openBatchShareModal(selectedFiles);
-  };
+    if (selectedFiles.length === 0) return
+    operations.openBatchShareModal(selectedFiles)
+  }
 
   const handleBatchFavorite = async () => {
-    if (selectedFiles.length === 0) return;
-    await operations.handleFavorite(selectedFiles);
-  };
+    if (selectedFiles.length === 0) return
+    await operations.handleFavorite(selectedFiles)
+  }
 
   const handleBatchMove = () => {
-    if (selectedFiles.length === 0) return;
-    operations.openBatchMoveModal(selectedFiles);
-  };
+    if (selectedFiles.length === 0) return
+    operations.openBatchMoveModal(selectedFiles)
+  }
 
   const handleBatchDelete = () => {
-    if (selectedFiles.length === 0) return;
-    operations.openBatchDeleteConfirm(selectedFiles);
-  };
+    if (selectedFiles.length === 0) return
+    operations.openBatchDeleteConfirm(selectedFiles)
+  }
 
   /**
    * 拖拽移动文件
    */
   const handleMoveFiles = async (fileIds: string[], targetDirId: string) => {
-    await operations.handleMove(fileIds, targetDirId);
-  };
+    await operations.handleMove(fileIds, targetDirId)
+  }
 
   /**
    * 处理拖拽状态变化
    */
-  const handleDragStateChange = (dropTargetName: string | null, draggedCount: number) => {
-    setDragTargetName(dropTargetName);
-    setDraggedCount(draggedCount);
-  };
+  const handleDragStateChange = (
+    dropTargetName: string | null,
+    draggedCount: number
+  ) => {
+    setDragTargetName(dropTargetName)
+    setDraggedCount(draggedCount)
+  }
 
-  const isAllSelected = fileList.fileList.length > 0 && selectedKeys.length === fileList.fileList.length;
+  const isAllSelected =
+    fileList.fileList.length > 0 &&
+    selectedKeys.length === fileList.fileList.length
 
   // 如果是回收站或我的分享视图,显示对应的特殊组件
   if (isRecycleBin) {
-    return <RecycleBinView />;
+    return <RecycleBinView />
   }
 
   if (isSharesView) {
-    return <MySharesView />;
+    return <MySharesView />
   }
 
   return (
-    <div className="flex h-full flex-col">
+    <div className='flex h-full flex-col'>
       {/* 现代化顶部工具栏 */}
-      <div className="flex items-center gap-4 border-b px-6 py-4">
-        <SidebarTrigger className="md:hidden" />
-        
+      <div className='flex items-center gap-4 border-b px-6 py-4'>
+        <SidebarTrigger className='md:hidden' />
+
         {/* 面包屑导航 */}
-        <div className="flex-1 min-w-0">
+        <div className='min-w-0 flex-1'>
           <FileBreadcrumb
             breadcrumbPath={fileList.breadcrumbPath}
             customTitle={
               // 在根目录且是特殊视图时显示标题
-              fileList.breadcrumbPath.length === 0 && (isFavoritesView || isRecentsView || isTypeFilter || isDirFilter)
+              fileList.breadcrumbPath.length === 0 &&
+              (isFavoritesView || isRecentsView || isTypeFilter || isDirFilter)
                 ? isFavoritesView
                   ? '我的收藏'
                   : isRecentsView
-                  ? '最近使用'
-                  : isDirFilter
-                  ? '文件夹'
-                  : fileType === 'document'
-                  ? '文档'
-                  : fileType === 'image'
-                  ? '图片'
-                  : fileType === 'video'
-                  ? '视频'
-                  : fileType === 'audio'
-                  ? '音频'
-                  : fileType === 'other'
-                  ? '其它'
-                  : undefined
+                    ? '最近使用'
+                    : isDirFilter
+                      ? '文件夹'
+                      : fileType === 'document'
+                        ? '文档'
+                        : fileType === 'image'
+                          ? '图片'
+                          : fileType === 'video'
+                            ? '视频'
+                            : fileType === 'audio'
+                              ? '音频'
+                              : fileType === 'other'
+                                ? '其它'
+                                : undefined
                 : undefined
             }
             onNavigate={fileList.navigateToFolder}
@@ -289,71 +308,93 @@ export default function FilesPage() {
 
       {/* 拖拽提示 */}
       {dragTargetName && (
-        <div className="px-6 py-3 bg-blue-50 dark:bg-blue-950/20 border-b border-blue-200 dark:border-blue-900">
-          <div className="flex items-center gap-2 text-sm text-blue-800 dark:text-blue-300">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+        <div className='border-b border-blue-200 bg-blue-50 px-6 py-3 dark:border-blue-900 dark:bg-blue-950/20'>
+          <div className='flex items-center gap-2 text-sm text-blue-800 dark:text-blue-300'>
+            <svg
+              className='h-4 w-4'
+              fill='none'
+              stroke='currentColor'
+              viewBox='0 0 24 24'
+            >
+              <path
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                strokeWidth={2}
+                d='M13 7l5 5m0 0l-5 5m5-5H6'
+              />
             </svg>
-            <span>移动至 "{dragTargetName}" {draggedCount > 1 && `(共 ${draggedCount} 项)`}</span>
+            <span>
+              移动至 "{dragTargetName}"{' '}
+              {draggedCount > 1 && `(共 ${draggedCount} 项)`}
+            </span>
           </div>
         </div>
       )}
 
       {/* 次级工具栏：统计信息和视图切换 */}
-      <div className="flex items-center justify-between border-b px-6 py-3">
-        <div className="flex items-center gap-3">
+      <div className='flex items-center justify-between border-b px-6 py-3'>
+        <div className='flex items-center gap-3'>
           {viewMode === 'grid' && fileList.fileList.length > 0 && (
             <Checkbox
               checked={isAllSelected}
               onCheckedChange={handleSelectAll}
-              aria-label="全选"
+              aria-label='全选'
             />
           )}
-          <span className="text-sm text-muted-foreground">
+          <span className='text-sm text-muted-foreground'>
             {selectedKeys.length > 0
               ? `已选 ${selectedKeys.length} 项`
               : `共 ${fileList.fileList.length} 项`}
           </span>
         </div>
-        <ToggleGroup type="single" value={viewMode} onValueChange={(value) => value && setViewMode(value as ViewMode)}>
-          <ToggleGroupItem value="grid" aria-label="网格视图" size="sm">
-            <LayoutGrid className="h-4 w-4" />
+        <ToggleGroup
+          type='single'
+          value={viewMode}
+          onValueChange={(value) => value && setViewMode(value as ViewMode)}
+        >
+          <ToggleGroupItem value='grid' aria-label='网格视图' size='sm'>
+            <LayoutGrid className='h-4 w-4' />
           </ToggleGroupItem>
-          <ToggleGroupItem value="list" aria-label="列表视图" size="sm">
-            <List className="h-4 w-4" />
+          <ToggleGroupItem value='list' aria-label='列表视图' size='sm'>
+            <List className='h-4 w-4' />
           </ToggleGroupItem>
         </ToggleGroup>
       </div>
 
       {/* 主内容区域 */}
-      <div className="flex-1 overflow-hidden">
+      <div className='flex-1 overflow-hidden'>
         <ContextMenu>
           <ContextMenuTrigger asChild>
-            <div className="h-full overflow-auto p-6">
-
+            <div className='h-full overflow-auto p-6'>
               {fileList.loading ? (
-                <div className="flex items-center justify-center h-full">
-                  <p className="text-muted-foreground">加载中...</p>
+                <div className='flex h-full items-center justify-center'>
+                  <p className='text-muted-foreground'>加载中...</p>
                 </div>
               ) : fileList.fileList.length === 0 ? (
-                <div className="flex items-center justify-center h-full">
-                  <Empty className="border-none">
+                <div className='flex h-full items-center justify-center'>
+                  <Empty className='border-none'>
                     <EmptyHeader>
-                      <EmptyMedia variant="icon">
-                        <FileText className="h-12 w-12" />
+                      <EmptyMedia variant='icon'>
+                        <FileText className='h-12 w-12' />
                       </EmptyMedia>
                       <EmptyTitle>暂无文件</EmptyTitle>
-                      <EmptyDescription>上传文件或创建文件夹开始使用</EmptyDescription>
+                      <EmptyDescription>
+                        上传文件或创建文件夹开始使用
+                      </EmptyDescription>
                     </EmptyHeader>
                     {!fileList.searchKeyword && (
                       <EmptyContent>
-                        <div className="flex gap-2">
-                          <Button size="sm" onClick={handleOpenUploadModal}>
-                            <Upload className="h-4 w-4 mr-2" />
+                        <div className='flex gap-2'>
+                          <Button size='sm' onClick={handleOpenUploadModal}>
+                            <Upload className='mr-2 h-4 w-4' />
                             上传文件
                           </Button>
-                          <Button variant="outline" size="sm" onClick={operations.openCreateFolderModal}>
-                            <FolderPlus className="h-4 w-4 mr-2" />
+                          <Button
+                            variant='outline'
+                            size='sm'
+                            onClick={operations.openCreateFolderModal}
+                          >
+                            <FolderPlus className='mr-2 h-4 w-4' />
                             新建文件夹
                           </Button>
                         </div>
@@ -362,12 +403,12 @@ export default function FilesPage() {
                   </Empty>
                 </div>
               ) : (
-                <div 
-                  className="h-full" 
+                <div
+                  className='h-full'
                   onClick={(e) => {
                     // 点击空白区域取消选择
                     if (e.target === e.currentTarget) {
-                      clearSelection();
+                      clearSelection()
                     }
                   }}
                 >
@@ -390,7 +431,7 @@ export default function FilesPage() {
                       onBatchShare={handleBatchShare}
                       onBatchMove={handleBatchMove}
                       onBatchDelete={handleBatchDelete}
-                  />
+                    />
                   ) : (
                     <FileListView
                       fileList={fileList.fileList}
@@ -419,16 +460,16 @@ export default function FilesPage() {
           </ContextMenuTrigger>
           <ContextMenuContent>
             <ContextMenuItem onClick={operations.openCreateFolderModal}>
-              <FolderPlus className="h-4 w-4 mr-2" />
+              <FolderPlus className='mr-2 h-4 w-4' />
               新建文件夹
             </ContextMenuItem>
             <ContextMenuItem onClick={handleOpenUploadModal}>
-              <Upload className="h-4 w-4 mr-2" />
+              <Upload className='mr-2 h-4 w-4' />
               上传文件
             </ContextMenuItem>
             <ContextMenuSeparator />
             <ContextMenuItem onClick={() => fileList.refresh()}>
-              <RefreshCw className="h-4 w-4 mr-2" />
+              <RefreshCw className='mr-2 h-4 w-4' />
               刷新
             </ContextMenuItem>
           </ContextMenuContent>
@@ -503,5 +544,5 @@ export default function FilesPage() {
         breadcrumbPath={fileList.breadcrumbPath}
       />
     </div>
-  );
+  )
 }

@@ -38,13 +38,13 @@ export function AppBreadcrumb() {
   return (
     <Breadcrumb>
       <BreadcrumbList>
-        <BreadcrumbItem className="hidden md:block">
+        <BreadcrumbItem className='hidden md:block'>
           <BreadcrumbLink asChild>
-            <Link to="/">首页</Link>
+            <Link to='/'>首页</Link>
           </BreadcrumbLink>
         </BreadcrumbItem>
         {pathSegments.length > 0 && (
-          <BreadcrumbSeparator className="hidden md:block" />
+          <BreadcrumbSeparator className='hidden md:block' />
         )}
         {pathSegments.map((segment, index) => {
           const path = `/${pathSegments.slice(0, index + 1).join('/')}`
@@ -52,7 +52,7 @@ export function AppBreadcrumb() {
           const name = routeNames[path] || segment
 
           return (
-            <div key={path} className="flex items-center gap-2">
+            <div key={path} className='flex items-center gap-2'>
               <BreadcrumbItem>
                 {isLast ? (
                   <BreadcrumbPage>{name}</BreadcrumbPage>

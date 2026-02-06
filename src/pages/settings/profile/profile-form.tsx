@@ -1,8 +1,10 @@
+import { useState, useEffect } from 'react'
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useState, useEffect } from 'react'
+import { useAuth } from '@/contexts/auth-context'
 import { toast } from 'sonner'
+import { userApi } from '@/api/user'
 import { Button } from '@/components/ui/button'
 import {
   Form,
@@ -14,8 +16,6 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { useAuth } from '@/contexts/auth-context'
-import { userApi } from '@/api/user'
 
 const profileFormSchema = z.object({
   nickname: z
@@ -47,18 +47,18 @@ export function ProfileForm() {
 
   async function onSubmit(data: ProfileFormValues) {
     if (!user) return
-    
+
     setLoading(true)
     try {
       await userApi.updateUserInfo({
         nickname: data.nickname,
       })
-      
+
       updateUser({
         ...user,
         nickname: data.nickname,
       })
-      
+
       toast.success('昵称修改成功')
     } finally {
       setLoading(false)
@@ -84,7 +84,7 @@ export function ProfileForm() {
             </FormItem>
           )}
         />
-        
+
         <div className='pt-4'>
           <Button type='submit' disabled={loading}>
             {loading ? '保存中...' : '保存设置'}

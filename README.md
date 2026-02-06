@@ -27,10 +27,12 @@
 ## 📦 仓库地址
 
 **前端仓库：**
+
 - Gitee：[https://gitee.com/xddcode/free-fs-frontend](https://gitee.com/xddcode/free-fs-frontend)
 - GitHub：[https://github.com/xddcode/free-fs-frontend](https://github.com/xddcode/free-fs-frontend)
 
 **后端仓库：**
+
 - Gitee：[https://gitee.com/dromara/free-fs](https://gitee.com/dromara/free-fs)
 - GitHub：[https://github.com/dromara/free-fs](https://github.com/dromara/free-fs)
 
@@ -38,16 +40,16 @@
 
 ## 🚀 技术栈
 
-| 技术 | 说明 | 版本 |
-|------|------|------|
-| React | UI 框架 | 19.x |
-| TypeScript | 类型安全 | 5.x |
-| Vite | 构建工具 | 6.x |
-| React Router | 路由管理 | 6.x |
-| Zustand | 状态管理 | 5.x |
-| shadcn/ui | UI 组件库 | Latest |
-| Tailwind CSS | 样式框架 | 3.x |
-| Axios | HTTP 客户端 | 1.x |
+| 技术         | 说明        | 版本   |
+| ------------ | ----------- | ------ |
+| React        | UI 框架     | 19.x   |
+| TypeScript   | 类型安全    | 5.x    |
+| Vite         | 构建工具    | 6.x    |
+| React Router | 路由管理    | 6.x    |
+| Zustand      | 状态管理    | 5.x    |
+| shadcn/ui    | UI 组件库   | Latest |
+| Tailwind CSS | 样式框架    | 3.x    |
+| Axios        | HTTP 客户端 | 1.x    |
 
 ## ⚡ 快速开始
 
@@ -162,16 +164,16 @@ free-fs-frontend/
 
 ### Commit 规范
 
-| 类型 | 说明 |
-|------|------|
-| feat | 新功能 |
-| fix | Bug 修复 |
-| docs | 文档更新 |
-| style | 代码格式调整 |
-| refactor | 代码重构 |
-| perf | 性能优化 |
-| test | 测试相关 |
-| chore | 构建/工具链更新 |
+| 类型     | 说明            |
+| -------- | --------------- |
+| feat     | 新功能          |
+| fix      | Bug 修复        |
+| docs     | 文档更新        |
+| style    | 代码格式调整    |
+| refactor | 代码重构        |
+| perf     | 性能优化        |
+| test     | 测试相关        |
+| chore    | 构建/工具链更新 |
 
 ---
 

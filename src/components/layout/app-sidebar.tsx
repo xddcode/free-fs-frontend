@@ -1,4 +1,5 @@
 import { Fragment } from 'react'
+import { useAuth } from '@/contexts/auth-context'
 import { Settings } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import {
@@ -13,26 +14,30 @@ import {
   SidebarSeparator,
   useSidebar,
 } from '@/components/ui/sidebar'
-import { useAuth } from '@/contexts/auth-context'
-import { sidebarData } from './data/sidebar-data'
 import { AppTitle } from './app-title'
+import { sidebarData } from './data/sidebar-data'
 import { NavGroup } from './nav-group'
 import { NavUser } from './nav-user'
 
 function SettingsButton() {
   const { state } = useSidebar()
-  
+
   return (
     <SidebarMenu>
       <SidebarMenuItem>
-        <SidebarMenuButton 
-          asChild 
+        <SidebarMenuButton
+          asChild
           tooltip={state === 'collapsed' ? '设置' : undefined}
-          className="group-data-[collapsible=icon]:w-16! group-data-[collapsible=icon]:h-16! group-data-[collapsible=icon]:p-2! group-data-[collapsible=icon]:flex-col! group-data-[collapsible=icon]:justify-center! group-data-[collapsible=icon]:gap-1!"
+          className='group-data-[collapsible=icon]:h-16! group-data-[collapsible=icon]:w-16! group-data-[collapsible=icon]:flex-col! group-data-[collapsible=icon]:justify-center! group-data-[collapsible=icon]:gap-1! group-data-[collapsible=icon]:p-2!'
         >
-          <Link to="/settings" className="group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:gap-1">
-            <Settings className="size-4 group-data-[collapsible=icon]:size-6" />
-            <span className="group-data-[collapsible=icon]:text-[11px]">设置</span>
+          <Link
+            to='/settings'
+            className='group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:gap-1'
+          >
+            <Settings className='size-4 group-data-[collapsible=icon]:size-6' />
+            <span className='group-data-[collapsible=icon]:text-[11px]'>
+              设置
+            </span>
           </Link>
         </SidebarMenuButton>
       </SidebarMenuItem>
@@ -53,7 +58,7 @@ export function AppSidebar() {
     : sidebarData.user
 
   return (
-    <Sidebar variant="sidebar" collapsible="icon">
+    <Sidebar variant='sidebar' collapsible='icon'>
       <SidebarHeader>
         <AppTitle />
       </SidebarHeader>

@@ -1,2 +1,2 @@
-export { ShareFileListView } from './ShareFileListView';
-export { ShareFileGridView } from './ShareFileGridView';
+export { ShareFileListView } from './ShareFileListView'
+export { ShareFileGridView } from './ShareFileGridView'

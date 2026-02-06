@@ -1,11 +1,10 @@
-import { useCallback, useRef } from "react"
-import { Moon, Sun } from "lucide-react"
-import { flushSync } from "react-dom"
+import { useCallback, useRef } from 'react'
+import { Moon, Sun } from 'lucide-react'
+import { flushSync } from 'react-dom'
+import { cn } from '@/lib/utils'
+import { useTheme } from '@/components/theme-provider'
 
-import { cn } from "@/lib/utils"
-import { useTheme } from "@/components/theme-provider"
-
-interface AnimatedThemeTogglerProps extends React.ComponentPropsWithoutRef<"button"> {
+interface AnimatedThemeTogglerProps extends React.ComponentPropsWithoutRef<'button'> {
   duration?: number
 }
 
@@ -18,7 +17,10 @@ export const AnimatedThemeToggler = ({
   const buttonRef = useRef<HTMLButtonElement>(null)
 
   // 判断当前是否是暗色主题
-  const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+  const isDark =
+    theme === 'dark' ||
+    (theme === 'system' &&
+      window.matchMedia('(prefers-color-scheme: dark)').matches)
 
   const toggleTheme = useCallback(async () => {
     if (!buttonRef.current) return
@@ -55,8 +57,8 @@ export const AnimatedThemeToggler = ({
       },
       {
         duration,
-        easing: "ease-in-out",
-        pseudoElement: "::view-transition-new(root)",
+        easing: 'ease-in-out',
+        pseudoElement: '::view-transition-new(root)',
       }
     )
   }, [isDark, setTheme, duration])
@@ -68,8 +70,8 @@ export const AnimatedThemeToggler = ({
       className={cn(className)}
       {...props}
     >
-      {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-      <span className="sr-only">Toggle theme</span>
+      {isDark ? <Sun className='h-4 w-4' /> : <Moon className='h-4 w-4' />}
+      <span className='sr-only'>Toggle theme</span>
     </button>
   )
 }

@@ -1,6 +1,7 @@
+import { useAuth } from '@/contexts/auth-context'
 import { ChevronsUpDown, LogOut, Settings } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '@/contexts/auth-context'
+import { getAvatarFallback } from '@/utils/avatar'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   DropdownMenu,
@@ -16,7 +17,6 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from '@/components/ui/sidebar'
-import { getAvatarFallback } from '@/utils/avatar'
 
 interface NavUserProps {
   user: {
@@ -48,61 +48,57 @@ export function NavUser({ user }: NavUserProps) {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
-              size="lg"
-              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground border-0 ring-0 focus-visible:ring-0 group-data-[collapsible=icon]:w-16! group-data-[collapsible=icon]:h-16! group-data-[collapsible=icon]:p-2! group-data-[collapsible=icon]:justify-center!"
+              size='lg'
+              className='border-0 ring-0 group-data-[collapsible=icon]:h-16! group-data-[collapsible=icon]:w-16! group-data-[collapsible=icon]:justify-center! group-data-[collapsible=icon]:p-2! focus-visible:ring-0 data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground'
             >
-              <Avatar className="h-8 w-8 rounded-lg group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:rounded-full">
+              <Avatar className='h-8 w-8 rounded-lg group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:rounded-full'>
                 <AvatarImage src={user.avatar} alt={user.name} />
-                <AvatarFallback 
-                  className="rounded-lg font-medium bg-sidebar-accent text-sidebar-accent-foreground group-data-[collapsible=icon]:rounded-full"
-                >
+                <AvatarFallback className='rounded-lg bg-sidebar-accent font-medium text-sidebar-accent-foreground group-data-[collapsible=icon]:rounded-full'>
                   {avatarFallback}
                 </AvatarFallback>
               </Avatar>
               {state === 'expanded' && (
                 <>
-                  <div className="grid flex-1 text-start text-sm leading-tight">
-                    <span className="truncate font-semibold">{user.name}</span>
-                    <span className="truncate text-xs">{user.email}</span>
+                  <div className='grid flex-1 text-start text-sm leading-tight'>
+                    <span className='truncate font-semibold'>{user.name}</span>
+                    <span className='truncate text-xs'>{user.email}</span>
                   </div>
-                  <ChevronsUpDown className="ms-auto size-4" />
+                  <ChevronsUpDown className='ms-auto size-4' />
                 </>
               )}
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
-            className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
+            className='w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg'
             side={isMobile ? 'bottom' : 'right'}
-            align="end"
+            align='end'
             sideOffset={4}
           >
-            <DropdownMenuLabel className="p-0 font-normal">
-              <div className="flex items-center gap-2 px-1 py-1.5 text-start text-sm">
-                <Avatar className="h-8 w-8 rounded-lg">
+            <DropdownMenuLabel className='p-0 font-normal'>
+              <div className='flex items-center gap-2 px-1 py-1.5 text-start text-sm'>
+                <Avatar className='h-8 w-8 rounded-lg'>
                   <AvatarImage src={user.avatar} alt={user.name} />
-                  <AvatarFallback 
-                    className="rounded-lg font-medium bg-sidebar-accent text-sidebar-accent-foreground"
-                  >
+                  <AvatarFallback className='rounded-lg bg-sidebar-accent font-medium text-sidebar-accent-foreground'>
                     {avatarFallback}
                   </AvatarFallback>
                 </Avatar>
-                <div className="grid flex-1 text-start text-sm leading-tight">
-                  <span className="truncate font-semibold">{user.name}</span>
-                  <span className="truncate text-xs">{user.email}</span>
+                <div className='grid flex-1 text-start text-sm leading-tight'>
+                  <span className='truncate font-semibold'>{user.name}</span>
+                  <span className='truncate text-xs'>{user.email}</span>
                 </div>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleSettings}>
-              <Settings className="mr-2 h-4 w-4" />
+              <Settings className='mr-2 h-4 w-4' />
               <span>账户设置</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={handleLogout}
-              className="text-red-600 focus:text-red-600"
+              className='text-red-600 focus:text-red-600'
             >
-              <LogOut className="mr-2 h-4 w-4" />
+              <LogOut className='mr-2 h-4 w-4' />
               <span>退出登录</span>
             </DropdownMenuItem>
           </DropdownMenuContent>

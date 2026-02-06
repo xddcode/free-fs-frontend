@@ -3,31 +3,31 @@
  */
 export interface ShareItem {
   /** 分享ID（用于唯一标识） */
-  id: string;
+  id: string
   /** 分享名称 */
-  shareName: string;
+  shareName: string
   /** 分享链接 */
-  shareUrl: string | null;
+  shareUrl: string | null
   /** 提取码 */
-  shareCode: string | null;
+  shareCode: string | null
   /** 过期时间 */
-  expireTime: string | null;
+  expireTime: string | null
   /** 是否永久有效 */
-  isPermanent: boolean | null;
+  isPermanent: boolean | null
   /** 查看次数 */
-  viewCount: number;
+  viewCount: number
   /** 下载次数 */
-  downloadCount: number;
+  downloadCount: number
   /** 最大查看次数 */
-  maxViewCount: number;
+  maxViewCount: number
   /** 最大下载次数 */
-  maxDownloadCount: number;
+  maxDownloadCount: number
   /** 文件数量 */
-  fileCount?: number;
+  fileCount?: number
   /** 创建时间 */
-  createdAt: string;
+  createdAt: string
   /** 分享权限（preview,download 逗号拼接） */
-  scope?: string;
+  scope?: string
 }
 
 /**
@@ -35,19 +35,19 @@ export interface ShareItem {
  */
 export interface ShareThin {
   /** 分享ID（用于唯一标识） */
-  id: string;
+  id: string
   /** 分享名称 */
-  shareName: string;
+  shareName: string
   /** 过期时间 */
-  expireTime: string | null;
+  expireTime: string | null
   /** 文件数量 */
-  fileCount?: number;
+  fileCount?: number
   /** 是否有验证码 */
-  hasCheckCode: boolean;
+  hasCheckCode: boolean
   /** 是否已过期 */
-  isExpire: boolean;
+  isExpire: boolean
   /** 分享权限（preview,download 逗号拼接） */
-  scope?: string;
+  scope?: string
 }
 
 /**
@@ -55,57 +55,57 @@ export interface ShareThin {
  */
 export interface ShareListQuery {
   /** 分享名称关键词 */
-  keyword?: string;
+  keyword?: string
   /** 排序字段 */
-  orderBy?: string;
+  orderBy?: string
   /** 排序方向 ASC | DESC */
-  orderDirection?: 'ASC' | 'DESC';
+  orderDirection?: 'ASC' | 'DESC'
 }
 
 export interface ShareCreateParams {
   /** 文件ID列表（支持多个文件/文件夹） */
-  fileIds: string[];
+  fileIds: string[]
   /** 分享名称（可选，默认取第一个文件名） */
-  shareName?: string;
+  shareName?: string
   /** 有效期类型：1-7天 2-30天 3-自定义 4-永久 */
-  expireType?: number | null;
+  expireType?: number | null
   /** 自定义有效期（可选） */
-  expireTime?: string;
+  expireTime?: string
   /** 是否需要提取码 */
-  needShareCode?: boolean;
+  needShareCode?: boolean
   /** 最大查看次数（可选） */
-  maxViewCount?: number;
+  maxViewCount?: number
   /** 最大下载次数（可选） */
-  maxDownloadCount?: number;
+  maxDownloadCount?: number
   /** 分享权限（preview,download 逗号拼接） */
-  scope?: string;
+  scope?: string
 }
 
 export interface ShareCreateResponse {
   /** 分享ID */
-  id: string;
+  id: string
   /** 分享名称 */
-  shareName: string;
+  shareName: string
   /** 分享链接 */
-  shareUrl: string;
+  shareUrl: string
   /** 提取码 */
-  shareCode: string | null;
+  shareCode: string | null
   /** 过期时间 */
-  expireTime: string | null;
+  expireTime: string | null
   /** 是否永久有效 */
-  isPermanent: boolean;
+  isPermanent: boolean
   /** 查看次数 */
-  viewCount: number;
+  viewCount: number
   /** 下载次数 */
-  downloadCount: number;
+  downloadCount: number
   /** 最大查看次数 */
-  maxViewCount: number | null;
+  maxViewCount: number | null
   /** 最大下载次数 */
-  maxDownloadCount: number | null;
+  maxDownloadCount: number | null
   /** 文件数量 */
-  fileCount: number;
+  fileCount: number
   /** 创建时间 */
-  createdAt: string;
+  createdAt: string
 }
 
 /**
@@ -113,9 +113,9 @@ export interface ShareCreateResponse {
  */
 export interface ShareValidParams {
   /** 分享ID */
-  shareId: string;
+  shareId: string
   /** 分享码 */
-  shareCode: string | null;
+  shareCode: string | null
 }
 
 /**
@@ -123,17 +123,17 @@ export interface ShareValidParams {
  */
 export interface ShareAccessRecord {
   /** 自增ID */
-  id: string;
+  id: string
   /** 分享ID */
-  shareId: string;
+  shareId: string
   /** 访问IP */
-  accessIp: string;
+  accessIp: string
   /** 访问地址 */
-  accessAddress: string;
+  accessAddress: string
   /** 访问浏览器 */
-  browser: string;
+  browser: string
   /** 访问操作系统 */
-  os: string;
+  os: string
   /** 访问时间 */
-  accessTime: string;
+  accessTime: string
 }

@@ -1,8 +1,7 @@
-import { zodResolver } from '@hookform/resolvers/zod'
-import { useForm } from 'react-hook-form'
-import { z } from 'zod'
 import React from 'react'
-import { useTheme } from '@/components/theme-provider'
+import { z } from 'zod'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
@@ -17,6 +16,7 @@ import {
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { useSidebar } from '@/components/ui/sidebar'
 import { LAYOUT_STORAGE_KEY } from '@/components/layout/app-layout'
+import { useTheme } from '@/components/theme-provider'
 
 const appearanceFormSchema = z.object({
   theme: z.enum(['light', 'dark'], {
@@ -31,7 +31,11 @@ type AppearanceFormValues = z.infer<typeof appearanceFormSchema>
 
 function getInitialLayout(): 'default' | 'compact' {
   if (typeof window === 'undefined') return 'default'
-  return (localStorage.getItem(LAYOUT_STORAGE_KEY) === 'compact' ? 'compact' : 'default') as 'default' | 'compact'
+  return (
+    localStorage.getItem(LAYOUT_STORAGE_KEY) === 'compact'
+      ? 'compact'
+      : 'default'
+  ) as 'default' | 'compact'
 }
 
 export function AppearanceForm() {
@@ -88,9 +92,7 @@ export function AppearanceForm() {
           render={({ field }) => (
             <FormItem className='space-y-3'>
               <FormLabel>主题</FormLabel>
-              <FormDescription>
-                选择应用的显示主题
-              </FormDescription>
+              <FormDescription>选择应用的显示主题</FormDescription>
               <FormMessage />
               <RadioGroup
                 onValueChange={field.onChange}
@@ -98,13 +100,13 @@ export function AppearanceForm() {
                 className='grid max-w-2xl grid-cols-2 gap-8 pt-2'
               >
                 <FormItem>
-                  <FormLabel className='[&:has([data-state=checked])_.theme-card]:border-primary cursor-pointer'>
+                  <FormLabel className='cursor-pointer [&:has([data-state=checked])_.theme-card]:border-primary'>
                     <FormControl>
                       <RadioGroupItem value='light' className='sr-only' />
                     </FormControl>
                     <div className='space-y-2'>
-                      <div className='theme-card items-center rounded-lg border-2 border-muted p-3 hover:border-accent transition-colors h-32'>
-                        <div className='space-y-2 rounded-sm bg-[#ecedef] p-3 h-full flex flex-col justify-center'>
+                      <div className='theme-card h-32 items-center rounded-lg border-2 border-muted p-3 transition-colors hover:border-accent'>
+                        <div className='flex h-full flex-col justify-center space-y-2 rounded-sm bg-[#ecedef] p-3'>
                           <div className='space-y-2 rounded-md bg-white p-3 shadow-sm'>
                             <div className='h-2.5 w-[120px] rounded-lg bg-[#ecedef]' />
                             <div className='h-2.5 w-[150px] rounded-lg bg-[#ecedef]' />
@@ -118,13 +120,13 @@ export function AppearanceForm() {
                   </FormLabel>
                 </FormItem>
                 <FormItem>
-                  <FormLabel className='[&:has([data-state=checked])_.theme-card]:border-primary cursor-pointer'>
+                  <FormLabel className='cursor-pointer [&:has([data-state=checked])_.theme-card]:border-primary'>
                     <FormControl>
                       <RadioGroupItem value='dark' className='sr-only' />
                     </FormControl>
                     <div className='space-y-2'>
-                      <div className='theme-card items-center rounded-lg border-2 border-muted bg-popover p-3 hover:bg-accent hover:text-accent-foreground transition-colors h-32'>
-                        <div className='space-y-2 rounded-sm bg-slate-950 p-3 h-full flex flex-col justify-center'>
+                      <div className='theme-card h-32 items-center rounded-lg border-2 border-muted bg-popover p-3 transition-colors hover:bg-accent hover:text-accent-foreground'>
+                        <div className='flex h-full flex-col justify-center space-y-2 rounded-sm bg-slate-950 p-3'>
                           <div className='space-y-2 rounded-md bg-slate-800 p-3 shadow-sm'>
                             <div className='h-2.5 w-[120px] rounded-lg bg-slate-400' />
                             <div className='h-2.5 w-[150px] rounded-lg bg-slate-400' />
@@ -148,9 +150,7 @@ export function AppearanceForm() {
           render={({ field }) => (
             <FormItem className='space-y-3'>
               <FormLabel>布局</FormLabel>
-              <FormDescription>
-                选择应用的侧边栏布局方式
-              </FormDescription>
+              <FormDescription>选择应用的侧边栏布局方式</FormDescription>
               <FormMessage />
               <RadioGroup
                 onValueChange={field.onChange}
@@ -158,15 +158,15 @@ export function AppearanceForm() {
                 className='grid max-w-2xl grid-cols-2 gap-8 pt-2'
               >
                 <FormItem>
-                  <FormLabel className='[&:has([data-state=checked])_.layout-card]:border-primary cursor-pointer'>
+                  <FormLabel className='cursor-pointer [&:has([data-state=checked])_.layout-card]:border-primary'>
                     <FormControl>
                       <RadioGroupItem value='default' className='sr-only' />
                     </FormControl>
                     <div className='space-y-2'>
-                      <div className='layout-card items-center rounded-lg border-2 border-muted hover:border-accent transition-colors overflow-hidden'>
-                        <div className='bg-muted/30 p-4 h-32 flex gap-3'>
+                      <div className='layout-card items-center overflow-hidden rounded-lg border-2 border-muted transition-colors hover:border-accent'>
+                        <div className='flex h-32 gap-3 bg-muted/30 p-4'>
                           {/* 侧边栏 - 深色 */}
-                          <div className='w-16 bg-foreground/80 rounded-md p-2.5 flex flex-col gap-2'>
+                          <div className='flex w-16 flex-col gap-2 rounded-md bg-foreground/80 p-2.5'>
                             <div className='flex items-center gap-1'>
                               <div className='h-3 w-3 rounded-full bg-background' />
                               <div className='h-1 flex-1 rounded bg-background/80' />
@@ -176,7 +176,7 @@ export function AppearanceForm() {
                             <div className='h-1.5 w-full rounded bg-background/60' />
                           </div>
                           {/* 主内容区 */}
-                          <div className='flex-1 flex gap-3'>
+                          <div className='flex flex-1 gap-3'>
                             {/* 左侧内容 */}
                             <div className='flex-1 space-y-2'>
                               <div className='h-2 w-full rounded bg-foreground/70' />
@@ -184,18 +184,24 @@ export function AppearanceForm() {
                               <div className='h-1.5 w-1/2 rounded bg-foreground/40' />
                               <div className='mt-3 h-10 w-full rounded bg-foreground/30' />
                               {/* 柱状图 */}
-                              <div className='flex items-end gap-1 h-6'>
-                                <div className='w-2.5 h-3 rounded-sm bg-foreground/40' />
-                                <div className='w-2.5 h-4 rounded-sm bg-foreground/40' />
-                                <div className='w-2.5 h-5 rounded-sm bg-foreground/40' />
-                                <div className='w-2.5 h-6 rounded-sm bg-foreground/40' />
+                              <div className='flex h-6 items-end gap-1'>
+                                <div className='h-3 w-2.5 rounded-sm bg-foreground/40' />
+                                <div className='h-4 w-2.5 rounded-sm bg-foreground/40' />
+                                <div className='h-5 w-2.5 rounded-sm bg-foreground/40' />
+                                <div className='h-6 w-2.5 rounded-sm bg-foreground/40' />
                               </div>
                             </div>
                             {/* 右侧圆形图表 */}
-                            <div className='w-16 flex items-center justify-center'>
+                            <div className='flex w-16 items-center justify-center'>
                               <div className='relative h-14 w-14'>
                                 <div className='absolute inset-0 rounded-full bg-foreground/50' />
-                                <div className='absolute inset-0 rounded-full bg-foreground/70' style={{ clipPath: 'polygon(50% 50%, 50% 0%, 100% 0%, 100% 100%, 50% 100%)' }} />
+                                <div
+                                  className='absolute inset-0 rounded-full bg-foreground/70'
+                                  style={{
+                                    clipPath:
+                                      'polygon(50% 50%, 50% 0%, 100% 0%, 100% 100%, 50% 100%)',
+                                  }}
+                                />
                               </div>
                             </div>
                           </div>
@@ -208,15 +214,15 @@ export function AppearanceForm() {
                   </FormLabel>
                 </FormItem>
                 <FormItem>
-                  <FormLabel className='[&:has([data-state=checked])_.layout-card]:border-primary cursor-pointer'>
+                  <FormLabel className='cursor-pointer [&:has([data-state=checked])_.layout-card]:border-primary'>
                     <FormControl>
                       <RadioGroupItem value='compact' className='sr-only' />
                     </FormControl>
                     <div className='space-y-2'>
-                      <div className='layout-card items-center rounded-lg border-2 border-muted hover:border-accent transition-colors overflow-hidden'>
-                        <div className='bg-muted/30 p-4 h-32 flex gap-3'>
+                      <div className='layout-card items-center overflow-hidden rounded-lg border-2 border-muted transition-colors hover:border-accent'>
+                        <div className='flex h-32 gap-3 bg-muted/30 p-4'>
                           {/* 紧凑侧边栏 - 浅色 */}
-                          <div className='w-8 bg-foreground/20 rounded-md p-1.5 flex flex-col gap-2 items-center'>
+                          <div className='flex w-8 flex-col items-center gap-2 rounded-md bg-foreground/20 p-1.5'>
                             <div className='h-3 w-3 rounded-full bg-foreground/50' />
                             <div className='h-2 w-2 rounded-full bg-foreground/30' />
                             <div className='h-2 w-2 rounded-full bg-foreground/30' />
@@ -224,7 +230,7 @@ export function AppearanceForm() {
                             <div className='h-2 w-2 rounded-full bg-foreground/30' />
                           </div>
                           {/* 主内容区 */}
-                          <div className='flex-1 flex gap-3'>
+                          <div className='flex flex-1 gap-3'>
                             {/* 左侧内容 */}
                             <div className='flex-1 space-y-2'>
                               <div className='h-2 w-full rounded bg-foreground/40' />
@@ -232,18 +238,24 @@ export function AppearanceForm() {
                               <div className='h-1.5 w-1/2 rounded bg-foreground/25' />
                               <div className='mt-3 h-10 w-full rounded bg-foreground/20' />
                               {/* 柱状图 */}
-                              <div className='flex items-end gap-1 h-6'>
-                                <div className='w-2.5 h-3 rounded-sm bg-foreground/30' />
-                                <div className='w-2.5 h-4 rounded-sm bg-foreground/30' />
-                                <div className='w-2.5 h-5 rounded-sm bg-foreground/30' />
-                                <div className='w-2.5 h-6 rounded-sm bg-foreground/30' />
+                              <div className='flex h-6 items-end gap-1'>
+                                <div className='h-3 w-2.5 rounded-sm bg-foreground/30' />
+                                <div className='h-4 w-2.5 rounded-sm bg-foreground/30' />
+                                <div className='h-5 w-2.5 rounded-sm bg-foreground/30' />
+                                <div className='h-6 w-2.5 rounded-sm bg-foreground/30' />
                               </div>
                             </div>
                             {/* 右侧圆形图表 */}
-                            <div className='w-16 flex items-center justify-center'>
+                            <div className='flex w-16 items-center justify-center'>
                               <div className='relative h-14 w-14'>
                                 <div className='absolute inset-0 rounded-full bg-foreground/30' />
-                                <div className='absolute inset-0 rounded-full bg-foreground/50' style={{ clipPath: 'polygon(50% 50%, 50% 0%, 100% 0%, 100% 100%, 50% 100%)' }} />
+                                <div
+                                  className='absolute inset-0 rounded-full bg-foreground/50'
+                                  style={{
+                                    clipPath:
+                                      'polygon(50% 50%, 50% 0%, 100% 0%, 100% 100%, 50% 100%)',
+                                  }}
+                                />
                               </div>
                             </div>
                           </div>

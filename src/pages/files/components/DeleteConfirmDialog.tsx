@@ -1,12 +1,12 @@
-import { ConfirmDialog } from '@/components/confirm-dialog';
-import type { FileItem } from '@/types/file';
+import type { FileItem } from '@/types/file'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 
 interface DeleteConfirmDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  files: FileItem[];
-  onConfirm: () => void;
-  isLoading?: boolean;
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  files: FileItem[]
+  onConfirm: () => void
+  isLoading?: boolean
 }
 
 export function DeleteConfirmDialog({
@@ -16,8 +16,8 @@ export function DeleteConfirmDialog({
   onConfirm,
   isLoading = false,
 }: DeleteConfirmDialogProps) {
-  const fileCount = files.length;
-  
+  const fileCount = files.length
+
   return (
     <ConfirmDialog
       destructive
@@ -25,10 +25,10 @@ export function DeleteConfirmDialog({
       onOpenChange={onOpenChange}
       handleConfirm={onConfirm}
       isLoading={isLoading}
-      title="确认删除"
-      desc="确定要删除选中的文件吗？此操作不可恢复。"
-      confirmText="确认"
-      cancelBtnText="取消"
+      title='确认删除'
+      desc='确定要删除选中的文件吗？此操作不可恢复。'
+      confirmText='确认'
+      cancelBtnText='取消'
     />
-  );
+  )
 }

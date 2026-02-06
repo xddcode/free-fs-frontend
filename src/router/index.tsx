@@ -1,27 +1,29 @@
-import { createBrowserRouter, Navigate } from 'react-router-dom';
-import LoginPage from '@/pages/login';
-import HomePage from '@/pages/home';
-import FileManagerPage from '@/pages/files';
-import StoragePage from '@/pages/storage';
-import SharePage from '@/pages/share';
-import TransferPage from '@/pages/transfer';
-import { Settings } from '@/pages/settings';
-import { SettingsProfile } from '@/pages/settings/profile';
-import { SettingsAccount } from '@/pages/settings/account';
-import { SettingsAppearance } from '@/pages/settings/appearance';
-import { SettingsTransfer } from '@/pages/settings/transfer';
-import { AppLayout } from '@/components/layout/app-layout';
-import { useAuth } from '@/contexts/auth-context';
+import { useAuth } from '@/contexts/auth-context'
+import FileManagerPage from '@/pages/files'
+import HomePage from '@/pages/home'
+import LoginPage from '@/pages/login'
+import { Settings } from '@/pages/settings'
+import { SettingsAccount } from '@/pages/settings/account'
+import { SettingsAppearance } from '@/pages/settings/appearance'
+import { SettingsProfile } from '@/pages/settings/profile'
+import { SettingsTransfer } from '@/pages/settings/transfer'
+import SharePage from '@/pages/share'
+import StoragePage from '@/pages/storage'
+import TransferPage from '@/pages/transfer'
+import { createBrowserRouter, Navigate } from 'react-router-dom'
+import { AppLayout } from '@/components/layout/app-layout'
 
 // 受保护的路由组件
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading } = useAuth();
-  
+  const { isAuthenticated, isLoading } = useAuth()
+
   if (isLoading) {
-    return <div className="flex items-center justify-center h-screen">加载中...</div>;
+    return (
+      <div className='flex h-screen items-center justify-center'>加载中...</div>
+    )
   }
-  
-  return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
+
+  return isAuthenticated ? <>{children}</> : <Navigate to='/login' replace />
 }
 
 // 带布局的路由包装器
@@ -30,7 +32,7 @@ function LayoutWrapper({ children }: { children: React.ReactNode }) {
     <ProtectedRoute>
       <AppLayout>{children}</AppLayout>
     </ProtectedRoute>
-  );
+  )
 }
 
 export const router = createBrowserRouter([
@@ -104,14 +106,14 @@ export const router = createBrowserRouter([
     path: '/profile',
     element: (
       <LayoutWrapper>
-        <div className="flex items-center justify-center h-screen">
-          <p className="text-muted-foreground">个人资料页面开发中...</p>
+        <div className='flex h-screen items-center justify-center'>
+          <p className='text-muted-foreground'>个人资料页面开发中...</p>
         </div>
       </LayoutWrapper>
     ),
   },
   {
     path: '*',
-    element: <Navigate to="/" replace />,
+    element: <Navigate to='/' replace />,
   },
-]);
+])

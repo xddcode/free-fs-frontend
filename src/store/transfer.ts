@@ -1,14 +1,14 @@
-import { create } from 'zustand';
-import { toast } from 'sonner';
+import { sseService } from '@/services/sse.service'
+import { uploadExecutor } from '@/services/upload-executor'
 import type {
   TransferTask,
   TaskStatus,
   ProgressUpdate,
   FileTransferTaskVO,
   SSEMessage,
-} from '@/types/transfer';
-import { stateMachine } from '@/utils/transfer-state-machine';
-import { progressCalculator } from '@/utils/progress-calculator';
+} from '@/types/transfer'
+import { toast } from 'sonner'
+import { create } from 'zustand'
 import {
   getTransferFiles,
   pauseUpload,
@@ -16,66 +16,74 @@ import {
   cancelUpload,
   initUpload,
   clearCompletedTasks as clearCompletedTasksApi,
-} from '@/api/transfer';
-import { sseService } from '@/services/sse.service';
-import { uploadExecutor } from '@/services/upload-executor';
-import { useUserStore } from './user';
+} from '@/api/transfer'
+import { progressCalculator } from '@/utils/progress-calculator'
+import { stateMachine } from '@/utils/transfer-state-machine'
+import { useUserStore } from './user'
 
 interface TransferStore {
-  tasks: Map<string, TransferTask>;
-  sseConnected: boolean;
-  currentSessionId: string | null;
-  sessionTasks: Map<string, string[]>;
-  fileCache: Map<string, File>;
-  completedActionsTriggered: Set<string>;
-  errorNotificationTriggered: Set<string>;
-  
+  tasks: Map<string, TransferTask>
+  sseConnected: boolean
+  currentSessionId: string | null
+  sessionTasks: Map<string, string[]>
+  fileCache: Map<string, File>
+  completedActionsTriggered: Set<string>
+  errorNotificationTriggered: Set<string>
+
   // Getters
-  getTaskList: () => TransferTask[];
-  getUploadingTasks: () => TransferTask[];
-  getCompletedTasks: () => TransferTask[];
-  getCurrentSessionTasks: () => TransferTask[];
-  
+  getTaskList: () => TransferTask[]
+  getUploadingTasks: () => TransferTask[]
+  getCompletedTasks: () => TransferTask[]
+  getCurrentSessionTasks: () => TransferTask[]
+
   // Actions
-  setSseConnected: (connected: boolean) => void;
-  transitionTo: (taskId: string, newStatus: TaskStatus) => boolean;
-  updateProgress: (taskId: string, data: ProgressUpdate) => void;
-  setTaskError: (taskId: string, errorMessage: string) => void;
-  handleSSEMessage: (message: SSEMessage) => void;
-  fetchTasks: () => Promise<void>;
-  syncTasks: () => Promise<void>;
-  startUploadSession: () => string;
-  createTask: (file: File, parentId?: string, sessionId?: string) => Promise<string>;
-  pauseTask: (taskId: string) => Promise<void>;
-  resumeTask: (taskId: string) => Promise<void>;
-  cancelTask: (taskId: string) => Promise<void>;
-  retryTask: (taskId: string) => Promise<void>;
-  clearCompletedTasks: () => Promise<void>;
-  initSSE: (userId: string) => Promise<void>;
-  disconnectSSE: () => void;
-  getDisplayData: (taskId: string) => { progress: number; speed: number; remainingTime: number };
-  
+  setSseConnected: (connected: boolean) => void
+  transitionTo: (taskId: string, newStatus: TaskStatus) => boolean
+  updateProgress: (taskId: string, data: ProgressUpdate) => void
+  setTaskError: (taskId: string, errorMessage: string) => void
+  handleSSEMessage: (message: SSEMessage) => void
+  fetchTasks: () => Promise<void>
+  syncTasks: () => Promise<void>
+  startUploadSession: () => string
+  createTask: (
+    file: File,
+    parentId?: string,
+    sessionId?: string
+  ) => Promise<string>
+  pauseTask: (taskId: string) => Promise<void>
+  resumeTask: (taskId: string) => Promise<void>
+  cancelTask: (taskId: string) => Promise<void>
+  retryTask: (taskId: string) => Promise<void>
+  clearCompletedTasks: () => Promise<void>
+  initSSE: (userId: string) => Promise<void>
+  disconnectSSE: () => void
+  getDisplayData: (taskId: string) => {
+    progress: number
+    speed: number
+    remainingTime: number
+  }
+
   // Internal methods
-  triggerCompletedActions: (task: TransferTask) => void;
-  checkUnfinishedTasks: () => Promise<void>;
-  checkAndStartPolling: () => void;
-  startPolling: () => void;
-  stopPolling: () => void;
-  setupBeforeUnloadWarning: () => void;
+  triggerCompletedActions: (task: TransferTask) => void
+  checkUnfinishedTasks: () => Promise<void>
+  checkAndStartPolling: () => void
+  startPolling: () => void
+  stopPolling: () => void
+  setupBeforeUnloadWarning: () => void
 }
 
-let sseMessageUnsubscribe: (() => void) | null = null;
-let sseConnectionUnsubscribe: (() => void) | null = null;
-let callbacksInitialized = false;
-let hasCheckedUnfinishedTasks = false;
-let pollingTimerId: number | null = null;
-let beforeUnloadWarningSetup = false;
-const POLLING_INTERVAL = 3000;
+let sseMessageUnsubscribe: (() => void) | null = null
+let sseConnectionUnsubscribe: (() => void) | null = null
+let callbacksInitialized = false
+let hasCheckedUnfinishedTasks = false
+let pollingTimerId: number | null = null
+let beforeUnloadWarningSetup = false
+const POLLING_INTERVAL = 3000
 
 function convertVOToTask(vo: FileTransferTaskVO): TransferTask {
-  const now = Date.now();
-  const progress = vo.progress ?? 0;
-  const formattedProgress = Math.round(progress);
+  const now = Date.now()
+  const progress = vo.progress ?? 0
+  const formattedProgress = Math.round(progress)
 
   return {
     taskId: vo.taskId,
@@ -93,7 +101,7 @@ function convertVOToTask(vo: FileTransferTaskVO): TransferTask {
     totalChunks: vo.totalChunks,
     uploadedChunks: vo.uploadedChunks,
     chunkSize: vo.chunkSize,
-  };
+  }
 }
 
 export const useTransferStore = create<TransferStore>((set, get) => ({
@@ -106,109 +114,120 @@ export const useTransferStore = create<TransferStore>((set, get) => ({
   errorNotificationTriggered: new Set(),
 
   getTaskList: () => Array.from(get().tasks.values()),
-  
+
   getUploadingTasks: () =>
-    get().getTaskList().filter((task) =>
-      ['idle', 'initialized', 'checking', 'uploading', 'paused', 'merging'].includes(task.status)
-    ),
-  
+    get()
+      .getTaskList()
+      .filter((task) =>
+        [
+          'idle',
+          'initialized',
+          'checking',
+          'uploading',
+          'paused',
+          'merging',
+        ].includes(task.status)
+      ),
+
   getCompletedTasks: () =>
-    get().getTaskList().filter((task) =>
-      ['completed', 'failed', 'cancelled'].includes(task.status)
-    ),
-  
+    get()
+      .getTaskList()
+      .filter((task) =>
+        ['completed', 'failed', 'cancelled'].includes(task.status)
+      ),
+
   getCurrentSessionTasks: () => {
-    const { currentSessionId, sessionTasks, tasks } = get();
-    if (!currentSessionId) return [];
-    const taskIds = sessionTasks.get(currentSessionId) || [];
+    const { currentSessionId, sessionTasks, tasks } = get()
+    if (!currentSessionId) return []
+    const taskIds = sessionTasks.get(currentSessionId) || []
     return taskIds
       .map((id) => tasks.get(id))
-      .filter((task): task is TransferTask => task !== undefined);
+      .filter((task): task is TransferTask => task !== undefined)
   },
 
   setSseConnected: (connected) => set({ sseConnected: connected }),
 
   transitionTo: (taskId, newStatus) => {
-    const { tasks, completedActionsTriggered } = get();
-    const task = tasks.get(taskId);
-    if (!task) return false;
+    const { tasks, completedActionsTriggered } = get()
+    const task = tasks.get(taskId)
+    if (!task) return false
 
     if (task.status === newStatus) {
       if (newStatus === 'completed' && !completedActionsTriggered.has(taskId)) {
-        get().triggerCompletedActions(task);
+        get().triggerCompletedActions(task)
       }
-      return true;
+      return true
     }
 
-    const updatedTask = stateMachine.transition(task, newStatus);
+    const updatedTask = stateMachine.transition(task, newStatus)
     if (updatedTask) {
-      const newTasks = new Map(tasks);
-      newTasks.set(taskId, updatedTask);
-      set({ tasks: newTasks });
+      const newTasks = new Map(tasks)
+      newTasks.set(taskId, updatedTask)
+      set({ tasks: newTasks })
 
       if (newStatus === 'completed' && !completedActionsTriggered.has(taskId)) {
-        get().triggerCompletedActions(updatedTask);
+        get().triggerCompletedActions(updatedTask)
       }
 
-      get().checkAndStartPolling();
-      return true;
+      get().checkAndStartPolling()
+      return true
     }
 
-    return false;
+    return false
   },
 
   triggerCompletedActions: (task: TransferTask) => {
-    const { completedActionsTriggered, fileCache } = get();
-    completedActionsTriggered.add(task.taskId);
+    const { completedActionsTriggered, fileCache } = get()
+    completedActionsTriggered.add(task.taskId)
 
-    toast.success(`文件 "${task.fileName}" 上传完成`);
+    toast.success(`文件 "${task.fileName}" 上传完成`)
 
     window.dispatchEvent(
       new CustomEvent('file-upload-complete', {
         detail: { parentId: task.parentId },
       })
-    );
+    )
 
-    progressCalculator.clear(task.taskId);
-    fileCache.delete(task.taskId);
+    progressCalculator.clear(task.taskId)
+    fileCache.delete(task.taskId)
 
     if (uploadExecutor.getTaskContext(task.taskId)) {
-      uploadExecutor.cancel(task.taskId);
+      uploadExecutor.cancel(task.taskId)
     }
   },
 
   setTaskError: (taskId, errorMessage) => {
-    const { tasks, errorNotificationTriggered } = get();
-    const task = tasks.get(taskId);
+    const { tasks, errorNotificationTriggered } = get()
+    const task = tasks.get(taskId)
     if (task) {
-      get().transitionTo(taskId, 'failed');
-      const updatedTask = tasks.get(taskId);
+      get().transitionTo(taskId, 'failed')
+      const updatedTask = tasks.get(taskId)
       if (updatedTask) {
-        const newTasks = new Map(tasks);
-        newTasks.set(taskId, { ...updatedTask, errorMessage });
-        set({ tasks: newTasks });
+        const newTasks = new Map(tasks)
+        newTasks.set(taskId, { ...updatedTask, errorMessage })
+        set({ tasks: newTasks })
       }
 
       if (!errorNotificationTriggered.has(taskId)) {
-        errorNotificationTriggered.add(taskId);
-        toast.error(`文件 "${task.fileName}" 上传失败: ${errorMessage}`);
+        errorNotificationTriggered.add(taskId)
+        toast.error(`文件 "${task.fileName}" 上传失败: ${errorMessage}`)
       }
     }
   },
 
   updateProgress: (taskId, data) => {
-    const { tasks } = get();
-    const task = tasks.get(taskId);
-    if (!task) return;
+    const { tasks } = get()
+    const task = tasks.get(taskId)
+    if (!task) return
 
     const shouldUpdate = progressCalculator.update(
       taskId,
       data.uploadedBytes,
       data.totalBytes
-    );
+    )
 
     if (shouldUpdate) {
-      const displayData = progressCalculator.getDisplayData(taskId);
+      const displayData = progressCalculator.getDisplayData(taskId)
 
       const updatedTask: TransferTask = {
         ...task,
@@ -217,145 +236,153 @@ export const useTransferStore = create<TransferStore>((set, get) => ({
         speed: displayData.speed,
         remainingTime: displayData.remainingTime,
         updatedAt: Date.now(),
-      };
+      }
 
       if (data.uploadedChunks !== undefined) {
-        updatedTask.uploadedChunks = data.uploadedChunks;
+        updatedTask.uploadedChunks = data.uploadedChunks
       }
       if (data.totalChunks !== undefined) {
-        updatedTask.totalChunks = data.totalChunks;
+        updatedTask.totalChunks = data.totalChunks
       }
 
-      const newTasks = new Map(tasks);
-      newTasks.set(taskId, updatedTask);
-      set({ tasks: newTasks });
+      const newTasks = new Map(tasks)
+      newTasks.set(taskId, updatedTask)
+      set({ tasks: newTasks })
     }
   },
 
   handleSSEMessage: (message) => {
-    const { type, taskId, data } = message;
+    const { type, taskId, data } = message
 
     switch (type) {
       case 'progress': {
-        const progressData = data as any;
+        const progressData = data as any
         get().updateProgress(taskId, {
           uploadedBytes: progressData.uploadedBytes,
           totalBytes: progressData.totalBytes,
           uploadedChunks: progressData.uploadedChunks,
           totalChunks: progressData.totalChunks,
-        });
-        break;
+        })
+        break
       }
 
       case 'status': {
-        const statusData = data as any;
+        const statusData = data as any
         if (statusData.status) {
-          get().transitionTo(taskId, statusData.status);
+          get().transitionTo(taskId, statusData.status)
         }
-        break;
+        break
       }
 
       case 'complete': {
-        get().transitionTo(taskId, 'completed');
-        break;
+        get().transitionTo(taskId, 'completed')
+        break
       }
 
       case 'error': {
-        const errorData = data as any;
-        get().setTaskError(taskId, errorData.message || '上传失败');
-        break;
+        const errorData = data as any
+        get().setTaskError(taskId, errorData.message || '上传失败')
+        break
       }
 
       default:
-        break;
+        break
     }
   },
 
   fetchTasks: async () => {
     try {
-      const taskVOs = await getTransferFiles();
+      const taskVOs = await getTransferFiles()
 
-      const newTasks = new Map<string, TransferTask>();
-      progressCalculator.clearAll();
+      const newTasks = new Map<string, TransferTask>()
+      progressCalculator.clearAll()
 
       // 确保 taskVOs 是数组
-      const tasks = Array.isArray(taskVOs) ? taskVOs : [];
-      
+      const tasks = Array.isArray(taskVOs) ? taskVOs : []
+
       tasks.forEach((vo) => {
-        const task = convertVOToTask(vo);
-        newTasks.set(task.taskId, task);
-      });
+        const task = convertVOToTask(vo)
+        newTasks.set(task.taskId, task)
+      })
 
-      set({ tasks: newTasks });
+      set({ tasks: newTasks })
 
-      await get().checkUnfinishedTasks();
+      await get().checkUnfinishedTasks()
     } catch (error) {
-      console.error('获取传输任务列表失败:', error);
+      console.error('获取传输任务列表失败:', error)
       // 静默失败，不抛出错误
     }
   },
 
   checkUnfinishedTasks: async () => {
-    if (hasCheckedUnfinishedTasks) return;
-    hasCheckedUnfinishedTasks = true;
+    if (hasCheckedUnfinishedTasks) return
+    hasCheckedUnfinishedTasks = true
 
-    const { tasks } = get();
+    const { tasks } = get()
     const unfinishedTasks = Array.from(tasks.values()).filter(
-      (task) => 
+      (task) =>
         task.status === 'idle' ||
         task.status === 'initialized' ||
-        task.status === 'uploading' || 
+        task.status === 'uploading' ||
         task.status === 'checking' ||
         task.status === 'paused' ||
         task.status === 'merging'
-    );
+    )
 
-    if (unfinishedTasks.length === 0) return;
+    if (unfinishedTasks.length === 0) return
 
     const results = await Promise.allSettled(
       unfinishedTasks.map(async (task) => {
         try {
-          await cancelUpload(task.taskId);
-          get().transitionTo(task.taskId, 'cancelled');
-          return { success: true, taskId: task.taskId };
+          await cancelUpload(task.taskId)
+          get().transitionTo(task.taskId, 'cancelled')
+          return { success: true, taskId: task.taskId }
         } catch (error: any) {
           // 如果任务不存在，也算成功（因为目标已达成）
-          if (error?.message?.includes('任务不存在') || error?.response?.data?.message?.includes('任务不存在')) {
-            get().transitionTo(task.taskId, 'cancelled');
-            return { success: true, taskId: task.taskId };
+          if (
+            error?.message?.includes('任务不存在') ||
+            error?.response?.data?.message?.includes('任务不存在')
+          ) {
+            get().transitionTo(task.taskId, 'cancelled')
+            return { success: true, taskId: task.taskId }
           }
-          console.error('取消任务失败:', task.taskId, error);
-          return { success: false, taskId: task.taskId, error };
+          console.error('取消任务失败:', task.taskId, error)
+          return { success: false, taskId: task.taskId, error }
         }
       })
-    );
+    )
 
-    const successCount = results.filter(r => r.status === 'fulfilled' && r.value.success).length;
-    const failCount = results.length - successCount;
+    const successCount = results.filter(
+      (r) => r.status === 'fulfilled' && r.value.success
+    ).length
+    const failCount = results.length - successCount
 
     if (successCount > 0) {
       toast.info(`已自动取消 ${successCount} 个未完成的上传任务`, {
-        description: failCount > 0 ? `${failCount} 个任务取消失败` : '页面刷新会中断上传，建议等待上传完成后再刷新',
-      });
+        description:
+          failCount > 0
+            ? `${failCount} 个任务取消失败`
+            : '页面刷新会中断上传，建议等待上传完成后再刷新',
+      })
     }
   },
 
   syncTasks: async () => {
     try {
-      const taskVOs = await getTransferFiles();
-      const { tasks } = get();
+      const taskVOs = await getTransferFiles()
+      const { tasks } = get()
 
-      const newTasks = new Map(tasks);
+      const newTasks = new Map(tasks)
 
       // 确保 taskVOs 是数组
-      const taskList = Array.isArray(taskVOs) ? taskVOs : [];
+      const taskList = Array.isArray(taskVOs) ? taskVOs : []
 
       taskList.forEach((vo) => {
-        const existingTask = newTasks.get(vo.taskId);
-        const newTask = convertVOToTask(vo);
+        const existingTask = newTasks.get(vo.taskId)
+        const newTask = convertVOToTask(vo)
 
         if (!existingTask) {
-          newTasks.set(vo.taskId, newTask);
+          newTasks.set(vo.taskId, newTask)
         } else {
           const statePriority: Record<TaskStatus, number> = {
             idle: 0,
@@ -367,10 +394,10 @@ export const useTransferStore = create<TransferStore>((set, get) => ({
             cancelled: 6,
             failed: 7,
             completed: 8,
-          };
+          }
 
-          const existingPriority = statePriority[existingTask.status] || 0;
-          const newPriority = statePriority[newTask.status] || 0;
+          const existingPriority = statePriority[existingTask.status] || 0
+          const newPriority = statePriority[newTask.status] || 0
 
           if (
             newPriority > existingPriority ||
@@ -378,69 +405,69 @@ export const useTransferStore = create<TransferStore>((set, get) => ({
             newTask.status === 'failed' ||
             newTask.status === 'cancelled'
           ) {
-            newTasks.set(vo.taskId, newTask);
+            newTasks.set(vo.taskId, newTask)
           } else {
             newTasks.set(vo.taskId, {
               ...existingTask,
               uploadedBytes: newTask.uploadedBytes,
               uploadedChunks: newTask.uploadedChunks,
               totalChunks: newTask.totalChunks,
-            });
+            })
           }
         }
-      });
+      })
 
-      const backendTaskIds = new Set(taskList.map((vo) => vo.taskId));
+      const backendTaskIds = new Set(taskList.map((vo) => vo.taskId))
       newTasks.forEach((_, taskId) => {
         if (!backendTaskIds.has(taskId)) {
-          newTasks.delete(taskId);
-          progressCalculator.clear(taskId);
+          newTasks.delete(taskId)
+          progressCalculator.clear(taskId)
         }
-      });
+      })
 
-      set({ tasks: newTasks });
+      set({ tasks: newTasks })
     } catch (error) {
-      console.error('同步传输任务失败:', error);
+      console.error('同步传输任务失败:', error)
       // 静默失败，不抛出错误
     }
   },
 
   startUploadSession: () => {
-    const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    const { sessionTasks } = get();
-    const newSessionTasks = new Map(sessionTasks);
-    newSessionTasks.set(sessionId, []);
-    set({ currentSessionId: sessionId, sessionTasks: newSessionTasks });
-    return sessionId;
+    const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    const { sessionTasks } = get()
+    const newSessionTasks = new Map(sessionTasks)
+    newSessionTasks.set(sessionId, [])
+    set({ currentSessionId: sessionId, sessionTasks: newSessionTasks })
+    return sessionId
   },
 
   createTask: async (file, parentId, sessionId) => {
     // 从用户 store 获取传输设置
-    const userStore = useUserStore.getState();
+    const userStore = useUserStore.getState()
     if (!userStore.transferSetting) {
-      await userStore.loadTransferSetting();
+      await userStore.loadTransferSetting()
     }
 
-    const settings = userStore.transferSetting!;
-    const chunkSize = settings.chunkSize;
-    const concurrency = settings.concurrentUploadQuantity;
+    const settings = userStore.transferSetting!
+    const chunkSize = settings.chunkSize
+    const concurrency = settings.concurrentUploadQuantity
 
     if (!callbacksInitialized) {
-      callbacksInitialized = true;
+      callbacksInitialized = true
       uploadExecutor.setCallbacks({
         onTransition: (taskId, status) => {
-          get().transitionTo(taskId, status as TaskStatus);
+          get().transitionTo(taskId, status as TaskStatus)
         },
         onProgress: (taskId, data) => {
-          get().updateProgress(taskId, data);
+          get().updateProgress(taskId, data)
         },
         onError: (taskId, errorMessage) => {
-          get().setTaskError(taskId, errorMessage);
+          get().setTaskError(taskId, errorMessage)
         },
-      });
+      })
     }
 
-    const totalChunks = Math.ceil(file.size / chunkSize);
+    const totalChunks = Math.ceil(file.size / chunkSize)
 
     const taskId = await initUpload({
       fileName: file.name,
@@ -449,9 +476,9 @@ export const useTransferStore = create<TransferStore>((set, get) => ({
       totalChunks,
       chunkSize,
       mimeType: file.type || 'application/octet-stream',
-    });
+    })
 
-    const now = Date.now();
+    const now = Date.now()
 
     const task: TransferTask = {
       taskId,
@@ -469,122 +496,131 @@ export const useTransferStore = create<TransferStore>((set, get) => ({
       totalChunks,
       uploadedChunks: 0,
       chunkSize,
-    };
-
-    const { tasks, fileCache, sessionTasks, currentSessionId } = get();
-    const newTasks = new Map(tasks);
-    newTasks.set(taskId, task);
-
-    const newFileCache = new Map(fileCache);
-    newFileCache.set(taskId, file);
-
-    const targetSessionId = sessionId || currentSessionId;
-    const newSessionTasks = new Map(sessionTasks);
-    if (targetSessionId) {
-      const sessionTaskList = newSessionTasks.get(targetSessionId) || [];
-      sessionTaskList.push(taskId);
-      newSessionTasks.set(targetSessionId, sessionTaskList);
     }
 
-    set({ tasks: newTasks, fileCache: newFileCache, sessionTasks: newSessionTasks });
+    const { tasks, fileCache, sessionTasks, currentSessionId } = get()
+    const newTasks = new Map(tasks)
+    newTasks.set(taskId, task)
 
-    get().transitionTo(taskId, 'initialized');
+    const newFileCache = new Map(fileCache)
+    newFileCache.set(taskId, file)
+
+    const targetSessionId = sessionId || currentSessionId
+    const newSessionTasks = new Map(sessionTasks)
+    if (targetSessionId) {
+      const sessionTaskList = newSessionTasks.get(targetSessionId) || []
+      sessionTaskList.push(taskId)
+      newSessionTasks.set(targetSessionId, sessionTaskList)
+    }
+
+    set({
+      tasks: newTasks,
+      fileCache: newFileCache,
+      sessionTasks: newSessionTasks,
+    })
+
+    get().transitionTo(taskId, 'initialized')
 
     uploadExecutor.start(taskId, file, concurrency, chunkSize).catch(() => {
       // Silent
-    });
+    })
 
-    return taskId;
+    return taskId
   },
 
   pauseTask: async (taskId) => {
-    const { tasks } = get();
-    const task = tasks.get(taskId);
-    if (!task) throw new Error(`Task not found: ${taskId}`);
+    const { tasks } = get()
+    const task = tasks.get(taskId)
+    if (!task) throw new Error(`Task not found: ${taskId}`)
 
-    uploadExecutor.pause(taskId);
+    uploadExecutor.pause(taskId)
 
     if (!get().transitionTo(taskId, 'paused')) {
-      throw new Error(`Cannot pause task in status: ${task.status}`);
+      throw new Error(`Cannot pause task in status: ${task.status}`)
     }
 
     try {
-      await pauseUpload(taskId);
+      await pauseUpload(taskId)
     } catch (error) {
-      get().transitionTo(taskId, task.status);
-      throw error;
+      get().transitionTo(taskId, task.status)
+      throw error
     }
   },
 
   resumeTask: async (taskId) => {
-    const { tasks } = get();
-    const task = tasks.get(taskId);
-    if (!task) throw new Error(`Task not found: ${taskId}`);
+    const { tasks } = get()
+    const task = tasks.get(taskId)
+    if (!task) throw new Error(`Task not found: ${taskId}`)
 
     if (!get().transitionTo(taskId, 'uploading')) {
-      throw new Error(`Cannot resume task in status: ${task.status}`);
+      throw new Error(`Cannot resume task in status: ${task.status}`)
     }
 
     try {
-      await resumeUpload(taskId);
+      await resumeUpload(taskId)
       uploadExecutor.resume(taskId).catch(() => {
         // Silent
-      });
+      })
     } catch (error) {
-      get().transitionTo(taskId, task.status);
-      throw error;
+      get().transitionTo(taskId, task.status)
+      throw error
     }
   },
 
   cancelTask: async (taskId) => {
-    const { tasks } = get();
-    const task = tasks.get(taskId);
-    if (!task) throw new Error(`Task not found: ${taskId}`);
+    const { tasks } = get()
+    const task = tasks.get(taskId)
+    if (!task) throw new Error(`Task not found: ${taskId}`)
 
-    uploadExecutor.cancel(taskId);
+    uploadExecutor.cancel(taskId)
 
     if (!get().transitionTo(taskId, 'cancelled')) {
-      throw new Error(`Cannot cancel task in status: ${task.status}`);
+      throw new Error(`Cannot cancel task in status: ${task.status}`)
     }
 
     try {
-      await cancelUpload(taskId);
-      progressCalculator.clear(taskId);
-      const { fileCache } = get();
-      const newFileCache = new Map(fileCache);
-      newFileCache.delete(taskId);
-      set({ fileCache: newFileCache });
+      await cancelUpload(taskId)
+      progressCalculator.clear(taskId)
+      const { fileCache } = get()
+      const newFileCache = new Map(fileCache)
+      newFileCache.delete(taskId)
+      set({ fileCache: newFileCache })
     } catch (error) {
-      get().transitionTo(taskId, task.status);
-      throw error;
+      get().transitionTo(taskId, task.status)
+      throw error
     }
   },
 
   retryTask: async (taskId) => {
-    const { tasks, fileCache, completedActionsTriggered, errorNotificationTriggered } = get();
-    const task = tasks.get(taskId);
-    if (!task) throw new Error(`Task not found: ${taskId}`);
+    const {
+      tasks,
+      fileCache,
+      completedActionsTriggered,
+      errorNotificationTriggered,
+    } = get()
+    const task = tasks.get(taskId)
+    if (!task) throw new Error(`Task not found: ${taskId}`)
 
     if (task.status !== 'failed') {
-      throw new Error(`Cannot retry task in status: ${task.status}`);
+      throw new Error(`Cannot retry task in status: ${task.status}`)
     }
 
-    const file = fileCache.get(taskId);
+    const file = fileCache.get(taskId)
     if (!file) {
-      throw new Error('File not found in cache, cannot retry');
+      throw new Error('File not found in cache, cannot retry')
     }
 
-    progressCalculator.reset(taskId);
-    completedActionsTriggered.delete(taskId);
-    errorNotificationTriggered.delete(taskId);
+    progressCalculator.reset(taskId)
+    completedActionsTriggered.delete(taskId)
+    errorNotificationTriggered.delete(taskId)
 
     if (!get().transitionTo(taskId, 'initialized')) {
-      throw new Error('Failed to transition task to initialized state');
+      throw new Error('Failed to transition task to initialized state')
     }
 
-    const updatedTask = tasks.get(taskId);
+    const updatedTask = tasks.get(taskId)
     if (updatedTask) {
-      const newTasks = new Map(tasks);
+      const newTasks = new Map(tasks)
       newTasks.set(taskId, {
         ...updatedTask,
         progress: 0,
@@ -593,137 +629,141 @@ export const useTransferStore = create<TransferStore>((set, get) => ({
         speed: 0,
         remainingTime: 0,
         errorMessage: undefined,
-      });
-      set({ tasks: newTasks });
+      })
+      set({ tasks: newTasks })
     }
 
-    const userStore = useUserStore.getState();
-    const currentConcurrency = userStore.transferSetting?.concurrentUploadQuantity || 3;
-    const currentChunkSize = userStore.transferSetting?.chunkSize || 5 * 1024 * 1024;
-    uploadExecutor.start(taskId, file, currentConcurrency, currentChunkSize).catch(() => {
-      // Silent
-    });
+    const userStore = useUserStore.getState()
+    const currentConcurrency =
+      userStore.transferSetting?.concurrentUploadQuantity || 3
+    const currentChunkSize =
+      userStore.transferSetting?.chunkSize || 5 * 1024 * 1024
+    uploadExecutor
+      .start(taskId, file, currentConcurrency, currentChunkSize)
+      .catch(() => {
+        // Silent
+      })
   },
 
   clearCompletedTasks: async () => {
     try {
-      await clearCompletedTasksApi();
-      
-      const { tasks } = get();
-      const newTasks = new Map(tasks);
-      
+      await clearCompletedTasksApi()
+
+      const { tasks } = get()
+      const newTasks = new Map(tasks)
+
       // 删除所有已完成、失败和取消的任务
       Array.from(newTasks.values()).forEach((task) => {
         if (['completed', 'failed', 'cancelled'].includes(task.status)) {
-          newTasks.delete(task.taskId);
-          progressCalculator.clear(task.taskId);
+          newTasks.delete(task.taskId)
+          progressCalculator.clear(task.taskId)
         }
-      });
-      
-      set({ tasks: newTasks });
+      })
+
+      set({ tasks: newTasks })
     } catch (error) {
-      console.error('清空已完成任务失败:', error);
-      throw error;
+      console.error('清空已完成任务失败:', error)
+      throw error
     }
   },
 
   initSSE: async (userId: string) => {
     try {
-      await get().fetchTasks();
+      await get().fetchTasks()
 
       sseService.setReconnectSyncCallback(async () => {
-        await get().syncTasks();
-      });
+        await get().syncTasks()
+      })
 
       if (sseMessageUnsubscribe) {
-        sseMessageUnsubscribe();
+        sseMessageUnsubscribe()
       }
-      sseMessageUnsubscribe = sseService.onMessage(get().handleSSEMessage);
+      sseMessageUnsubscribe = sseService.onMessage(get().handleSSEMessage)
 
       if (sseConnectionUnsubscribe) {
-        sseConnectionUnsubscribe();
+        sseConnectionUnsubscribe()
       }
       sseConnectionUnsubscribe = sseService.onConnectionChange((connected) => {
-        get().setSseConnected(connected);
-      });
+        get().setSseConnected(connected)
+      })
 
-      sseService.connect(userId);
+      sseService.connect(userId)
 
-      get().checkAndStartPolling();
-      get().setupBeforeUnloadWarning();
+      get().checkAndStartPolling()
+      get().setupBeforeUnloadWarning()
     } catch (error) {
-      console.error('初始化 SSE 失败:', error);
+      console.error('初始化 SSE 失败:', error)
     }
   },
 
   disconnectSSE: () => {
     if (sseMessageUnsubscribe) {
-      sseMessageUnsubscribe();
-      sseMessageUnsubscribe = null;
+      sseMessageUnsubscribe()
+      sseMessageUnsubscribe = null
     }
 
     if (sseConnectionUnsubscribe) {
-      sseConnectionUnsubscribe();
-      sseConnectionUnsubscribe = null;
+      sseConnectionUnsubscribe()
+      sseConnectionUnsubscribe = null
     }
 
-    sseService.disconnect();
-    get().setSseConnected(false);
-    get().stopPolling();
+    sseService.disconnect()
+    get().setSseConnected(false)
+    get().stopPolling()
   },
 
   checkAndStartPolling: () => {
-    const { tasks } = get();
+    const { tasks } = get()
     const hasActiveTasks = Array.from(tasks.values()).some(
       (task) =>
         task.status === 'uploading' ||
         task.status === 'checking' ||
         task.status === 'merging'
-    );
+    )
 
     if (hasActiveTasks && pollingTimerId === null) {
-      get().startPolling();
+      get().startPolling()
     }
   },
 
   startPolling: () => {
-    if (pollingTimerId !== null) return;
-    
+    if (pollingTimerId !== null) return
+
     pollingTimerId = window.setInterval(async () => {
-      const { tasks } = get();
+      const { tasks } = get()
       const activeTasks = Array.from(tasks.values()).filter(
         (task) =>
           task.status === 'uploading' ||
           task.status === 'checking' ||
           task.status === 'merging'
-      );
+      )
 
       if (activeTasks.length === 0) {
-        get().stopPolling();
-        return;
+        get().stopPolling()
+        return
       }
 
       try {
-        await get().syncTasks();
+        await get().syncTasks()
       } catch {
         // Silent
       }
-    }, POLLING_INTERVAL);
+    }, POLLING_INTERVAL)
   },
 
   stopPolling: () => {
     if (pollingTimerId !== null) {
-      window.clearInterval(pollingTimerId);
-      pollingTimerId = null;
+      window.clearInterval(pollingTimerId)
+      pollingTimerId = null
     }
   },
 
   setupBeforeUnloadWarning: () => {
-    if (beforeUnloadWarningSetup) return;
-    beforeUnloadWarningSetup = true;
+    if (beforeUnloadWarningSetup) return
+    beforeUnloadWarningSetup = true
 
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-      const { tasks } = get();
+      const { tasks } = get()
       const hasUploadingTasks = Array.from(tasks.values()).some(
         (task) =>
           task.status === 'idle' ||
@@ -732,18 +772,18 @@ export const useTransferStore = create<TransferStore>((set, get) => ({
           task.status === 'checking' ||
           task.status === 'merging' ||
           task.status === 'paused'
-      );
+      )
 
       if (hasUploadingTasks) {
-        event.preventDefault();
-        event.returnValue = '有文件正在上传，离开页面将取消所有上传任务';
+        event.preventDefault()
+        event.returnValue = '有文件正在上传，离开页面将取消所有上传任务'
       }
-    };
+    }
 
-    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('beforeunload', handleBeforeUnload)
   },
 
   getDisplayData: (taskId) => {
-    return progressCalculator.getDisplayData(taskId);
+    return progressCalculator.getDisplayData(taskId)
   },
-}));
+}))

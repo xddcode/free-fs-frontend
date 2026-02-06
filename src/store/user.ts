@@ -1,21 +1,21 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import { UserInfo } from '@/types/user';
-import { TransferSetting } from '@/types/transfer-setting';
-import { userApi } from '@/api/user';
+import { TransferSetting } from '@/types/transfer-setting'
+import { UserInfo } from '@/types/user'
+import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
+import { userApi } from '@/api/user'
 
 interface UserState {
-  id: string;
-  username: string;
-  nickname: string;
-  email: string;
-  avatar: string;
-  status: number;
-  transferSetting?: TransferSetting;
-  setUserInfo: (userInfo: UserInfo) => void;
-  setTransferSetting: (setting: TransferSetting) => void;
-  loadTransferSetting: () => Promise<void>;
-  clearUserInfo: () => void;
+  id: string
+  username: string
+  nickname: string
+  email: string
+  avatar: string
+  status: number
+  transferSetting?: TransferSetting
+  setUserInfo: (userInfo: UserInfo) => void
+  setTransferSetting: (setting: TransferSetting) => void
+  loadTransferSetting: () => Promise<void>
+  clearUserInfo: () => void
 }
 
 export const useUserStore = create<UserState>()(
@@ -32,8 +32,8 @@ export const useUserStore = create<UserState>()(
       setTransferSetting: (setting) => set({ transferSetting: setting }),
       loadTransferSetting: async () => {
         try {
-          const setting = await userApi.getTransferSetting();
-          set({ transferSetting: setting });
+          const setting = await userApi.getTransferSetting()
+          set({ transferSetting: setting })
         } catch (error) {
           // 如果是 404 或其他错误，设置默认值
           set({
@@ -46,7 +46,7 @@ export const useUserStore = create<UserState>()(
               concurrentDownloadQuantity: 3,
               chunkSize: 5 * 1024 * 1024, // 5MB
             },
-          });
+          })
         }
       },
       clearUserInfo: () =>
@@ -64,4 +64,4 @@ export const useUserStore = create<UserState>()(
       name: 'user-storage',
     }
   )
-);
+)

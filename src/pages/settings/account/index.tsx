@@ -6,7 +6,9 @@ export function SettingsAccount() {
     <div className='flex flex-1 flex-col'>
       <div className='flex-none'>
         <h3 className='text-lg font-medium'>账户设置</h3>
-        <p className='text-sm text-muted-foreground'>管理您的账户安全设置，包括密码和邮箱</p>
+        <p className='text-sm text-muted-foreground'>
+          管理您的账户安全设置，包括密码和邮箱
+        </p>
       </div>
       <div className='my-4 border-t' />
       <div className='flex-1'>

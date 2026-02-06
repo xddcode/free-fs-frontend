@@ -12,7 +12,7 @@ export function NavigationProgress() {
       if (isNavigating || !ref.current) return
       isNavigating = true
       ref.current.continuousStart()
-      
+
       // 超时保护：最多显示 1 秒
       timeoutId = window.setTimeout(() => {
         if (ref.current) {
@@ -34,7 +34,7 @@ export function NavigationProgress() {
     const handleClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement
       const link = target.closest('a')
-      
+
       if (link) {
         const href = link.getAttribute('href')
         // 检查是否是内部路由链接
@@ -62,7 +62,7 @@ export function NavigationProgress() {
 
     document.addEventListener('click', handleClick, true)
     window.addEventListener('popstate', handlePopState)
-    
+
     observer.observe(document.body, {
       childList: true,
       subtree: true,
@@ -78,11 +78,6 @@ export function NavigationProgress() {
   }, [])
 
   return (
-    <LoadingBar
-      color='var(--primary)'
-      ref={ref}
-      height={2}
-      shadow={true}
-    />
+    <LoadingBar color='var(--primary)' ref={ref} height={2} shadow={true} />
   )
 }

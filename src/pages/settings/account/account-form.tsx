@@ -2,9 +2,9 @@ import { useState } from 'react'
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { toast } from 'sonner'
-import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import { useAuth } from '@/contexts/auth-context'
+import { Eye, EyeOff, Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
 import { userApi } from '@/api/user'
 import { Button } from '@/components/ui/button'
 import {
@@ -19,17 +19,19 @@ import {
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 
-const changePasswordSchema = z.object({
-  oldPassword: z.string().min(1, '请输入当前密码'),
-  newPassword: z
-    .string()
-    .min(6, '新密码至少需要6个字符')
-    .max(32, '新密码不能超过32个字符'),
-  confirmPassword: z.string().min(1, '请确认新密码'),
-}).refine((data) => data.newPassword === data.confirmPassword, {
-  message: '两次输入的密码不一致',
-  path: ['confirmPassword'],
-})
+const changePasswordSchema = z
+  .object({
+    oldPassword: z.string().min(1, '请输入当前密码'),
+    newPassword: z
+      .string()
+      .min(6, '新密码至少需要6个字符')
+      .max(32, '新密码不能超过32个字符'),
+    confirmPassword: z.string().min(1, '请确认新密码'),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: '两次输入的密码不一致',
+    path: ['confirmPassword'],
+  })
 
 const changeEmailSchema = z.object({
   email: z.string().email('请输入有效的邮箱地址'),
@@ -78,16 +80,16 @@ export function AccountForm() {
 
   async function onEmailSubmit(data: ChangeEmailValues) {
     if (!user) return
-    
+
     setIsChangingEmail(true)
     try {
       await userApi.updateUserInfo({ email: data.email })
-      
+
       updateUser({
         ...user,
         email: data.email,
       })
-      
+
       toast.success('邮箱修改成功')
       emailForm.setValue('password', '')
     } finally {
@@ -106,7 +108,10 @@ export function AccountForm() {
           </p>
         </div>
         <Form {...passwordForm}>
-          <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className='space-y-4'>
+          <form
+            onSubmit={passwordForm.handleSubmit(onPasswordSubmit)}
+            className='space-y-4'
+          >
             <FormField
               control={passwordForm.control}
               name='oldPassword'
@@ -124,7 +129,7 @@ export function AccountForm() {
                         type='button'
                         variant='ghost'
                         size='sm'
-                        className='absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent'
+                        className='absolute top-0 right-0 h-full px-3 py-2 hover:bg-transparent'
                         onClick={() => setShowOldPassword(!showOldPassword)}
                       >
                         {showOldPassword ? (
@@ -156,7 +161,7 @@ export function AccountForm() {
                         type='button'
                         variant='ghost'
                         size='sm'
-                        className='absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent'
+                        className='absolute top-0 right-0 h-full px-3 py-2 hover:bg-transparent'
                         onClick={() => setShowNewPassword(!showNewPassword)}
                       >
                         {showNewPassword ? (
@@ -167,9 +172,7 @@ export function AccountForm() {
                       </Button>
                     </div>
                   </FormControl>
-                  <FormDescription>
-                    密码长度为6-32个字符
-                  </FormDescription>
+                  <FormDescription>密码长度为6-32个字符</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -191,8 +194,10 @@ export function AccountForm() {
                         type='button'
                         variant='ghost'
                         size='sm'
-                        className='absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent'
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className='absolute top-0 right-0 h-full px-3 py-2 hover:bg-transparent'
+                        onClick={() =>
+                          setShowConfirmPassword(!showConfirmPassword)
+                        }
                       >
                         {showConfirmPassword ? (
                           <EyeOff className='h-4 w-4' />
@@ -207,7 +212,9 @@ export function AccountForm() {
               )}
             />
             <Button type='submit' disabled={isChangingPassword}>
-              {isChangingPassword && <Loader2 className='mr-2 h-4 w-4 animate-spin' />}
+              {isChangingPassword && (
+                <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+              )}
               修改密码
             </Button>
           </form>
@@ -225,7 +232,10 @@ export function AccountForm() {
           </p>
         </div>
         <Form {...emailForm}>
-          <form onSubmit={emailForm.handleSubmit(onEmailSubmit)} className='space-y-4'>
+          <form
+            onSubmit={emailForm.handleSubmit(onEmailSubmit)}
+            className='space-y-4'
+          >
             <FormField
               control={emailForm.control}
               name='email'
@@ -263,7 +273,7 @@ export function AccountForm() {
                         type='button'
                         variant='ghost'
                         size='sm'
-                        className='absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent'
+                        className='absolute top-0 right-0 h-full px-3 py-2 hover:bg-transparent'
                         onClick={() => setShowEmailPassword(!showEmailPassword)}
                       >
                         {showEmailPassword ? (
@@ -279,7 +289,9 @@ export function AccountForm() {
               )}
             />
             <Button type='submit' disabled={isChangingEmail}>
-              {isChangingEmail && <Loader2 className='mr-2 h-4 w-4 animate-spin' />}
+              {isChangingEmail && (
+                <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+              )}
               修改邮箱
             </Button>
           </form>

@@ -22,9 +22,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       <AppSidebar />
       <SidebarInset>
         <Header fixed />
-        <Main fixed>
-          {children}
-        </Main>
+        <Main fixed>{children}</Main>
       </SidebarInset>
     </SidebarProvider>
   )
