@@ -17,6 +17,8 @@ import {
   initUpload,
   clearCompletedTasks as clearCompletedTasksApi,
 } from '@/api/transfer'
+import { createFolder } from '@/api/file'
+import { UPLOAD_LIMITS, formatFileSize, shouldFilterFile } from '@/config/upload-limits'
 import { progressCalculator } from '@/utils/progress-calculator'
 import { stateMachine } from '@/utils/transfer-state-machine'
 import { useUserStore } from './user'
@@ -50,6 +52,10 @@ interface TransferStore {
     parentId?: string,
     sessionId?: string
   ) => Promise<string>
+  createTasksWithDirectory: (
+    files: File[],
+    parentId?: string
+  ) => Promise<void>
   pauseTask: (taskId: string) => Promise<void>
   resumeTask: (taskId: string) => Promise<void>
   cancelTask: (taskId: string) => Promise<void>
@@ -526,6 +532,181 @@ export const useTransferStore = create<TransferStore>((set, get) => ({
     })
 
     return taskId
+  },
+
+  createTasksWithDirectory: async (files, parentId) => {
+    interface FileWithPath {
+      webkitRelativePath?: string
+    }
+
+    const filesWithPath = files as (File & FileWithPath)[]
+
+    // ========== 限制检查 ==========
+    
+    // 1. 文件数量检查
+    if (filesWithPath.length > UPLOAD_LIMITS.MAX_FILES) {
+      toast.error(`单次最多上传 ${UPLOAD_LIMITS.MAX_FILES} 个文件，当前选择了 ${filesWithPath.length} 个`, {
+        description: '建议分批上传或使用客户端'
+      })
+      throw new Error('文件数量超限')
+    }
+
+    // 2. 总大小检查
+    const totalSize = filesWithPath.reduce((sum, file) => sum + file.size, 0)
+    if (totalSize > UPLOAD_LIMITS.MAX_TOTAL_SIZE) {
+      const currentSize = formatFileSize(totalSize)
+      const maxSize = formatFileSize(UPLOAD_LIMITS.MAX_TOTAL_SIZE)
+      toast.error(`单次上传总大小不能超过 ${maxSize}，当前为 ${currentSize}`, {
+        description: '建议分批上传或使用客户端'
+      })
+      throw new Error('总大小超限')
+    }
+
+    // 3. 目录深度检查
+    let maxDepth = 0
+    let deepestPath = ''
+    filesWithPath.forEach((file) => {
+      const path = file.webkitRelativePath || file.name
+      const depth = path.split('/').length - 1
+      if (depth > maxDepth) {
+        maxDepth = depth
+        deepestPath = path
+      }
+    })
+    if (maxDepth > UPLOAD_LIMITS.MAX_DEPTH) {
+      toast.error(`目录层级不能超过 ${UPLOAD_LIMITS.MAX_DEPTH} 层，当前为 ${maxDepth} 层`, {
+        description: `最深路径: ${deepestPath}`
+      })
+      throw new Error('目录深度超限')
+    }
+
+    // 4. 文件名长度检查
+    const invalidFiles = filesWithPath.filter((file) => {
+      const path = file.webkitRelativePath || file.name
+      return file.name.length > UPLOAD_LIMITS.MAX_FILENAME_LENGTH || 
+             path.length > UPLOAD_LIMITS.MAX_PATH_LENGTH
+    })
+    if (invalidFiles.length > 0) {
+      const example = invalidFiles[0].name
+      toast.error('存在文件名或路径过长的文件', {
+        description: `如: ${example.substring(0, 50)}...`
+      })
+      throw new Error('文件名或路径过长')
+    }
+
+    // 5. 自动过滤系统文件
+    const filteredFiles = filesWithPath.filter((file) => {
+      const path = file.webkitRelativePath || file.name
+      return !shouldFilterFile(path)
+    })
+
+    if (filteredFiles.length < filesWithPath.length) {
+      const filteredCount = filesWithPath.length - filteredFiles.length
+      toast.info(`已自动过滤 ${filteredCount} 个系统文件`)
+    }
+
+    if (filteredFiles.length === 0) {
+      toast.warning('没有可上传的文件')
+      return
+    }
+
+    // ========== 解析目录结构 ==========
+    
+    const dirMap = new Map<string, string>() // path -> folderId
+    const filesByDir = new Map<string, File[]>() // dirPath -> files
+
+    // 收集所有目录路径
+    const allDirs = new Set<string>()
+    filteredFiles.forEach((file) => {
+      const relativePath = file.webkitRelativePath || file.name
+      const pathParts = relativePath.split('/')
+      
+      // 如果有多级目录
+      if (pathParts.length > 1) {
+        let currentPath = ''
+        // 遍历除了文件名之外的所有部分
+        for (let i = 0; i < pathParts.length - 1; i++) {
+          currentPath += (i > 0 ? '/' : '') + pathParts[i]
+          allDirs.add(currentPath)
+        }
+        
+        // 记录文件所属目录
+        const dirPath = pathParts.slice(0, -1).join('/')
+        if (!filesByDir.has(dirPath)) {
+          filesByDir.set(dirPath, [])
+        }
+        filesByDir.get(dirPath)!.push(file)
+      } else {
+        // 根目录文件
+        if (!filesByDir.has('')) {
+          filesByDir.set('', [])
+        }
+        filesByDir.get('')!.push(file)
+      }
+    })
+
+    // 按层级排序目录（确保父目录先创建）
+    const sortedDirs = Array.from(allDirs).sort((a, b) => {
+      const aDepth = a.split('/').length
+      const bDepth = b.split('/').length
+      return aDepth - bDepth
+    })
+
+    // 显示上传信息
+    toast.info(`准备上传 ${filteredFiles.length} 个文件，共 ${sortedDirs.length} 个文件夹`, {
+      description: `总大小: ${formatFileSize(totalSize)}`
+    })
+
+    // ========== 递归创建目录 ==========
+    
+    try {
+      for (const dirPath of sortedDirs) {
+        const pathParts = dirPath.split('/')
+        const folderName = pathParts[pathParts.length - 1]
+        const parentPath = pathParts.slice(0, -1).join('/')
+        
+        // 获取父目录 ID
+        const parentFolderId = parentPath ? dirMap.get(parentPath) : parentId
+
+        try {
+          // 调用创建文件夹 API
+          const result = await createFolder({
+            folderName,
+            parentId: parentFolderId,
+          })
+          
+          // 保存文件夹 ID
+          if (result?.id) {
+            dirMap.set(dirPath, result.id)
+          } else {
+            throw new Error('创建文件夹成功但未返回 ID')
+          }
+        } catch (error) {
+          console.error(`创建文件夹失败: ${dirPath}`, error)
+          toast.error(`创建文件夹失败: ${folderName}`)
+          throw error
+        }
+      }
+
+      // ========== 上传所有文件 ==========
+      
+      const uploadPromises: Promise<string>[] = []
+      
+      filesByDir.forEach((dirFiles, dirPath) => {
+        const targetParentId = dirPath ? dirMap.get(dirPath) : parentId
+        
+        dirFiles.forEach((file) => {
+          uploadPromises.push(get().createTask(file, targetParentId))
+        })
+      })
+
+      await Promise.all(uploadPromises)
+      
+      toast.success(`已添加 ${filteredFiles.length} 个文件到上传队列`)
+    } catch (error) {
+      console.error('上传目录失败:', error)
+      throw error
+    }
   },
 
   pauseTask: async (taskId) => {

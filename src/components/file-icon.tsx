@@ -14,6 +14,7 @@ import PdfIcon from '../../public/fi/pdf'
 import PptIcon from '../../public/fi/ppt'
 import TextIcon from '../../public/fi/text'
 import VideoIcon from '../../public/fi/video'
+import Folder from './Folder'
 
 interface FileIconProps {
   type: string
@@ -31,6 +32,19 @@ export const FileIcon: React.FC<FileIconProps> = ({
   size = 48,
 }) => {
   const iconType = getIconType(type)
+
+  // 如果是文件夹，使用动画 Folder 组件
+  if (iconType === 'folder') {
+    // 根据 size 计算缩放比例
+    // 原始 Folder 组件宽度是 100px，我们需要缩放到指定的 size
+    const scale = size / 100
+    
+    return (
+      <div className={className} style={{ display: 'inline-block' }}>
+        <Folder size={scale} />
+      </div>
+    )
+  }
 
   const iconMap: Record<
     string,

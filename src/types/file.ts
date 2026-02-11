@@ -13,6 +13,7 @@ export interface FileItem {
   updateTime: string
   lastAccessTime?: string
   isFavorite?: boolean
+  thumbnailUrl?: string
   // 文件夹详情字段
   includeFiles?: number
   includeFolders?: number

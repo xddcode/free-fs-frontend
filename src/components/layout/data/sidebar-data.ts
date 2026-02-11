@@ -78,11 +78,6 @@ export const sidebarData: SidebarData = {
       title: '快捷方式',
       items: [
         {
-          title: '文件夹',
-          url: '/files?isDir=true',
-          icon: Folder,
-        },
-        {
           title: '文档',
           url: '/files?type=document',
           icon: FileText,

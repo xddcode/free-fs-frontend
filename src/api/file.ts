@@ -57,7 +57,7 @@ export function uploadFile(
  * 创建文件夹
  */
 export function createFolder(data: { folderName: string; parentId?: string }) {
-  return request.post('/apis/file/directory', data)
+  return request.post<FileItem>('/apis/file/directory', data)
 }
 
 /**

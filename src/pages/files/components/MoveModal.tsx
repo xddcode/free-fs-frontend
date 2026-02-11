@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import type { FileItem } from '@/types/file'
-import { Folder, Home, FolderPlus, Check, X } from 'lucide-react'
+import { Home, FolderPlus, Check, X } from 'lucide-react'
+import FolderIconSvg from '../../../../public/fi/folder'
 import { toast } from 'sonner'
 import { getFolders, createFolder } from '@/api/file'
 import { cn } from '@/lib/utils'
@@ -218,7 +219,7 @@ export function MoveModal({
                   }
                   tabIndex={-1}
                 >
-                  <Folder className='h-4 w-4' />
+                  <FolderIconSvg size={16} />
                   <span>{folder.displayName}</span>
                 </button>
               </div>
@@ -233,7 +234,7 @@ export function MoveModal({
               </div>
             ) : folders.length === 0 && !isCreatingFolder ? (
               <div className='flex h-[300px] flex-col items-center justify-center text-muted-foreground'>
-                <Folder className='mb-3 h-12 w-12 opacity-50' />
+                <FolderIconSvg size={48} className='mb-3 opacity-50' />
                 <p className='text-sm'>当前目录下没有子文件夹</p>
               </div>
             ) : (
@@ -245,11 +246,13 @@ export function MoveModal({
                     onClick={(e) => e.stopPropagation()}
                   >
                     <div className='flex flex-1 items-center gap-3'>
-                      <FileIcon
-                        type='dir'
-                        size={20}
-                        className='flex-shrink-0'
-                      />
+                      <div className='h-5 w-5 flex items-center justify-center overflow-hidden'>
+                        <FileIcon
+                          type='dir'
+                          size={20}
+                          className='flex-shrink-0'
+                        />
+                      </div>
                       <input
                         ref={inputRef}
                         type='text'
@@ -285,7 +288,7 @@ export function MoveModal({
                   <div
                     key={folder.id}
                     className={cn(
-                      'flex cursor-pointer items-center gap-3 rounded px-3 py-2.5 transition-colors select-none',
+                      'flex cursor-pointer items-center gap-3 rounded px-3 py-1.5 transition-colors select-none',
                       'hover:bg-muted',
                       selectedFolderId === folder.id &&
                         'bg-primary/10 font-medium text-primary'
@@ -293,7 +296,9 @@ export function MoveModal({
                     onClick={() => selectFolder(folder)}
                     onDoubleClick={() => enterFolder(folder)}
                   >
-                    <FileIcon type='dir' size={20} className='flex-shrink-0' />
+                    <div className='h-5 w-5 flex items-center justify-center overflow-hidden'>
+                      <FileIcon type='dir' size={20} className='flex-shrink-0' />
+                    </div>
                     <span className='flex-1 truncate text-sm'>
                       {folder.displayName}
                     </span>

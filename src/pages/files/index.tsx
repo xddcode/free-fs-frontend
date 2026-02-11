@@ -6,6 +6,7 @@ import {
   FileText,
   Upload,
   FolderPlus,
+  FolderUp,
   RefreshCw,
 } from 'lucide-react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
@@ -65,6 +66,7 @@ export default function FilesPage() {
 
   // 上传弹窗状态
   const [uploadModalOpen, setUploadModalOpen] = useState(false)
+  const [uploadDirectoryMode, setUploadDirectoryMode] = useState(false)
 
   // 拖拽状态
   const [dragTargetName, setDragTargetName] = useState<string | null>(null)
@@ -161,6 +163,15 @@ export default function FilesPage() {
    * 打开上传弹窗
    */
   const handleOpenUploadModal = () => {
+    setUploadDirectoryMode(false)
+    setUploadModalOpen(true)
+  }
+
+  /**
+   * 打开上传文件夹弹窗
+   */
+  const handleOpenUploadDirectoryModal = () => {
+    setUploadDirectoryMode(true)
     setUploadModalOpen(true)
   }
 
@@ -300,6 +311,7 @@ export default function FilesPage() {
           onSearchChange={fileList.setSearchKeyword}
           onSearch={fileList.search}
           onUpload={handleOpenUploadModal}
+          onUploadDirectory={handleOpenUploadDirectoryModal}
           onCreateFolder={operations.openCreateFolderModal}
           onRefresh={fileList.refresh}
           hideActions={false}
@@ -467,6 +479,10 @@ export default function FilesPage() {
               <Upload className='mr-2 h-4 w-4' />
               上传文件
             </ContextMenuItem>
+            <ContextMenuItem onClick={handleOpenUploadDirectoryModal}>
+              <FolderUp className='mr-2 h-4 w-4' />
+              上传文件夹
+            </ContextMenuItem>
             <ContextMenuSeparator />
             <ContextMenuItem onClick={() => fileList.refresh()}>
               <RefreshCw className='mr-2 h-4 w-4' />
@@ -493,6 +509,7 @@ export default function FilesPage() {
         open={uploadModalOpen}
         onOpenChange={setUploadModalOpen}
         parentId={fileList.currentParentId}
+        isDirectoryMode={uploadDirectoryMode}
       />
 
       {/* 上传进度面板 */}

@@ -87,14 +87,6 @@ export default function HomePage() {
       color: 'text-green-600',
       action: () => navigate('/files?view=shares'),
     },
-    {
-      label: '文件夹',
-      count: homeInfo?.directoryCount || 0,
-      icon: Folder,
-      bg: 'rgba(168, 127, 251, 0.1)',
-      color: 'text-purple-600',
-      action: () => navigate('/files?isDir=true'),
-    },
   ]
 
   const handleUpload = () => {
@@ -127,8 +119,8 @@ export default function HomePage() {
 
   // 骨架屏组件
   const QuickTilesSkeleton = () => (
-    <div className='grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4'>
-      {[1, 2, 3, 4].map((i) => (
+    <div className='grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3'>
+      {[1, 2, 3].map((i) => (
         <Card key={i} className='border-border/40 p-5'>
           <div className='flex items-center gap-4'>
             <Skeleton className='h-12 w-12 rounded-xl' />
@@ -219,7 +211,7 @@ export default function HomePage() {
               {loading ? (
                 <QuickTilesSkeleton />
               ) : (
-                <div className='grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4'>
+                <div className='grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3'>
                   {quickTiles.map((tile, index) => (
                     <Card
                       key={tile.label}
@@ -298,12 +290,22 @@ export default function HomePage() {
                     >
                       <div className='flex items-start gap-2.5'>
                         <div className='flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg bg-muted/50 shadow-sm transition-all group-hover:scale-105 group-hover:bg-muted/80'>
-                          <FileIcon
-                            type={
-                              file.isDir ? 'folder' : file.suffix || 'default'
-                            }
-                            size={24}
-                          />
+                          {file.thumbnailUrl ? (
+                            <img
+                              src={file.thumbnailUrl}
+                              alt={file.displayName}
+                              className='h-11 w-11 rounded-lg object-cover pointer-events-none select-none'
+                              draggable={false}
+                              onContextMenu={(e) => e.preventDefault()}
+                            />
+                          ) : (
+                            <FileIcon
+                              type={
+                                file.isDir ? 'folder' : file.suffix || 'default'
+                              }
+                              size={28}
+                            />
+                          )}
                         </div>
                         <div className='min-w-0 flex-1'>
                           <div

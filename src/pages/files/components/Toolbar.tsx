@@ -1,4 +1,4 @@
-import { Search, Upload, FolderPlus, RefreshCw } from 'lucide-react'
+import { Search, Upload, FolderPlus, RefreshCw, FolderUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
@@ -7,6 +7,7 @@ interface ToolbarProps {
   onSearchChange: (keyword: string) => void
   onSearch: (keyword: string) => void
   onUpload: () => void
+  onUploadDirectory?: () => void
   onCreateFolder: () => void
   onRefresh: () => void
   hideActions?: boolean
@@ -17,6 +18,7 @@ export function Toolbar({
   onSearchChange,
   onSearch,
   onUpload,
+  onUploadDirectory,
   onCreateFolder,
   onRefresh,
   hideActions = false,
@@ -48,6 +50,12 @@ export function Toolbar({
             <Upload className='mr-2 h-4 w-4' />
             上传文件
           </Button>
+          {onUploadDirectory && (
+            <Button onClick={onUploadDirectory} variant='outline' size='sm'>
+              <FolderUp className='mr-2 h-4 w-4' />
+              上传文件夹
+            </Button>
+          )}
           <Button onClick={onCreateFolder} variant='outline' size='sm'>
             <FolderPlus className='mr-2 h-4 w-4' />
             新建文件夹

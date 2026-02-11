@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import type { FileItem } from '@/types/file'
 import {
-  MoreVertical,
+  MoreHorizontal,
   Download,
   Share2,
   Heart,
@@ -157,7 +157,7 @@ export function FileGridView({
                   className={cn(
                     'group relative cursor-pointer rounded-lg p-4 pb-2 text-center transition-all',
                     'hover:bg-accent',
-                    isSelected && 'bg-primary/10',
+                    isSelected && 'bg-primary/10 selected',
                     isDragging && 'cursor-move opacity-50',
                     isDropTarget && 'bg-primary/15'
                   )}
@@ -197,7 +197,7 @@ export function FileGridView({
                           className='h-7 w-7 bg-background/95 shadow-sm backdrop-blur-sm hover:scale-105 hover:bg-background hover:shadow-md'
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <MoreVertical className='h-4 w-4' />
+                          <MoreHorizontal className='h-4 w-4' />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align='end'>
@@ -291,13 +291,23 @@ export function FileGridView({
                     </DropdownMenu>
                   </div>
 
-                  {/* 文件图标 */}
+                  {/* 文件图标或缩略图 */}
                   <div className='mb-3 flex h-20 items-center justify-center pt-1'>
-                    <FileIcon
-                      type={file.isDir ? 'dir' : file.suffix || ''}
-                      size={56}
-                      className='transition-transform group-hover:scale-105'
-                    />
+                    {file.thumbnailUrl ? (
+                      <img
+                        src={file.thumbnailUrl}
+                        alt={file.displayName}
+                        className='h-14 w-14 rounded object-cover transition-transform group-hover:scale-105 pointer-events-none select-none'
+                        draggable={false}
+                        onContextMenu={(e) => e.preventDefault()}
+                      />
+                    ) : (
+                      <FileIcon
+                        type={file.isDir ? 'dir' : file.suffix || ''}
+                        size={56}
+                        className='transition-transform group-hover:scale-105'
+                      />
+                    )}
                   </div>
 
                   {/* 文件名 */}

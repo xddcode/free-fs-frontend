@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useTransferStore } from '@/store/transfer'
-import { Upload, X, FileIcon } from 'lucide-react'
+import { Upload, X, FileIcon, FolderUp } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
@@ -15,17 +15,23 @@ interface UploadModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   parentId?: string
+  isDirectoryMode?: boolean
+}
+
+interface FileWithPath extends File {
+  webkitRelativePath: string
 }
 
 export default function UploadModal({
   open,
   onOpenChange,
   parentId,
+  isDirectoryMode = false,
 }: UploadModalProps) {
-  const [fileList, setFileList] = useState<File[]>([])
+  const [fileList, setFileList] = useState<FileWithPath[]>([])
   const [isDragging, setIsDragging] = useState(false)
 
-  const { startUploadSession, createTask } = useTransferStore()
+  const { startUploadSession, createTask, createTasksWithDirectory } = useTransferStore()
 
   useEffect(() => {
     if (!open) {
@@ -34,12 +40,19 @@ export default function UploadModal({
   }, [open])
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || [])
-    if (files.length + fileList.length > 10) {
-      toast.warning('单次最多上传 10 个文件')
-      return
+    const files = Array.from(e.target.files || []) as FileWithPath[]
+    
+    if (isDirectoryMode) {
+      // 目录模式：不限制数量
+      setFileList([...fileList, ...files])
+    } else {
+      // 文件模式：限制 10 个
+      if (files.length + fileList.length > 10) {
+        toast.warning('单次最多上传 10 个文件')
+        return
+      }
+      setFileList([...fileList, ...files])
     }
-    setFileList([...fileList, ...files])
   }
 
   const handleRemoveFile = (index: number) => {
@@ -56,50 +69,104 @@ export default function UploadModal({
     setIsDragging(false)
   }
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault()
     setIsDragging(false)
 
-    const files = Array.from(e.dataTransfer.files)
-    if (files.length + fileList.length > 10) {
-      toast.warning('单次最多上传 10 个文件')
-      return
+    const items = Array.from(e.dataTransfer.items)
+    const files: FileWithPath[] = []
+
+    // 递归读取文件夹
+    const readEntry = async (entry: any, path = ''): Promise<void> => {
+      if (entry.isFile) {
+        return new Promise((resolve) => {
+          entry.file((file: File) => {
+            const fileWithPath = file as FileWithPath
+            fileWithPath.webkitRelativePath = path + file.name
+            files.push(fileWithPath)
+            resolve()
+          })
+        })
+      } else if (entry.isDirectory) {
+        const dirReader = entry.createReader()
+        return new Promise((resolve) => {
+          dirReader.readEntries(async (entries: any[]) => {
+            for (const childEntry of entries) {
+              await readEntry(childEntry, path + entry.name + '/')
+            }
+            resolve()
+          })
+        })
+      }
     }
-    setFileList([...fileList, ...files])
+
+    // 处理拖拽的项目
+    for (const item of items) {
+      const entry = item.webkitGetAsEntry?.()
+      if (entry) {
+        await readEntry(entry)
+      }
+    }
+
+    if (files.length > 0) {
+      setFileList([...fileList, ...files])
+    } else {
+      // 如果没有通过 webkitGetAsEntry 获取到文件，使用传统方式
+      const fallbackFiles = Array.from(e.dataTransfer.files) as FileWithPath[]
+      if (!isDirectoryMode && fallbackFiles.length + fileList.length > 10) {
+        toast.warning('单次最多上传 10 个文件')
+        return
+      }
+      setFileList([...fileList, ...fallbackFiles])
+    }
   }
 
   const handleSubmit = async () => {
     if (fileList.length === 0) {
-      toast.warning('请选择要上传的文件')
+      toast.warning(isDirectoryMode ? '请选择要上传的文件夹' : '请选择要上传的文件')
       return
     }
 
     // 开始新的上传批次
     startUploadSession()
 
-    // 添加到上传任务列表
-    await Promise.all(fileList.map((file) => createTask(file, parentId)))
+    if (isDirectoryMode) {
+      // 目录模式：解析目录结构并上传
+      await createTasksWithDirectory(fileList, parentId)
+    } else {
+      // 文件模式：直接上传
+      await Promise.all(fileList.map((file) => createTask(file, parentId)))
+    }
 
     // 关闭弹窗
     onOpenChange(false)
 
     // 显示通知
-    toast.success('文件已添加到传输列表', {
+    toast.success(isDirectoryMode ? '文件夹已添加到传输列表' : '文件已添加到传输列表', {
       description: '可前往传输列表查看上传进度',
     })
+  }
+
+  // 获取显示的文件名
+  const getDisplayName = (file: FileWithPath) => {
+    if (isDirectoryMode && file.webkitRelativePath) {
+      return file.webkitRelativePath
+    }
+    return file.name
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className='max-w-xl'>
         <DialogHeader>
-          <DialogTitle>上传文件</DialogTitle>
+          <DialogTitle>{isDirectoryMode ? '上传文件夹' : '上传文件'}</DialogTitle>
         </DialogHeader>
 
         <div className='py-4'>
           <input
             type='file'
-            multiple
+            multiple={!isDirectoryMode}
+            {...(isDirectoryMode ? { webkitdirectory: '', directory: '' } : {})}
             onChange={handleFileChange}
             className='hidden'
             id='file-upload'
@@ -116,17 +183,21 @@ export default function UploadModal({
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
           >
-            <Upload className='mb-4 h-12 w-12 text-primary' />
+            {isDirectoryMode ? (
+              <FolderUp className='mb-4 h-12 w-12 text-primary' />
+            ) : (
+              <Upload className='mb-4 h-12 w-12 text-primary' />
+            )}
             <div className='text-base font-medium text-foreground'>
-              点击或拖拽文件到此处上传
+              {isDirectoryMode ? '点击或拖拽文件夹到此处上传' : '点击或拖拽文件到此处上传'}
             </div>
             <div className='mt-2 text-sm text-muted-foreground'>
-              支持同时上传多个文件，单次最多 10 个
+              {isDirectoryMode ? '支持上传整个文件夹，保留目录结构' : '支持同时上传多个文件，单次最多 10 个'}
             </div>
           </label>
 
           {fileList.length > 0 && (
-            <div className='mt-4 space-y-2'>
+            <div className='mt-4 max-h-60 space-y-2 overflow-y-auto'>
               {fileList.map((file, index) => (
                 <div
                   key={index}
@@ -134,7 +205,9 @@ export default function UploadModal({
                 >
                   <div className='flex min-w-0 flex-1 items-center gap-2'>
                     <FileIcon className='h-4 w-4 flex-shrink-0' />
-                    <span className='truncate text-sm'>{file.name}</span>
+                    <span className='truncate text-sm' title={getDisplayName(file)}>
+                      {getDisplayName(file)}
+                    </span>
                   </div>
                   <X
                     className='h-4 w-4 flex-shrink-0 cursor-pointer text-muted-foreground hover:text-destructive'

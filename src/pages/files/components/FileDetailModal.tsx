@@ -96,12 +96,22 @@ export function FileDetailModal({
         </DialogHeader>
 
         <div className='space-y-6 px-6 pb-4'>
-          {/* 文件图标 */}
+          {/* 文件图标或缩略图 */}
           <div className='flex justify-center'>
-            <FileIcon
-              type={displayFile.isDir ? 'dir' : displayFile.suffix || ''}
-              size={100}
-            />
+            {displayFile.thumbnailUrl ? (
+              <img
+                src={displayFile.thumbnailUrl}
+                alt={displayFile.displayName}
+                className='h-[100px] w-[100px] rounded object-cover pointer-events-none select-none'
+                draggable={false}
+                onContextMenu={(e) => e.preventDefault()}
+              />
+            ) : (
+              <FileIcon
+                type={displayFile.isDir ? 'dir' : displayFile.suffix || ''}
+                size={100}
+              />
+            )}
           </div>
 
           {/* 详细信息列表 */}

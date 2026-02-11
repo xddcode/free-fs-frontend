@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import type { FileItem, SortOrder } from '@/types/file'
 import {
-  MoreVertical,
+  MoreHorizontal,
   Download,
   Share2,
   Heart,
@@ -201,7 +201,7 @@ export function FileListView({
                   <TableRow
                     className={cn(
                       'group transition-colors',
-                      isSelected && !isDropTarget && 'bg-primary/5',
+                      isSelected && !isDropTarget && 'bg-primary/5 selected',
                       isDragging && 'cursor-move opacity-50',
                       isDropTarget && 'bg-primary/15'
                     )}
@@ -225,12 +225,22 @@ export function FileListView({
                     </TableCell>
                     <TableCell>
                       <div className='flex items-center gap-3'>
-                        <div className='flex h-8 w-8 items-center justify-center rounded'>
-                          <FileIcon
-                            type={file.isDir ? 'dir' : file.suffix || ''}
-                            size={28}
-                            className='shrink-0'
-                          />
+                        <div className='flex h-8 w-8 items-center justify-center rounded shrink-0'>
+                          {file.thumbnailUrl ? (
+                            <img
+                              src={file.thumbnailUrl}
+                              alt={file.displayName}
+                              className='h-7 w-7 rounded object-cover pointer-events-none select-none'
+                              draggable={false}
+                              onContextMenu={(e) => e.preventDefault()}
+                            />
+                          ) : (
+                            <FileIcon
+                              type={file.isDir ? 'dir' : file.suffix || ''}
+                              size={28}
+                              className='shrink-0'
+                            />
+                          )}
                         </div>
                         <span className='truncate text-sm font-normal text-foreground/90'>
                           {file.displayName}
@@ -335,7 +345,7 @@ export function FileListView({
                               className='h-8 w-8'
                               onClick={(e) => e.stopPropagation()}
                             >
-                              <MoreVertical className='h-4 w-4' />
+                              <MoreHorizontal className='h-4 w-4' />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align='end'>
