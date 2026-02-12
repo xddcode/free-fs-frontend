@@ -10,6 +10,12 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 interface UploadModalProps {
   open: boolean
@@ -31,7 +37,8 @@ export default function UploadModal({
   const [fileList, setFileList] = useState<FileWithPath[]>([])
   const [isDragging, setIsDragging] = useState(false)
 
-  const { startUploadSession, createTask, createTasksWithDirectory } = useTransferStore()
+  const { startUploadSession, createTask, createTasksWithDirectory } =
+    useTransferStore()
 
   useEffect(() => {
     if (!open) {
@@ -41,7 +48,7 @@ export default function UploadModal({
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []) as FileWithPath[]
-    
+
     if (isDirectoryMode) {
       // 目录模式：不限制数量
       setFileList([...fileList, ...files])
@@ -123,7 +130,9 @@ export default function UploadModal({
 
   const handleSubmit = async () => {
     if (fileList.length === 0) {
-      toast.warning(isDirectoryMode ? '请选择要上传的文件夹' : '请选择要上传的文件')
+      toast.warning(
+        isDirectoryMode ? '请选择要上传的文件夹' : '请选择要上传的文件'
+      )
       return
     }
 
@@ -142,9 +151,12 @@ export default function UploadModal({
     onOpenChange(false)
 
     // 显示通知
-    toast.success(isDirectoryMode ? '文件夹已添加到传输列表' : '文件已添加到传输列表', {
-      description: '可前往传输列表查看上传进度',
-    })
+    toast.success(
+      isDirectoryMode ? '文件夹已添加到传输列表' : '文件已添加到传输列表',
+      {
+        description: '可前往传输列表查看上传进度',
+      }
+    )
   }
 
   // 获取显示的文件名
@@ -159,7 +171,9 @@ export default function UploadModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className='max-w-xl'>
         <DialogHeader>
-          <DialogTitle>{isDirectoryMode ? '上传文件夹' : '上传文件'}</DialogTitle>
+          <DialogTitle>
+            {isDirectoryMode ? '上传文件夹' : '上传文件'}
+          </DialogTitle>
         </DialogHeader>
 
         <div className='py-4'>
@@ -189,10 +203,14 @@ export default function UploadModal({
               <Upload className='mb-4 h-12 w-12 text-primary' />
             )}
             <div className='text-base font-medium text-foreground'>
-              {isDirectoryMode ? '点击或拖拽文件夹到此处上传' : '点击或拖拽文件到此处上传'}
+              {isDirectoryMode
+                ? '点击或拖拽文件夹到此处上传'
+                : '点击或拖拽文件到此处上传'}
             </div>
             <div className='mt-2 text-sm text-muted-foreground'>
-              {isDirectoryMode ? '支持上传整个文件夹，保留目录结构' : '支持同时上传多个文件，单次最多 10 个'}
+              {isDirectoryMode
+                ? '支持上传整个文件夹，保留目录结构'
+                : '支持同时上传多个文件，单次最多 10 个'}
             </div>
           </label>
 
@@ -205,9 +223,21 @@ export default function UploadModal({
                 >
                   <div className='flex min-w-0 flex-1 items-center gap-2'>
                     <FileIcon className='h-4 w-4 flex-shrink-0' />
-                    <span className='truncate text-sm' title={getDisplayName(file)}>
-                      {getDisplayName(file)}
-                    </span>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span
+                            className='text-sm break-words whitespace-normal'
+                            style={{ wordBreak: 'break-all' }}
+                          >
+                            {getDisplayName(file)}
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{getDisplayName(file)}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </div>
                   <X
                     className='h-4 w-4 flex-shrink-0 cursor-pointer text-muted-foreground hover:text-destructive'
