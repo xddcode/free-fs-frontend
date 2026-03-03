@@ -1,0 +1,10 @@
+node_modules
+dist
+.git
+.github
+.vscode
+.cursor
+*.md
+LICENSE
+.env.development
+.env.local
