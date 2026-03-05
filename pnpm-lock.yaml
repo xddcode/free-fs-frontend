@@ -137,9 +137,6 @@ importers:
       nprogress:
         specifier: ^0.2.0
         version: 0.2.0
-      postcss:
-        specifier: ^8.5.6
-        version: 8.5.6
       radash:
         specifier: ^12.1.0
         version: 12.1.1
@@ -179,9 +176,6 @@ importers:
       tailwind-merge:
         specifier: ^3.3.1
         version: 3.4.0
-      tailwindcss:
-        specifier: ^4.1.18
-        version: 4.1.18
       tw-animate-css:
         specifier: ^1.3.6
         version: 1.4.0
@@ -231,12 +225,18 @@ importers:
       eslint-plugin-react-refresh:
         specifier: ^0.4.25
         version: 0.4.26(eslint@9.39.2(jiti@2.6.1))
+      postcss:
+        specifier: ^8.5.6
+        version: 8.5.6
       prettier:
         specifier: ^3.7.4
         version: 3.8.1
       prettier-plugin-tailwindcss:
         specifier: ^0.7.2
         version: 0.7.2(@trivago/prettier-plugin-sort-imports@6.0.2(prettier@3.8.1))(prettier@3.8.1)
+      tailwindcss:
+        specifier: ^4.1.18
+        version: 4.1.18
       tailwindcss-animate:
         specifier: ^1.0.7
         version: 1.0.7(tailwindcss@4.1.18)
