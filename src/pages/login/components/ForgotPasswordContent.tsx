@@ -74,90 +74,103 @@ export default function ForgotPasswordContent({ onSwitchForm }: Props) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className='mt-8 space-y-4'>
-      {/* 邮箱 */}
-      <div className='relative'>
-        <Mail className='absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
-        <Input
-          type='email'
-          placeholder='邮箱'
-          value={formData.mail}
-          onChange={(e) => setFormData({ ...formData, mail: e.target.value })}
-          className='pl-10'
-          required
-        />
+    <form onSubmit={handleSubmit} className='space-y-6'>
+      <div className='space-y-2 text-center'>
+        <h3 className='text-2xl font-bold tracking-tight'>找回密码</h3>
+        <p className='text-sm text-muted-foreground'>通过邮箱验证码重置密码</p>
       </div>
 
-      {/* 验证码 */}
-      <div className='relative'>
-        <Shield className='absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
-        <Input
-          type='text'
-          placeholder='请输入验证码'
-          value={formData.code}
-          onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-          maxLength={6}
-          className='pr-28 pl-10'
-          required
-        />
-        <Button
+      <div className='space-y-3'>
+        <div className='relative'>
+          <Mail className='absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
+          <Input
+            id='forgot-mail'
+            type='email'
+            placeholder='请输入邮箱'
+            value={formData.mail}
+            onChange={(e) => setFormData({ ...formData, mail: e.target.value })}
+            className='h-11 pl-10'
+            required
+          />
+        </div>
+      </div>
+
+      <div className='space-y-3'>
+        <div className='relative'>
+          <Shield className='absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
+          <Input
+            id='forgot-code'
+            type='text'
+            placeholder='请输入验证码'
+            value={formData.code}
+            onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+            maxLength={6}
+            className='h-11 pr-28 pl-10'
+            required
+          />
+          <Button
+            type='button'
+            variant='ghost'
+            size='sm'
+            className='absolute top-1/2 right-1 h-8 -translate-y-1/2 text-xs'
+            onClick={handleSendCode}
+            disabled={countdown > 0 || codeLoading}
+          >
+            {countdown > 0 ? `${countdown}秒后重试` : '发送验证码'}
+          </Button>
+        </div>
+      </div>
+
+      <div className='space-y-3'>
+        <div className='relative'>
+          <Lock className='absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
+          <Input
+            id='forgot-new-password'
+            type='password'
+            placeholder='请输入新密码'
+            value={formData.newPassword}
+            onChange={(e) =>
+              setFormData({ ...formData, newPassword: e.target.value })
+            }
+            className='h-11 pl-10'
+            required
+            minLength={6}
+          />
+        </div>
+      </div>
+
+      <div className='space-y-3'>
+        <div className='relative'>
+          <Lock className='absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
+          <Input
+            id='forgot-confirm-password'
+            type='password'
+            placeholder='请再次输入新密码'
+            value={formData.confirmPassword}
+            onChange={(e) =>
+              setFormData({ ...formData, confirmPassword: e.target.value })
+            }
+            className='h-11 pl-10'
+            required
+            minLength={6}
+          />
+        </div>
+      </div>
+
+      <Button type='submit' className='h-11 w-full' disabled={loading}>
+        {loading ? '重置中...' : '重置密码'}
+      </Button>
+
+      <p className='text-center text-sm text-muted-foreground'>
+        想起密码了？{' '}
+        <button
           type='button'
-          variant='ghost'
-          size='sm'
-          className='absolute top-1/2 right-1 h-8 -translate-y-1/2 text-xs'
-          onClick={handleSendCode}
-          disabled={countdown > 0 || codeLoading}
+          className='underline underline-offset-2 hover:text-foreground'
+          onClick={() => onSwitchForm('login')}
         >
-          {countdown > 0 ? `${countdown}秒后重试` : '发送验证码'}
-        </Button>
-      </div>
-
-      {/* 新密码 */}
-      <div className='relative'>
-        <Lock className='absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
-        <Input
-          type='password'
-          placeholder='新密码'
-          value={formData.newPassword}
-          onChange={(e) =>
-            setFormData({ ...formData, newPassword: e.target.value })
-          }
-          className='pl-10'
-          required
-          minLength={6}
-        />
-      </div>
-
-      {/* 确认密码 */}
-      <div className='relative'>
-        <Lock className='absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
-        <Input
-          type='password'
-          placeholder='确认新密码'
-          value={formData.confirmPassword}
-          onChange={(e) =>
-            setFormData({ ...formData, confirmPassword: e.target.value })
-          }
-          className='pl-10'
-          required
-          minLength={6}
-        />
-      </div>
-
-      {/* 重置密码按钮 */}
-      <Button type='submit' className='w-full' disabled={loading}>
-        {loading ? '重置...' : '重置'}
-      </Button>
-
-      {/* 返回登录 */}
-      <Button
-        type='button'
-        variant='ghost'
-        className='w-full text-muted-foreground'
-        onClick={() => onSwitchForm('login')}
-      >
-        返回登录
-      </Button>
+          返回登录
+        </button>
+      </p>
     </form>
   )
 }

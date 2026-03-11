@@ -1,0 +1,39 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 64 64"
+  role="img"
+  aria-label="Free FS favicon"
+>
+  <rect x="0" y="0" width="64" height="64" rx="16" ry="16" fill="#4F46E5" />
+  <line
+    x1="18"
+    y1="19"
+    x2="46"
+    y2="19"
+    fill="none"
+    stroke="#FFFFFF"
+    stroke-width="7"
+    stroke-linecap="round"
+  />
+  <line
+    x1="18"
+    y1="32"
+    x2="34"
+    y2="32"
+    fill="none"
+    stroke="#FFFFFF"
+    stroke-width="7"
+    stroke-linecap="round"
+  />
+  <circle cx="45" cy="32" r="3.5" fill="#FFFFFF" />
+  <line
+    x1="18"
+    y1="45"
+    x2="26"
+    y2="45"
+    fill="none"
+    stroke="#FFFFFF"
+    stroke-width="7"
+    stroke-linecap="round"
+  />
+</svg>
