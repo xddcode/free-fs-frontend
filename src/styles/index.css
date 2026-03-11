@@ -12,9 +12,10 @@
   }
   html {
     @apply overflow-x-hidden;
+    font-size: 15px;
   }
   body {
-    @apply min-h-svh w-full bg-background text-foreground has-[div[data-variant='inset']]:bg-sidebar;
+    @apply min-h-svh w-full bg-background text-foreground antialiased has-[div[data-variant='inset']]:bg-sidebar;
   }
 
   /* Override Radix scroll locking for sticky headers */
