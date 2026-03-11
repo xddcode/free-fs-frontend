@@ -205,11 +205,11 @@ free-fs-frontend/
 
 添加微信，请注明来意
 
-<img alt="wx.png" height="300" src="https://gitee.com/dromara/free-fs/raw/feature-vue/.images/wx.png" width="250"/>
+<img alt="wx.png" height="300" src=".images/wx.png" width="250"/>
 
 ### 微信公众号
 
-<img alt="mp.png" src="https://gitee.com/dromara/free-fs/raw/feature-vue/.images/mp.png"/>
+<img alt="mp.png" src=".images/mp.png"/>
 
 ---
 
@@ -219,7 +219,7 @@ free-fs-frontend/
 
 你也可以通过以下方式支持项目：
 
-<img alt="pay.png" height="300" src="https://gitee.com/dromara/free-fs/raw/feature-vue/.images/pay.png" width="250"/>
+<img alt="pay.png" height="300" src=".images/pay.png" width="250"/>
 
 ---
 
