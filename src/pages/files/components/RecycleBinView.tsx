@@ -443,7 +443,7 @@ export default function RecycleBinView() {
                     <Button
                       variant='ghost'
                       size='icon'
-                      className='size-12 rounded-full'
+                      className='size-12 rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive'
                       onClick={handleBatchDelete}
                       aria-label='彻底删除'
                     >

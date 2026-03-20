@@ -505,7 +505,7 @@ export function MySharesView() {
                     <Button
                       variant='ghost'
                       size='icon'
-                      className='size-12 rounded-full'
+                      className='size-12 rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive'
                       onClick={handleBatchCancel}
                       aria-label='取消分享'
                     >

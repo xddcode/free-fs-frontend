@@ -121,7 +121,7 @@ export function SelectionDock({
                 <Button
                   variant='ghost'
                   size='icon'
-                  className='size-12 rounded-full'
+                  className='size-12 rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive'
                   onClick={onDelete}
                   aria-label='删除'
                 >
