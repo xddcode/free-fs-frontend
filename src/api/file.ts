@@ -131,3 +131,10 @@ export function unfavoriteFile(fileIds: string[]) {
 export function getFilePreviewUrl(fileId: string, expireSeconds = 180) {
   return request.get(`/apis/file/url/${fileId}`, { params: { expireSeconds } })
 }
+
+/**
+ * 获取文件预览令牌
+ */
+export function getPreviewToken(fileId: string) {
+  return request.post<string>(`/preview/token/${fileId}`)
+}

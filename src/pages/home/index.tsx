@@ -19,6 +19,7 @@ import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { getHomeInfo } from '@/api/home'
 import { formatFileSize, formatTime } from '@/utils/format'
+import { openFilePreviewWithToken } from '@/utils/preview'
 import { AnimatedCircularProgressBar } from '@/components/ui/animated-circular-progress-bar'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -94,13 +95,11 @@ export default function HomePage() {
     toast.info('请在文件页面上传文件')
   }
 
-  const handleFileClick = (file: any) => {
+  const handleFileClick = async (file: any) => {
     if (file.isDir) {
       navigate(`/files?parentId=${file.id}`)
     } else {
-      // 预览文件
-      const previewUrl = `${import.meta.env.VITE_API_VIEW_URL}/preview/${file.id}`
-      window.open(previewUrl, '_blank')
+      await openFilePreviewWithToken(file.id, import.meta.env.VITE_API_VIEW_URL)
     }
   }
 

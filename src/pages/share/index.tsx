@@ -20,6 +20,7 @@ import {
 } from '@/api/share'
 import { getToken } from '@/utils/auth'
 import { getAvatarFallback } from '@/utils/avatar'
+import { openFilePreviewWithToken } from '@/utils/preview'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
   Breadcrumb,
@@ -194,11 +195,8 @@ export default function SharePage() {
   }
 
   // 处理预览
-  const handlePreview = (file: FileItem) => {
-    window.open(
-      `${import.meta.env.VITE_API_BASE_URL}/preview/${file.id}`,
-      '_blank'
-    )
+  const handlePreview = async (file: FileItem) => {
+    await openFilePreviewWithToken(file.id, import.meta.env.VITE_API_BASE_URL)
   }
 
   // 处理下载

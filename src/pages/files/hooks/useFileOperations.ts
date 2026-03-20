@@ -9,6 +9,7 @@ import {
   favoriteFile,
   unfavoriteFile,
 } from '@/api/file'
+import { openFilePreviewWithToken } from '@/utils/preview'
 
 export function useFileOperations(
   refreshCallback: () => void,
@@ -243,11 +244,8 @@ export function useFileOperations(
   /**
    * 预览文件
    */
-  const openPreview = useCallback((file: FileItem) => {
-    window.open(
-      `${import.meta.env.VITE_API_VIEW_URL}/preview/${file.id}`,
-      '_blank'
-    )
+  const openPreview = useCallback(async (file: FileItem) => {
+    await openFilePreviewWithToken(file.id, import.meta.env.VITE_API_VIEW_URL)
   }, [])
 
   /**
