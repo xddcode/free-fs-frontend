@@ -2,7 +2,7 @@ import * as React from 'react'
 import { MagnifyingGlassIcon } from '@radix-ui/react-icons'
 import { Command as CommandPrimitive } from 'cmdk'
 import { cn } from '@/lib/utils'
-import { Dialog, DialogContent } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 
 const Command = React.forwardRef<
   React.ElementRef<typeof CommandPrimitive>,
@@ -19,16 +19,40 @@ const Command = React.forwardRef<
 ))
 Command.displayName = CommandPrimitive.displayName
 
+const commandDialogCommandClass =
+  '[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group]]:px-2 [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5'
+
+type CommandDialogProps = React.ComponentProps<typeof Dialog> & {
+  /** 透传给内部 `Command`（如 `shouldFilter`） */
+  commandProps?: React.ComponentPropsWithoutRef<typeof CommandPrimitive>
+  /** 屏幕阅读器标题 */
+  contentTitle?: string
+  /** 隐藏右上角关闭，由面板内自定义关闭 */
+  hideClose?: boolean
+}
+
 const CommandDialog = ({
   children,
+  commandProps,
+  contentTitle = 'Command menu',
+  hideClose,
   ...props
-}: React.ComponentProps<typeof Dialog>) => {
+}: CommandDialogProps) => {
+  const { className: commandClassName, ...restCommand } = commandProps ?? {}
   return (
     <Dialog {...props}>
-      <DialogContent className='overflow-hidden p-0'>
-        <Command className='[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group]]:px-2 [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5'>
+      <DialogContent className='overflow-hidden p-0' hideClose={hideClose}>
+        <DialogTitle className='sr-only'>{contentTitle}</DialogTitle>
+        <CommandPrimitive
+          className={cn(
+            'flex h-full w-full flex-col overflow-hidden rounded-md bg-popover text-popover-foreground',
+            commandDialogCommandClass,
+            commandClassName
+          )}
+          {...restCommand}
+        >
           {children}
-        </Command>
+        </CommandPrimitive>
       </DialogContent>
     </Dialog>
   )

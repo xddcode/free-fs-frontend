@@ -1,11 +1,61 @@
 import dayjs from 'dayjs'
 
+import type { HomeUsedBytesUnit } from '@/api/home'
+
 export const formatFileSize = (bytes: number): string => {
   if (bytes === 0) return '0 B'
   const k = 1024
   const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
   const i = Math.floor(Math.log(bytes) / Math.log(k))
   return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`
+}
+
+const compactZh = (value: number) =>
+  new Intl.NumberFormat('zh-CN', {
+    notation: 'compact',
+    maximumFractionDigits: 2,
+  }).format(value)
+
+/**
+ * 与首页存储图表纵轴/Tooltip 一致：万级及以上 KB/MB/GB 均用紧凑（如 2.16万）；
+ * KB 未过万也保持紧凑；MB/GB 较小值按数量级保留小数。不做单位换算。
+ */
+export function formatHomeStorageNumber(
+  value: number,
+  unit: HomeUsedBytesUnit
+): string {
+  if (!Number.isFinite(value)) return ''
+  if (value === 0) return '0'
+  const abs = Math.abs(value)
+
+  if (abs >= 10000) {
+    return compactZh(value)
+  }
+  if (unit === 1) {
+    return compactZh(value)
+  }
+  if (abs >= 100) {
+    return value.toLocaleString('zh-CN', { maximumFractionDigits: 2 })
+  }
+  if (abs >= 1) {
+    return value.toLocaleString('zh-CN', { maximumFractionDigits: 3 })
+  }
+  return new Intl.NumberFormat('zh-CN', {
+    maximumFractionDigits: 8,
+    minimumFractionDigits: 0,
+  }).format(value)
+}
+
+/** 首页存储概览：数字格式与图表一致，再拼服务端单位文案 */
+export function formatHomeStorageDisplay(
+  value: number,
+  unitLabel: string,
+  storageUnit: HomeUsedBytesUnit
+): string {
+  if (!Number.isFinite(value)) return '—'
+  const num = formatHomeStorageNumber(value, storageUnit)
+  const u = unitLabel.trim()
+  return u ? `${num} ${u}` : num
 }
 
 export const formatDate = (

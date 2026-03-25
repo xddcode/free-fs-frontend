@@ -26,10 +26,17 @@ const DialogOverlay = React.forwardRef<
 ))
 DialogOverlay.displayName = DialogPrimitive.Overlay.displayName
 
+type DialogContentProps = React.ComponentPropsWithoutRef<
+  typeof DialogPrimitive.Content
+> & {
+  /** 为 true 时不渲染右上角关闭按钮（由内容区自行提供关闭） */
+  hideClose?: boolean
+}
+
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
->(({ className, children, ...props }, ref) => (
+  DialogContentProps
+>(({ className, children, hideClose, ...props }, ref) => (
   <DialogPortal>
     <DialogOverlay />
     <DialogPrimitive.Content
@@ -41,10 +48,12 @@ const DialogContent = React.forwardRef<
       {...props}
     >
       {children}
-      <DialogPrimitive.Close className='absolute top-4 right-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-none disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground'>
-        <X className='h-4 w-4' />
-        <span className='sr-only'>Close</span>
-      </DialogPrimitive.Close>
+      {!hideClose ? (
+        <DialogPrimitive.Close className='absolute top-4 right-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-none disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground'>
+          <X className='h-4 w-4' />
+          <span className='sr-only'>Close</span>
+        </DialogPrimitive.Close>
+      ) : null}
     </DialogPrimitive.Content>
   </DialogPortal>
 ))

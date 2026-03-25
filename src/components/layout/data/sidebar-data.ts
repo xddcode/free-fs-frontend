@@ -7,12 +7,6 @@ import {
   Clock,
   Share2,
   Trash2,
-  FileText,
-  Image,
-  Video,
-  Music,
-  MoreHorizontal,
-  Folder,
 } from 'lucide-react'
 import { type SidebarData } from '../types'
 
@@ -71,36 +65,6 @@ export const sidebarData: SidebarData = {
           title: '回收站',
           url: '/files?view=recycle',
           icon: Trash2,
-        },
-      ],
-    },
-    {
-      title: '快捷方式',
-      items: [
-        {
-          title: '文档',
-          url: '/files?type=document',
-          icon: FileText,
-        },
-        {
-          title: '图片',
-          url: '/files?type=image',
-          icon: Image,
-        },
-        {
-          title: '视频',
-          url: '/files?type=video',
-          icon: Video,
-        },
-        {
-          title: '音频',
-          url: '/files?type=audio',
-          icon: Music,
-        },
-        {
-          title: '其它',
-          url: '/files?type=other',
-          icon: MoreHorizontal,
         },
       ],
     },

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { userApi } from '@/api'
 import { useAuth } from '@/contexts/auth-context'
 import { LoginParams } from '@/types/user'
-import { User, Lock, Github } from 'lucide-react'
+import { User, Lock } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { setToken } from '@/utils/auth'
@@ -134,43 +134,46 @@ export default function LoginFormContent({ onSwitchForm }: Props) {
         </span>
       </div>
 
-      <div className='grid grid-cols-2 gap-3'>
-        <Button
-          variant='outline'
+      <div className='flex flex-wrap items-center justify-center gap-7'>
+        <button
           type='button'
-          className='h-10 gap-2'
           onClick={() => handleSocialLogin('微信')}
+          className='inline-flex shrink-0 border-0 bg-transparent p-0 shadow-none transition hover:opacity-85 focus-visible:rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none'
         >
-          <svg
-            xmlns='http://www.w3.org/2000/svg'
-            aria-label='WeChat'
-            role='img'
-            viewBox='0 0 512 512'
-            className='size-4'
-          >
-            <rect width='512' height='512' rx='15%' fill='#00c70a' />
-            <path
-              d='M402 369c23-17 38-42 38-70 0-51-50-92-111-92s-110 41-110 92 49 92 110 92c13 0 25-2 36-5 4-1 8 0 9 1l25 14c3 2 6 0 5-4l-6-22c0-3 2-5 4-6m-110-85a15 15 0 1 1 0-29 15 15 0 0 1 0 29m74 0a15 15 0 1 1 0-29 15 15 0 0 1 0 29'
-              fill='#fff'
-            />
-            <path
-              d='m205 105c-73 0-132 50-132 111 0 33 17 63 45 83 3 2 5 5 4 10l-7 24c-1 5 3 7 6 6l30-17c3-2 7-3 11-2 26 8 48 6 51 6-24-84 59-132 123-128-10-52-65-93-131-93m-44 93a18 18 0 1 1 0-35 18 18 0 0 1 0 35m89 0a18 18 0 1 1 0-35 18 18 0 0 1 0 35'
-              fill='#fff'
-            />
-          </svg>
-          <span className='text-sm'>微信</span>
+          <img
+            src='/svg/wechat.svg'
+            alt=''
+            className='size-[32px] object-contain'
+            aria-hidden
+          />
           <span className='sr-only'>使用微信登录</span>
-        </Button>
-        <Button
-          variant='outline'
+        </button>
+        <button
           type='button'
-          className='h-10 gap-2'
-          onClick={() => handleSocialLogin('GitHub')}
+          onClick={() => handleSocialLogin('Gitee')}
+          className='inline-flex shrink-0 border-0 bg-transparent p-0 shadow-none transition hover:opacity-85 focus-visible:rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none'
         >
-          <Github className='size-4' />
-          <span className='text-sm'>GitHub</span>
+          <img
+            src='/svg/gitee.svg'
+            alt=''
+            className='size-[32px] object-contain'
+            aria-hidden
+          />
+          <span className='sr-only'>使用 Gitee 登录</span>
+        </button>
+        <button
+          type='button'
+          onClick={() => handleSocialLogin('GitHub')}
+          className='inline-flex shrink-0 border-0 bg-transparent p-0 shadow-none transition hover:opacity-85 focus-visible:rounded-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none'
+        >
+          <img
+            src='/svg/github.svg'
+            alt=''
+            className='size-[32px] object-contain'
+            aria-hidden
+          />
           <span className='sr-only'>使用 GitHub 登录</span>
-        </Button>
+        </button>
       </div>
 
       <p className='text-center text-sm text-muted-foreground'>

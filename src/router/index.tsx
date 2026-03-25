@@ -12,6 +12,7 @@ import StoragePage from '@/pages/storage'
 import TransferPage from '@/pages/transfer'
 import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { AppLayout } from '@/components/layout/app-layout'
+import { SearchProvider } from '@/context/search-provider'
 
 // 受保护的路由组件
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -30,7 +31,9 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 function LayoutWrapper({ children }: { children: React.ReactNode }) {
   return (
     <ProtectedRoute>
-      <AppLayout>{children}</AppLayout>
+      <SearchProvider>
+        <AppLayout>{children}</AppLayout>
+      </SearchProvider>
     </ProtectedRoute>
   )
 }
