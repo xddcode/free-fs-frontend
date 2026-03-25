@@ -6,11 +6,11 @@
 
 ### 现代化文件管理网盘系统 - 前端
 
-基于 React 19 + TypeScript 的企业级文件管理网盘系统前端，提供流畅的用户体验和现代化的界面设计。
+基于 React 19 + TypeScript + Vite 8 的企业级文件管理网盘系统前端，提供流畅的用户体验和现代化的界面设计。
 
 <img src="https://img.shields.io/badge/React-19-blue.svg" alt="React">
 <img src="https://img.shields.io/badge/TypeScript-5.x-blue.svg" alt="TypeScript">
-<img src="https://img.shields.io/badge/Vite-6.x-blue.svg" alt="Vite">
+<img src="https://img.shields.io/badge/Vite-8.x-blue.svg" alt="Vite">
 
 [![star](https://gitee.com/dromara/free-fs/badge/star.svg?theme=dark)](https://gitee.com/dromara/free-fs/stargazers)
 [![fork](https://gitee.com/dromara/free-fs/badge/fork.svg?theme=dark)](https://gitee.com/dromara/free-fs/members)
@@ -40,23 +40,24 @@
 
 ## 🚀 技术栈
 
-| 技术         | 说明        | 版本   |
-| ------------ | ----------- | ------ |
-| React        | UI 框架     | 19.x   |
-| TypeScript   | 类型安全    | 5.x    |
-| Vite         | 构建工具    | 6.x    |
-| React Router | 路由管理    | 6.x    |
-| Zustand      | 状态管理    | 5.x    |
-| shadcn/ui    | UI 组件库   | Latest |
-| Tailwind CSS | 样式框架    | 3.x    |
-| Axios        | HTTP 客户端 | 1.x    |
+| 技术              | 说明              | 版本   |
+| ----------------- | ----------------- | ------ |
+| React             | UI 框架           | 19.x   |
+| TypeScript        | 类型安全          | 5.9.x  |
+| Vite              | 构建工具          | 8.x    |
+| React Router      | 路由管理          | 7.x    |
+| TanStack Query    | 服务端状态 / 请求 | 5.x    |
+| Zustand           | 客户端状态管理    | 5.x    |
+| shadcn/ui         | UI 组件库         | Latest |
+| Tailwind CSS      | 样式框架（Vite 插件集成） | 4.x    |
+| Axios             | HTTP 客户端       | 1.x    |
 
 ## ⚡ 快速开始
 
 ### 环境要求
 
-- Node.js >= 20.0.0
-- pnpm >= 8.0.0（推荐）
+- Node.js `^20.19.0` 或 `>=22.12.0`（与 [Vite 8](https://vite.dev/) 要求一致）
+- pnpm >= 9.0.0（推荐；本仓库 lockfile 为 v9）
 
 ### 安装依赖
 
