@@ -1,7 +1,7 @@
 import { useTransferStore } from '@/store/transfer'
 import type { TransferTask, TaskStatus } from '@/types/transfer'
 import { Play, Pause, X, RotateCw } from 'lucide-react'
-import { formatFileSize } from '@/utils/format'
+import { formatDate, formatFileSize } from '@/utils/format'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
@@ -96,19 +96,31 @@ export default function TransferTable({
     )
 
   return (
-    <div className='rounded-md border'>
+    <div className='overflow-hidden rounded-xl border border-border/60'>
       <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className='w-[280px]'>文件名称</TableHead>
-            <TableHead className='w-[140px]'>文件大小</TableHead>
-            <TableHead className='w-[90px]'>状态</TableHead>
-            <TableHead className='w-[400px]'>进度</TableHead>
+        <TableHeader className='bg-muted/30 [&_tr]:border-border/60'>
+          <TableRow className='border-border/60 hover:bg-transparent'>
+            <TableHead className='text-muted-foreground h-11 px-4 font-medium'>
+              文件名称
+            </TableHead>
+            <TableHead className='text-muted-foreground h-11 px-4 font-medium'>
+              文件大小
+            </TableHead>
+            <TableHead className='text-muted-foreground h-11 px-4 font-medium'>
+              状态
+            </TableHead>
+            <TableHead className='text-muted-foreground h-11 min-w-[200px] px-4 font-medium'>
+              进度
+            </TableHead>
             {showActions && (
-              <TableHead className='w-[180px] text-center'>操作</TableHead>
+              <TableHead className='text-muted-foreground h-11 px-4 text-center font-medium'>
+                操作
+              </TableHead>
             )}
             {showCompleteTime && (
-              <TableHead className='w-[180px]'>完成时间</TableHead>
+              <TableHead className='text-muted-foreground h-11 px-4 text-right font-medium'>
+                完成时间
+              </TableHead>
             )}
           </TableRow>
         </TableHeader>
@@ -117,10 +129,20 @@ export default function TransferTable({
             const displayData = getDisplayData(task.taskId)
 
             return (
-              <TableRow key={task.taskId}>
-                <TableCell className='font-medium'>{task.fileName}</TableCell>
+              <TableRow
+                key={task.taskId}
+                className='border-border/60 hover:bg-muted/25 border-b last:border-b-0'
+              >
+                <TableCell className='px-4 py-3.5'>
+                  <span
+                    className='block min-w-0 truncate font-medium'
+                    title={task.fileName}
+                  >
+                    {task.fileName}
+                  </span>
+                </TableCell>
 
-                <TableCell>
+                <TableCell className='px-4 py-3.5 tabular-nums'>
                   {task.status === 'uploading' || task.status === 'paused' ? (
                     <span className='text-sm'>
                       <span className='font-medium'>
@@ -132,17 +154,22 @@ export default function TransferTable({
                       </span>
                     </span>
                   ) : (
-                    formatFileSize(task.fileSize)
+                    <span className='text-muted-foreground'>
+                      {formatFileSize(task.fileSize)}
+                    </span>
                   )}
                 </TableCell>
 
-                <TableCell>
-                  <Badge variant={getStatusColor(task.status)}>
+                <TableCell className='px-4 py-3.5'>
+                  <Badge
+                    variant={getStatusColor(task.status)}
+                    className='rounded-full px-2.5'
+                  >
                     {getStatusText(task.status)}
                   </Badge>
                 </TableCell>
 
-                <TableCell>
+                <TableCell className='px-4 py-3.5'>
                   {/* Idle/Initialized */}
                   {(task.status === 'idle' ||
                     task.status === 'initialized') && (
@@ -231,7 +258,7 @@ export default function TransferTable({
                 </TableCell>
 
                 {showActions && (
-                  <TableCell>
+                  <TableCell className='px-4 py-3.5'>
                     <div className='flex items-center justify-center gap-2'>
                       {canPause(task.status) && (
                         <Button
@@ -281,10 +308,10 @@ export default function TransferTable({
                 )}
 
                 {showCompleteTime && (
-                  <TableCell>
+                  <TableCell className='text-muted-foreground px-4 py-3.5 text-right tabular-nums'>
                     {task.updatedAt && task.status === 'completed'
-                      ? new Date(task.updatedAt).toLocaleString('zh-CN')
-                      : '-'}
+                      ? formatDate(task.updatedAt, 'YYYY/M/D HH:mm:ss')
+                      : '—'}
                   </TableCell>
                 )}
               </TableRow>

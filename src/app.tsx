@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { AuthProvider } from '@/contexts/auth-context'
 import { router } from '@/router'
-import { RouterProvider, useNavigate } from 'react-router-dom'
+import { RouterProvider } from 'react-router-dom'
 import { setLogoutCallback } from '@/api/request'
 import { clearToken } from '@/utils/auth'
 import { useSSEConnection } from '@/hooks/useSSEConnection'
