@@ -1,9 +1,10 @@
 import type { FileItem } from '@/types/file'
+import type { PageRecord } from '@/types/page'
 import type {
   ShareCreateParams,
   ShareCreateResponse,
   ShareItem,
-  ShareListQuery,
+  SharePageQuery,
   ShareThin,
   ShareValidParams,
   ShareAccessRecord,
@@ -12,10 +13,10 @@ import { request } from './request'
 import service from './request'
 
 /**
- * 获取我的分享列表
+ * 分页获取我的分享列表
  */
-export function getMyShareList(params?: ShareListQuery) {
-  return request.get<ShareItem[]>('/apis/share/list', { params })
+export function getMySharePage(params?: SharePageQuery) {
+  return request.get<PageRecord<ShareItem>>('/apis/share/pages', { params })
 }
 
 /**
@@ -30,6 +31,13 @@ export function shareFiles(params: ShareCreateParams) {
  */
 export function cancelShares(ids: string[]) {
   return request.delete('/apis/share/cancels', { data: ids })
+}
+
+/**
+ * 清空当前用户全部分享
+ */
+export function clearAllShares() {
+  return request.delete<unknown>('/apis/share/clears')
 }
 
 /**

@@ -1,12 +1,18 @@
 import { AxiosProgressEvent } from 'axios'
-import type { FileListParams, FileItem, FileRecycleItem } from '@/types/file'
+import type {
+  FileListParams,
+  FileItem,
+  FileRecycleItem,
+  RecyclePageQuery,
+} from '@/types/file'
+import type { PageRecord } from '@/types/page'
 import { request } from './request'
 
 /**
- * 查询文件列表
+ * 查询文件列表（分页）
  */
 export function getFileList(params: FileListParams) {
-  return request.get<FileItem[]>('/apis/file/list', { params })
+  return request.get<PageRecord<FileItem>>('/apis/file/list', { params })
 }
 
 /**
@@ -82,11 +88,11 @@ export function moveFiles(dirId: string, fileIds: string[]) {
 }
 
 /**
- * 获取回收站文件列表
+ * 分页获取回收站文件列表
  */
-export function getRecycleList(keyword?: string) {
-  return request.get<FileRecycleItem[]>('/apis/file/recycles', {
-    params: { keyword },
+export function getRecyclePage(params?: RecyclePageQuery) {
+  return request.get<PageRecord<FileRecycleItem>>('/apis/file/recycle/pages', {
+    params,
   })
 }
 

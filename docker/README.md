@@ -27,17 +27,15 @@ docker run -d -p 80:80 \
 | 变量 | 用途 | 传入时机 | 是否必填 | 说明 |
 |------|------|----------|----------|------|
 | `API_BASE_URL` | nginx 反向代理目标地址 | `docker run -e` | **是** | nginx 将 `/apis/` 请求转发到此地址 |
-| `VITE_API_BASE_URL` | 前端 JS 中的 API 地址 | `docker build --build-arg` | 否 | 不传则使用 `.env.production` 中的值 |
-| `VITE_API_VIEW_URL` | 前端 JS 中的文件预览地址 | `docker build --build-arg` | 否 | 不传则使用 `.env.production` 中的值 |
+| `VITE_API_BASE_URL` | 前端 JS 中的后端地址（接口与文件预览） | `docker build --build-arg` | 否 | 不传则使用 `.env.production` 中的值 |
 
-> **说明**：`.env.production` 中 `VITE_API_BASE_URL` 和 `VITE_API_VIEW_URL` 默认为空，前端会使用相对路径请求 `/apis/...`，由 nginx 代理转发到后端。如果在构建时通过 `--build-arg` 指定了完整地址（如 `http://api.example.com`），浏览器会直接请求该地址，不再经过 nginx 代理。
+> **说明**：`.env.production` 中 `VITE_API_BASE_URL` 默认为空，前端会使用相对路径请求 `/apis/...`，由 nginx 代理转发到后端。如果在构建时通过 `--build-arg` 指定了完整地址（如 `http://api.example.com`），浏览器会直接请求该地址，不再经过 nginx 代理。
 
 构建时指定 API 地址的示例：
 
 ```bash
 docker build -f docker/Dockerfile \
   --build-arg VITE_API_BASE_URL=http://your-api:8080 \
-  --build-arg VITE_API_VIEW_URL=http://your-api:8080 \
   -t free-fs-frontend .
 ```
 

@@ -62,6 +62,16 @@ export interface ShareListQuery {
   orderDirection?: 'ASC' | 'DESC'
 }
 
+/**
+ * 分享分页列表查询（与后端分页接口一致）
+ */
+export interface SharePageQuery extends ShareListQuery {
+  /** 当前页，从 1 开始 */
+  page?: number
+  /** 每页条数 */
+  pageSize?: number
+}
+
 export interface ShareCreateParams {
   /** 文件ID列表（支持多个文件/文件夹） */
   fileIds: string[]

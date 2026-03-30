@@ -17,6 +17,13 @@ export function DeleteConfirmDialog({
   isLoading = false,
 }: DeleteConfirmDialogProps) {
   const fileCount = files.length
+  const firstName = files[0]?.displayName ?? ''
+  const desc =
+    fileCount === 0
+      ? '确定要将选中的文件放入回收站吗？可在回收站还原。'
+      : fileCount === 1
+        ? `确定要将「${firstName}」放入回收站吗？可在回收站还原。`
+        : `确定要将选中的 ${fileCount} 个文件放入回收站吗？可在回收站还原。`
 
   return (
     <ConfirmDialog
@@ -25,9 +32,9 @@ export function DeleteConfirmDialog({
       onOpenChange={onOpenChange}
       handleConfirm={onConfirm}
       isLoading={isLoading}
-      title='确认删除'
-      desc='确定要删除选中的文件吗？此操作不可恢复。'
-      confirmText='确认'
+      title='放入回收站'
+      desc={desc}
+      confirmText='放入回收站'
       cancelBtnText='取消'
     />
   )

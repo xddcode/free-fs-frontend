@@ -7,7 +7,7 @@ import {
   type HomeUsedBytesUnit,
 } from '@/api/home'
 import type { FileItem } from '@/types/file'
-import { formatDate, formatFileSize } from '@/utils/format'
+import { formatFileListDisplayTime, formatFileSize } from '@/utils/format'
 import { openFilePreviewWithToken } from '@/utils/preview'
 import { FileIcon } from '@/components/file-icon'
 import { Button } from '@/components/ui/button'
@@ -33,7 +33,7 @@ function RecentFilesTableInner({ files }: { files: FileItem[] }) {
       }
       await openFilePreviewWithToken(
         file.id,
-        import.meta.env.VITE_API_VIEW_URL
+        import.meta.env.VITE_API_BASE_URL
       )
     },
     [navigate]
@@ -51,17 +51,17 @@ function RecentFilesTableInner({ files }: { files: FileItem[] }) {
         </Link>
       </div>
 
-      <div className='overflow-hidden rounded-xl border border-border/60'>
-        <Table>
-          <TableHeader className='bg-muted/30 [&_tr]:border-border/60'>
-            <TableRow className='border-border/60 hover:bg-transparent'>
-              <TableHead className='text-muted-foreground h-11 px-4 font-medium'>
+      <div className='overflow-hidden rounded-xl bg-background'>
+        <Table containerClassName='overflow-visible'>
+          <TableHeader className='[&_tr]:border-0'>
+            <TableRow className='border-0 hover:bg-transparent'>
+              <TableHead className='text-muted-foreground h-[48px] px-4 text-left text-sm font-medium'>
                 名称
               </TableHead>
-              <TableHead className='text-muted-foreground h-11 px-4 font-medium'>
-                修改日期
+              <TableHead className='text-muted-foreground h-[48px] min-w-[11rem] px-4 text-left text-sm font-medium'>
+                修改时间
               </TableHead>
-              <TableHead className='text-muted-foreground h-11 px-4 text-right font-medium'>
+              <TableHead className='text-muted-foreground h-[48px] px-4 text-right text-sm font-medium'>
                 大小
               </TableHead>
             </TableRow>
@@ -71,17 +71,17 @@ function RecentFilesTableInner({ files }: { files: FileItem[] }) {
               files.map((file) => (
                 <TableRow
                   key={file.id}
-                  className='border-border/60 hover:bg-muted/25 cursor-pointer border-b last:border-b-0'
+                  className='group min-h-[48px] border-b-0 transition-colors duration-150 hover:bg-primary/[0.06] cursor-pointer'
                   onDoubleClick={() => void openItem(file)}
                 >
-                  <TableCell className='px-4 py-3.5'>
-                    <div className='flex min-w-0 items-center gap-3'>
-                      <span className='flex size-8 shrink-0 items-center justify-center'>
+                  <TableCell className='min-h-[48px] align-middle px-4 py-1.5'>
+                    <div className='flex min-w-0 items-center gap-2'>
+                      <span className='flex size-8 shrink-0 items-center justify-center rounded-md bg-muted/40'>
                         {file.thumbnailUrl ? (
                           <img
                             src={file.thumbnailUrl}
                             alt=''
-                            className='size-8 rounded-md object-cover'
+                            className='size-7 rounded object-cover'
                           />
                         ) : (
                           <FileIcon
@@ -93,23 +93,23 @@ function RecentFilesTableInner({ files }: { files: FileItem[] }) {
                         )}
                       </span>
                       <span
-                        className='min-w-0 truncate font-medium'
+                        className='min-w-0 line-clamp-2 break-words text-sm font-medium text-foreground/90 transition-colors group-hover:text-primary'
                         title={file.displayName}
                       >
                         {file.displayName}
                       </span>
                     </div>
                   </TableCell>
-                  <TableCell className='text-muted-foreground px-4 py-3.5 tabular-nums'>
-                    {formatDate(file.updateTime, 'YYYY/MM/DD')}
+                  <TableCell className='text-muted-foreground min-h-[48px] align-middle px-4 py-1.5 text-sm tabular-nums transition-colors group-hover:text-primary'>
+                    {formatFileListDisplayTime(file.updateTime)}
                   </TableCell>
-                  <TableCell className='text-muted-foreground px-4 py-3.5 text-right tabular-nums'>
+                  <TableCell className='text-muted-foreground min-h-[48px] align-middle px-4 py-1.5 text-right text-sm tabular-nums transition-colors group-hover:text-primary'>
                     {file.isDir ? '—' : formatFileSize(file.size)}
                   </TableCell>
                 </TableRow>
               ))
             ) : (
-              <TableRow className='hover:bg-transparent'>
+              <TableRow className='border-b-0 hover:bg-transparent'>
                 <TableCell
                   colSpan={3}
                   className='text-muted-foreground h-28 text-center'
@@ -132,11 +132,11 @@ function TableSkeleton() {
         <Skeleton className='h-7 w-24' />
         <Skeleton className='h-5 w-16' />
       </div>
-      <div className='overflow-hidden rounded-xl border border-border/60'>
+      <div className='overflow-hidden rounded-xl'>
         <div className='space-y-0'>
-          <Skeleton className='h-11 w-full rounded-none' />
+          <Skeleton className='h-[48px] w-full rounded-none' />
           {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className='h-14 w-full rounded-none' />
+            <Skeleton key={i} className='h-[48px] w-full rounded-none' />
           ))}
         </div>
       </div>

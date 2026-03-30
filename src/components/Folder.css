@@ -14,25 +14,29 @@
 /* 弹窗中的文件夹不会有 group class，所以不会触发 */
 .group:hover .folder,
 .group:has([data-state="open"]) .folder,
-.group.selected .folder {
+.group.selected .folder,
+.group.is-folder-drop-target .folder {
   transform: translateY(-8px);
 }
 
 .group:hover .folder .paper,
 .group:has([data-state="open"]) .folder .paper,
-.group.selected .folder .paper {
+.group.selected .folder .paper,
+.group.is-folder-drop-target .folder .paper {
   transform: translate(-50%, 0%);
 }
 
 .group:hover .folder .folder__front,
 .group:has([data-state="open"]) .folder .folder__front,
-.group.selected .folder .folder__front {
+.group.selected .folder .folder__front,
+.group.is-folder-drop-target .folder .folder__front {
   transform: skew(15deg) scaleY(0.6);
 }
 
 .group:hover .folder .right,
 .group:has([data-state="open"]) .folder .right,
-.group.selected .folder .right {
+.group.selected .folder .right,
+.group.is-folder-drop-target .folder .right {
   transform: skew(-15deg) scaleY(0.6);
 }
 

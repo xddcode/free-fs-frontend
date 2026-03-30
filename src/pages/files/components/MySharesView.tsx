@@ -1,19 +1,26 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
+import {
+  flexRender,
+  getCoreRowModel,
+  useReactTable,
+  type ColumnDef,
+} from '@tanstack/react-table'
 import type { ShareItem, ShareAccessRecord } from '@/types/share'
 import dayjs from 'dayjs'
 import {
   Copy,
   Eye,
   FileText,
-  Trash2,
+  RouteOff,
   Link as LinkIcon,
-  X,
   Check,
+  Trash2,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
-  getMyShareList,
+  getMySharePage,
   cancelShares,
+  clearAllShares,
   getShareDetailById,
   getShareAccessRecords,
 } from '@/api/share'
@@ -40,8 +47,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Dock, DockIcon } from '@/components/ui/dock'
-import { Separator } from '@/components/ui/separator'
+import { BulkSelectionBar } from '@/components/bulk-selection-bar'
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '@/components/ui/empty'
 import {
   Table,
   TableBody,
@@ -53,14 +66,41 @@ import {
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { useToolbarSearch } from '@/hooks/useToolbarSearch'
+import { FileListRowActionIcon } from './FileListView'
+import { FileBreadcrumb } from './FileBreadcrumb'
+import { Toolbar } from './Toolbar'
+import { DataTablePagination } from '@/components/data-table'
+
+const SHARE_TABLE_HEAD: Record<string, string> = {
+  select: 'w-12',
+  shareName: '',
+  expireTime: 'w-36',
+  viewCount: 'w-28 text-center',
+  downloadCount: 'w-28 text-center',
+  scope: 'w-32 text-center',
+  createdAt: 'w-44',
+  actions: 'w-48 text-center',
+}
 
 export function MySharesView() {
   const [loading, setLoading] = useState(false)
   const [shareList, setShareList] = useState<ShareItem[]>([])
+  const [total, setTotal] = useState(0)
   const [selectedKeys, setSelectedKeys] = useState<string[]>([])
+  const { searchInput, setSearchInput, searchKeyword, commitSearch } =
+    useToolbarSearch('keyword')
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 })
+  const prevSearchKeyword = useRef(searchKeyword)
 
   // 分享详情弹窗
   const [shareDetailVisible, setShareDetailVisible] = useState(false)
@@ -82,13 +122,46 @@ export function MySharesView() {
   const [deletingShare, setDeletingShare] = useState<ShareItem | null>(null)
   const [batchDeleteDialogVisible, setBatchDeleteDialogVisible] =
     useState(false)
+  const [clearAllDialogVisible, setClearAllDialogVisible] = useState(false)
 
-  // 获取分享列表
-  const fetchShareList = async () => {
+  const fetchSharePage = useCallback(async () => {
     setLoading(true)
     try {
-      const data = await getMyShareList()
-      setShareList(data)
+      const result = await getMySharePage({
+        keyword: searchKeyword || undefined,
+        page: pagination.pageIndex + 1,
+        pageSize: pagination.pageSize,
+      })
+      setShareList(result.records)
+      setTotal(Number(result.total ?? 0))
+    } finally {
+      setLoading(false)
+    }
+  }, [searchKeyword, pagination.pageIndex, pagination.pageSize])
+
+  const handleRefresh = () => {
+    void fetchSharePage()
+  }
+
+  const handleClearAllShares = () => {
+    setClearAllDialogVisible(true)
+  }
+
+  const confirmClearAllShares = async () => {
+    setLoading(true)
+    try {
+      await clearAllShares()
+      toast.success('已清空所有分享')
+      setClearAllDialogVisible(false)
+      setSelectedKeys([])
+      setPagination((p) => ({ ...p, pageIndex: 0 }))
+      const result = await getMySharePage({
+        keyword: searchKeyword || undefined,
+        page: 1,
+        pageSize: pagination.pageSize,
+      })
+      setShareList(result.records)
+      setTotal(Number(result.total ?? 0))
     } finally {
       setLoading(false)
     }
@@ -245,7 +318,7 @@ export function MySharesView() {
       toast.success('取消成功')
       setDeleteDialogVisible(false)
       setDeletingShare(null)
-      fetchShareList()
+      void fetchSharePage()
     } finally {
       // 无需处理
     }
@@ -265,19 +338,21 @@ export function MySharesView() {
       toast.success(`成功取消 ${selectedKeys.length} 个分享`)
       setBatchDeleteDialogVisible(false)
       setSelectedKeys([])
-      fetchShareList()
+      void fetchSharePage()
     } finally {
       // 无需处理
     }
   }
 
-  // 全选/取消全选
+  // 全选/取消全选：仅作用于当前页，与其它页已选项合并（跨页保留）
   const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      setSelectedKeys(shareList.map((s) => s.id))
-    } else {
-      setSelectedKeys([])
-    }
+    const pageIds = shareList.map((s) => s.id)
+    setSelectedKeys((prev) => {
+      if (checked) {
+        return [...new Set([...prev, ...pageIds])]
+      }
+      return prev.filter((id) => !pageIds.includes(id))
+    })
   }
 
   // ESC 键取消选择
@@ -292,255 +367,427 @@ export function MySharesView() {
   }, [selectedKeys.length])
 
   useEffect(() => {
-    fetchShareList()
-  }, [])
+    const keywordChanged = prevSearchKeyword.current !== searchKeyword
+    prevSearchKeyword.current = searchKeyword
 
-  const isAllSelected =
-    shareList.length > 0 && selectedKeys.length === shareList.length
+    if (keywordChanged && pagination.pageIndex !== 0) {
+      setPagination((p) => ({ ...p, pageIndex: 0 }))
+      return
+    }
+
+    void fetchSharePage()
+  }, [searchKeyword, pagination.pageIndex, pagination.pageSize, fetchSharePage])
+
+  const pageIds = shareList.map((s) => s.id)
+  const selectedOnPageCount = pageIds.filter((id) =>
+    selectedKeys.includes(id)
+  ).length
+  const isAllPageSelected =
+    pageIds.length > 0 && selectedOnPageCount === pageIds.length
+  const isSomePageSelected =
+    selectedOnPageCount > 0 && !isAllPageSelected
+
+  const columns = useMemo<ColumnDef<ShareItem>[]>(
+    () => [
+      {
+        id: 'select',
+        header: () => (
+          <Checkbox
+            checked={
+              isAllPageSelected
+                ? true
+                : isSomePageSelected
+                  ? 'indeterminate'
+                  : false
+            }
+            onCheckedChange={handleSelectAll}
+            aria-label='全选当前页'
+          />
+        ),
+        cell: ({ row }) => (
+          <Checkbox
+            checked={selectedKeys.includes(row.original.id)}
+            onCheckedChange={(checked) => {
+              const id = row.original.id
+              setSelectedKeys((prev) => {
+                if (checked) {
+                  return prev.includes(id) ? prev : [...prev, id]
+                }
+                return prev.filter((x) => x !== id)
+              })
+            }}
+            aria-label={`选择 ${row.original.shareName}`}
+          />
+        ),
+        enableSorting: false,
+        size: 48,
+      },
+      {
+        accessorKey: 'shareName',
+        header: '名称',
+        cell: ({ row }) => (
+          <div className='flex items-center gap-3'>
+            <LinkIcon className='h-4 w-4 shrink-0 text-primary' />
+            <span className='truncate text-sm'>{row.original.shareName}</span>
+          </div>
+        ),
+      },
+      {
+        id: 'expireTime',
+        accessorFn: (row) => row.expireTime,
+        header: '有效期',
+        cell: ({ row }) => {
+          const share = row.original
+          return share.isPermanent ? (
+            <Badge
+              variant='outline'
+              className='border-green-600 text-green-600'
+            >
+              永久有效
+            </Badge>
+          ) : (
+            <span
+              className={cn(
+                'text-sm',
+                isExpired(share.expireTime)
+                  ? 'text-destructive'
+                  : 'text-muted-foreground'
+              )}
+            >
+              {formatExpireTime(share.expireTime)}
+            </span>
+          )
+        },
+      },
+      {
+        accessorKey: 'viewCount',
+        header: '查看次数',
+        cell: ({ row }) => (
+          <div className='text-center text-sm'>
+            {row.original.viewCount}
+            {row.original.maxViewCount > 0 && (
+              <span className='text-xs text-muted-foreground'>
+                {' '}
+                / {row.original.maxViewCount}
+              </span>
+            )}
+          </div>
+        ),
+      },
+      {
+        accessorKey: 'downloadCount',
+        header: '下载次数',
+        cell: ({ row }) => (
+          <div className='text-center text-sm'>
+            {row.original.downloadCount}
+            {row.original.maxDownloadCount > 0 && (
+              <span className='text-xs text-muted-foreground'>
+                {' '}
+                / {row.original.maxDownloadCount}
+              </span>
+            )}
+          </div>
+        ),
+      },
+      {
+        id: 'scope',
+        accessorFn: (row) => row.scope,
+        header: '分享权限',
+        cell: ({ row }) => {
+          const share = row.original
+          return (
+            <div className='flex items-center justify-center gap-1'>
+              {(!share.scope || share.scope.includes('preview')) && (
+                <Badge variant='secondary' className='text-xs'>
+                  预览
+                </Badge>
+              )}
+              {(!share.scope || share.scope.includes('download')) && (
+                <Badge
+                  variant='secondary'
+                  className='bg-green-100 text-xs text-green-700'
+                >
+                  下载
+                </Badge>
+              )}
+            </div>
+          )
+        },
+      },
+      {
+        accessorKey: 'createdAt',
+        header: '创建时间',
+        cell: ({ row }) => (
+          <span className='text-sm text-muted-foreground'>
+            {formatTime(row.original.createdAt)}
+          </span>
+        ),
+      },
+      {
+        id: 'actions',
+        header: () => (
+          <span className='block w-full text-center'>操作</span>
+        ),
+        cell: ({ row }) => {
+          const share = row.original
+          return (
+            <div
+              className='text-center'
+              onClick={(e) => e.stopPropagation()}
+            >
+              <DropdownMenu modal={false}>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant='ghost'
+                    size='icon'
+                    className={cn(
+                      'size-8 rounded-lg text-muted-foreground transition-colors',
+                      'hover:bg-primary/10 hover:text-primary',
+                      'group-hover:text-primary',
+                      'data-[state=open]:bg-primary/10 data-[state=open]:text-primary'
+                    )}
+                    onClick={(e) => e.stopPropagation()}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    aria-label='更多操作'
+                  >
+                    <FileListRowActionIcon />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align='end'>
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleQuickCopy(share)
+                    }}
+                  >
+                    <Copy className='size-4' />
+                    快捷复制
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleViewShare(share)
+                    }}
+                  >
+                    <Eye className='size-4' />
+                    查看详情
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleViewAccessRecords(share)
+                    }}
+                  >
+                    <FileText className='size-4' />
+                    访问记录
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className='text-destructive focus:text-destructive'
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleCancelShare(share)
+                    }}
+                  >
+                    <RouteOff className='size-4' />
+                    取消分享
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          )
+        },
+        enableSorting: false,
+      },
+    ],
+    [shareList, selectedKeys]
+  )
+
+  const pageCount = Math.max(
+    1,
+    Math.ceil(total / Math.max(1, pagination.pageSize))
+  )
+
+  const table = useReactTable({
+    data: shareList,
+    columns,
+    state: { pagination },
+    onPaginationChange: setPagination,
+    manualPagination: true,
+    pageCount,
+    rowCount: total,
+    getCoreRowModel: getCoreRowModel(),
+    getRowId: (row) => row.id,
+    enableSorting: false,
+  })
 
   return (
     <div className='flex h-full flex-col'>
-      {/* 工具栏 */}
+      {/* 顶部工具栏 */}
+      <div className='flex items-center gap-4 border-b px-6 py-4'>
+        <div className='min-w-0 flex-1'>
+          <FileBreadcrumb
+            breadcrumbPath={[]}
+            customTitle='我的分享'
+            onNavigate={() => {}}
+          />
+        </div>
+        <Toolbar
+          searchKeyword={searchInput}
+          onSearchChange={setSearchInput}
+          onSearch={commitSearch}
+          onUpload={() => {}}
+          onCreateFolder={() => {}}
+          onRefresh={handleRefresh}
+          hideActions={true}
+        />
+        <Button
+          variant='destructive'
+          size='sm'
+          disabled={total === 0}
+          onClick={handleClearAllShares}
+        >
+          <Trash2 className='mr-2 h-4 w-4' />
+          清空所有分享
+        </Button>
+      </div>
+
+      {/* 次级工具栏：统计信息 */}
       <div className='flex items-center justify-between border-b px-6 py-3'>
         <div className='flex items-center gap-3'>
-          <Checkbox
-            checked={isAllSelected}
-            onCheckedChange={handleSelectAll}
-            aria-label='全选'
-          />
           <span className='text-sm text-muted-foreground'>
             {selectedKeys.length > 0
-              ? `已选 ${selectedKeys.length} 项`
-              : `共 ${shareList.length} 项`}
+              ? `已选 ${selectedKeys.length} 项 · 取消分享后链接将失效`
+              : `共 ${total} 项 · 支持按名称搜索分享`}
           </span>
         </div>
       </div>
 
-      {/* 表格内容 */}
-      <div className='flex-1 overflow-auto p-6'>
-        {loading ? (
-          <div className='flex h-full items-center justify-center'>
-            <p className='text-muted-foreground'>加载中...</p>
-          </div>
-        ) : shareList.length === 0 ? (
-          <div className='flex h-full items-center justify-center'>
-            <div className='text-center'>
-              <LinkIcon className='mx-auto mb-4 h-16 w-16 text-muted-foreground opacity-50' />
-              <p className='text-muted-foreground'>暂无分享</p>
+      {/* 主内容区域 */}
+      <div className='flex-1 overflow-hidden'>
+        <div className='flex h-full min-h-0 flex-col'>
+          {loading ? (
+            <div className='flex h-full items-center justify-center'>
+              <p className='text-muted-foreground'>加载中...</p>
             </div>
-          </div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow className='bg-muted/50'>
-                <TableHead className='w-12'>
-                  <Checkbox
-                    checked={isAllSelected}
-                    onCheckedChange={handleSelectAll}
-                    aria-label='全选'
-                  />
-                </TableHead>
-                <TableHead className='font-medium'>名称</TableHead>
-                <TableHead className='w-36 font-medium'>有效期</TableHead>
-                <TableHead className='w-28 text-center font-medium'>
-                  查看次数
-                </TableHead>
-                <TableHead className='w-28 text-center font-medium'>
-                  下载次数
-                </TableHead>
-                <TableHead className='w-32 text-center font-medium'>
-                  分享权限
-                </TableHead>
-                <TableHead className='w-44 font-medium'>创建时间</TableHead>
-                <TableHead className='w-48 text-center font-medium'>
-                  操作
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {shareList.map((share) => {
-                const isSelected = selectedKeys.includes(share.id)
-                return (
-                  <TableRow
-                    key={share.id}
-                    className={cn('group', isSelected && 'bg-primary/5')}
-                  >
-                    <TableCell onClick={(e) => e.stopPropagation()}>
-                      <Checkbox
-                        checked={isSelected}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            setSelectedKeys([...selectedKeys, share.id])
-                          } else {
-                            setSelectedKeys(
-                              selectedKeys.filter((id) => id !== share.id)
-                            )
-                          }
-                        }}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <div className='flex items-center gap-3'>
-                        <LinkIcon className='h-4 w-4 shrink-0 text-primary' />
-                        <span className='truncate text-sm'>
-                          {share.shareName}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {share.isPermanent ? (
-                        <Badge
-                          variant='outline'
-                          className='border-green-600 text-green-600'
-                        >
-                          永久有效
-                        </Badge>
-                      ) : (
-                        <span
-                          className={cn(
-                            'text-sm',
-                            isExpired(share.expireTime)
-                              ? 'text-destructive'
-                              : 'text-muted-foreground'
-                          )}
-                        >
-                          {formatExpireTime(share.expireTime)}
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell className='text-center text-sm'>
-                      {share.viewCount}
-                      {share.maxViewCount > 0 && (
-                        <span className='text-xs text-muted-foreground'>
-                          {' '}
-                          / {share.maxViewCount}
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell className='text-center text-sm'>
-                      {share.downloadCount}
-                      {share.maxDownloadCount > 0 && (
-                        <span className='text-xs text-muted-foreground'>
-                          {' '}
-                          / {share.maxDownloadCount}
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell className='text-center'>
-                      <div className='flex items-center justify-center gap-1'>
-                        {(!share.scope || share.scope.includes('preview')) && (
-                          <Badge variant='secondary' className='text-xs'>
-                            预览
-                          </Badge>
-                        )}
-                        {(!share.scope || share.scope.includes('download')) && (
-                          <Badge
-                            variant='secondary'
-                            className='bg-green-100 text-xs text-green-700'
+          ) : shareList.length === 0 ? (
+            <div className='flex h-full items-center justify-center'>
+              <Empty className='border-none'>
+                <EmptyHeader>
+                  <EmptyMedia variant='icon'>
+                    <LinkIcon className='h-12 w-12' />
+                  </EmptyMedia>
+                  <EmptyTitle>暂无分享</EmptyTitle>
+                  <EmptyDescription>
+                    {searchKeyword
+                      ? '未找到匹配的分享，请尝试调整关键词'
+                      : '创建分享后，将在此处显示'}
+                  </EmptyDescription>
+                </EmptyHeader>
+              </Empty>
+            </div>
+          ) : (
+            <>
+              <div className='min-h-0 flex-1 overflow-auto px-6 pt-6'>
+                <div className='rounded-md border'>
+                  <Table>
+                    <TableHeader>
+                      {table.getHeaderGroups().map((headerGroup) => (
+                        <TableRow key={headerGroup.id} className='bg-muted/50'>
+                          {headerGroup.headers.map((header) => (
+                            <TableHead
+                              key={header.id}
+                              className={cn(
+                                'font-medium text-muted-foreground',
+                                SHARE_TABLE_HEAD[header.column.id] ?? ''
+                              )}
+                            >
+                              {header.isPlaceholder
+                                ? null
+                                : flexRender(
+                                    header.column.columnDef.header,
+                                    header.getContext()
+                                  )}
+                            </TableHead>
+                          ))}
+                        </TableRow>
+                      ))}
+                    </TableHeader>
+                    <TableBody>
+                      {table.getRowModel().rows.length > 0 ? (
+                        table.getRowModel().rows.map((row) => (
+                          <TableRow
+                            key={row.id}
+                            className={cn(
+                              'group',
+                              selectedKeys.includes(row.original.id) &&
+                                'bg-primary/5'
+                            )}
                           >
-                            下载
-                          </Badge>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className='text-sm text-muted-foreground'>
-                      {formatTime(share.createdAt)}
-                    </TableCell>
-                    <TableCell onClick={(e) => e.stopPropagation()}>
-                      <div className='flex items-center justify-center gap-1 opacity-0 transition-opacity group-hover:opacity-100'>
-                        <Button
-                          variant='ghost'
-                          size='icon'
-                          className='h-8 w-8'
-                          onClick={() => handleQuickCopy(share)}
-                          title='快捷复制'
-                        >
-                          <Copy className='h-4 w-4' />
-                        </Button>
-                        <Button
-                          variant='ghost'
-                          size='icon'
-                          className='h-8 w-8'
-                          onClick={() => handleViewShare(share)}
-                          title='查看详情'
-                        >
-                          <Eye className='h-4 w-4' />
-                        </Button>
-                        <Button
-                          variant='ghost'
-                          size='icon'
-                          className='h-8 w-8'
-                          onClick={() => handleViewAccessRecords(share)}
-                          title='访问记录'
-                        >
-                          <FileText className='h-4 w-4' />
-                        </Button>
-                        <Button
-                          variant='ghost'
-                          size='icon'
-                          className='h-8 w-8 text-destructive'
-                          onClick={() => handleCancelShare(share)}
-                          title='取消分享'
-                        >
-                          <Trash2 className='h-4 w-4' />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                )
-              })}
-            </TableBody>
-          </Table>
-        )}
+                            {row.getVisibleCells().map((cell) => (
+                              <TableCell
+                                key={cell.id}
+                                onClick={
+                                  cell.column.id === 'select' ||
+                                  cell.column.id === 'actions'
+                                    ? (e) => e.stopPropagation()
+                                    : undefined
+                                }
+                              >
+                                {flexRender(
+                                  cell.column.columnDef.cell,
+                                  cell.getContext()
+                                )}
+                              </TableCell>
+                            ))}
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell
+                            colSpan={columns.length}
+                            className='h-24 text-center'
+                          >
+                            无数据
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+              <div className='shrink-0 border-t px-6 py-3'>
+                <DataTablePagination table={table} />
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
-      {/* 底部批量操作 Dock */}
       {selectedKeys.length > 0 && (
-        <div className='fixed bottom-8 left-1/2 z-50 -translate-x-1/2'>
-          <TooltipProvider>
-            <Dock direction='middle' className='h-16 px-4'>
-              <DockIcon>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant='ghost'
-                      size='icon'
-                      className='size-12 rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive'
-                      onClick={handleBatchCancel}
-                      aria-label='取消分享'
-                    >
-                      <Trash2 className='size-5' />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>取消分享</p>
-                  </TooltipContent>
-                </Tooltip>
-              </DockIcon>
-
-              <Separator orientation='vertical' className='mx-2 h-8' />
-
-              <DockIcon>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant='ghost'
-                      size='icon'
-                      className='size-12 rounded-full'
-                      onClick={() => setSelectedKeys([])}
-                      aria-label='取消选择'
-                    >
-                      <X className='size-5' />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>取消选择</p>
-                  </TooltipContent>
-                </Tooltip>
-              </DockIcon>
-            </Dock>
-          </TooltipProvider>
-        </div>
+        <BulkSelectionBar
+          selectedCount={selectedKeys.length}
+          onClear={() => setSelectedKeys([])}
+          ariaLabel='我的分享批量操作'
+        >
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type='button'
+                variant='destructive'
+                size='icon'
+                className='size-8 shrink-0'
+                onClick={handleBatchCancel}
+                aria-label='取消分享'
+              >
+                <RouteOff />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>取消分享</p>
+            </TooltipContent>
+          </Tooltip>
+        </BulkSelectionBar>
       )}
 
       {/* 分享详情弹窗 */}
@@ -786,6 +1033,30 @@ export function MySharesView() {
               className='bg-destructive hover:bg-destructive/90'
             >
               确认
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* 清空所有分享确认 */}
+      <AlertDialog
+        open={clearAllDialogVisible}
+        onOpenChange={setClearAllDialogVisible}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>确认清空所有分享</AlertDialogTitle>
+            <AlertDialogDescription>
+              确定要清空所有分享吗？所有分享链接将失效且无法恢复！
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmClearAllShares}
+              className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
+            >
+              清空
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

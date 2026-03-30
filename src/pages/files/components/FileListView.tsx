@@ -1,7 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type RefObject } from 'react'
 import type { FileItem, SortOrder } from '@/types/file'
 import {
-  MoreHorizontal,
   Download,
   Share2,
   Heart,
@@ -10,9 +9,10 @@ import {
   Edit,
   Eye,
   Info,
+  Loader2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { formatFileSize, formatTime } from '@/utils/format'
+import { formatFileListDisplayTime, formatFileSize } from '@/utils/format'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
@@ -26,6 +26,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import {
@@ -38,6 +39,19 @@ import {
 } from '@/components/ui/table'
 import { FileIcon } from '@/components/file-icon'
 import { useFileDragDrop } from '../hooks/useFileDragDrop'
+import { FileListScrollSentinel } from './FileListScrollSentinel'
+
+export function FileListRowActionIcon() {
+  return (
+    <span
+      className='inline-flex flex-col items-center justify-center gap-[3px]'
+      aria-hidden
+    >
+      <span className='size-1 rounded-full bg-current opacity-80' />
+      <span className='size-1 rounded-full bg-current opacity-80' />
+    </span>
+  )
+}
 
 interface FileListViewProps {
   fileList: FileItem[]
@@ -61,6 +75,10 @@ interface FileListViewProps {
   onBatchShare?: (files: FileItem[]) => void
   onBatchMove?: (files: FileItem[]) => void
   onBatchDelete?: (files: FileItem[]) => void
+  hasMore?: boolean
+  loadingMore?: boolean
+  onLoadMore?: () => void
+  scrollRootRef?: RefObject<HTMLElement | null>
 }
 
 export function FileListView({
@@ -82,6 +100,10 @@ export function FileListView({
   onBatchShare,
   onBatchMove,
   onBatchDelete,
+  hasMore = false,
+  loadingMore = false,
+  onLoadMore,
+  scrollRootRef,
 }: FileListViewProps) {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
 
@@ -155,32 +177,36 @@ export function FileListView({
   const isAllSelected =
     fileList.length > 0 && selectedKeys.length === fileList.length
 
+  const showNoMoreHint =
+    !hasMore && !loadingMore && fileList.length > 0
+
   return (
-    <div className='flex-1 overflow-auto'>
-      <Table>
-        <TableHeader>
-          <TableRow className='bg-muted/50'>
-            <TableHead className='w-12'>
-              <Checkbox
-                checked={isAllSelected}
-                onCheckedChange={handleSelectAll}
-                aria-label='全选'
-              />
-            </TableHead>
-            <TableHead className='font-medium text-muted-foreground'>
-              文件名
-            </TableHead>
-            <TableHead className='w-32 font-medium text-muted-foreground'>
-              大小
-            </TableHead>
-            <TableHead className='w-48 font-medium text-muted-foreground'>
-              修改时间
-            </TableHead>
-            <TableHead className='w-52 text-center font-medium text-muted-foreground'>
-              操作
-            </TableHead>
-          </TableRow>
-        </TableHeader>
+    <div className='min-w-0'>
+      <div className='overflow-hidden rounded-xl bg-background'>
+        <Table>
+          <TableHeader className='[&_tr]:border-0'>
+            <TableRow className='border-0 hover:bg-transparent'>
+              <TableHead className='text-muted-foreground h-[48px] w-12 px-3'>
+                <Checkbox
+                  checked={isAllSelected}
+                  onCheckedChange={handleSelectAll}
+                  aria-label='全选'
+                />
+              </TableHead>
+              <TableHead className='text-muted-foreground h-[48px] px-4 text-left text-sm font-medium'>
+                名称
+              </TableHead>
+              <TableHead className='text-muted-foreground h-[48px] w-[7.5rem] px-4 text-left text-sm font-medium'>
+                大小
+              </TableHead>
+              <TableHead className='text-muted-foreground h-[48px] min-w-[11rem] px-4 text-left text-sm font-medium'>
+                修改时间
+              </TableHead>
+              <TableHead className='text-muted-foreground h-[48px] w-14 px-2 text-right text-sm font-medium'>
+                <span className='sr-only'>更多操作</span>
+              </TableHead>
+            </TableRow>
+          </TableHeader>
         <TableBody>
           {fileList.map((file) => {
             const isSelected = selectedKeys.includes(file.id)
@@ -199,11 +225,15 @@ export function FileListView({
               <ContextMenu key={file.id}>
                 <ContextMenuTrigger asChild>
                   <TableRow
+                    data-file-id={file.id}
                     className={cn(
-                      'group transition-colors',
-                      isSelected && !isDropTarget && 'bg-primary/5 selected',
+                      'group min-h-[48px] border-b-0 transition-colors duration-150',
+                      'hover:bg-primary/[0.06]',
+                      isSelected &&
+                        !isDropTarget &&
+                        'bg-primary/[0.08] selected',
                       isDragging && 'cursor-move opacity-50',
-                      isDropTarget && 'bg-primary/15'
+                      isDropTarget && 'bg-primary/15 is-folder-drop-target'
                     )}
                     draggable={!openMenuId}
                     onDragStart={(e) => handleDragStart(e, file)}
@@ -215,7 +245,10 @@ export function FileListView({
                     onClick={(e) => handleRowClick(file, e)}
                     onDoubleClick={() => handleDoubleClick(file)}
                   >
-                    <TableCell onClick={(e) => e.stopPropagation()}>
+                    <TableCell
+                      className='min-h-[48px] align-middle px-3 py-1.5'
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <Checkbox
                         checked={isSelected}
                         onCheckedChange={(checked) =>
@@ -223,162 +256,164 @@ export function FileListView({
                         }
                       />
                     </TableCell>
-                    <TableCell>
-                      <div className='flex items-center gap-3'>
-                        <div className='flex h-8 w-8 items-center justify-center rounded shrink-0'>
+                    <TableCell className='min-h-[48px] align-middle px-4 py-1.5'>
+                      <div className='flex min-w-0 items-center gap-2'>
+                        <div className='flex size-8 shrink-0 items-center justify-center rounded-md bg-muted/40'>
                           {file.thumbnailUrl ? (
                             <img
                               src={file.thumbnailUrl}
                               alt={file.displayName}
-                              className='h-7 w-7 rounded object-cover pointer-events-none select-none'
+                              className='size-7 rounded object-cover pointer-events-none select-none'
                               draggable={false}
                               onContextMenu={(e) => e.preventDefault()}
                             />
                           ) : (
                             <FileIcon
                               type={file.isDir ? 'dir' : file.suffix || ''}
-                              size={28}
+                              size={24}
                               className='shrink-0'
                             />
                           )}
                         </div>
-                        <span className='truncate text-sm font-normal text-foreground/90'>
+                        <span
+                          className={cn(
+                            'min-w-0 line-clamp-2 break-words text-sm font-medium text-foreground/90 transition-colors',
+                            'group-hover:text-primary'
+                          )}
+                          title={file.displayName}
+                        >
                           {file.displayName}
                         </span>
                       </div>
                     </TableCell>
-                    <TableCell className='text-sm text-muted-foreground'>
-                      {file.isDir ? '-' : formatFileSize(file.size)}
+                    <TableCell
+                      className={cn(
+                        'min-h-[48px] align-middle px-4 py-1.5 text-sm tabular-nums text-muted-foreground transition-colors',
+                        'group-hover:text-primary'
+                      )}
+                    >
+                      {file.isDir ? '—' : formatFileSize(file.size)}
                     </TableCell>
-                    <TableCell className='text-sm text-muted-foreground'>
-                      {formatTime(file.updateTime)}
+                    <TableCell
+                      className={cn(
+                        'min-h-[48px] align-middle px-4 py-1.5 text-sm tabular-nums text-muted-foreground transition-colors',
+                        'group-hover:text-primary'
+                      )}
+                    >
+                      {formatFileListDisplayTime(file.updateTime)}
                     </TableCell>
-                    <TableCell onClick={(e) => e.stopPropagation()}>
-                      <div
-                        className={cn(
-                          'flex items-center justify-center gap-1 transition-opacity',
-                          openMenuId === file.id
-                            ? 'opacity-100'
-                            : 'opacity-0 group-hover:opacity-100'
-                        )}
-                        style={{
-                          visibility: isSelected ? 'hidden' : 'visible',
-                        }}
+                    <TableCell
+                      className='min-h-[48px] align-middle px-2 py-1.5 text-right'
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <DropdownMenu
+                        modal={false}
+                        onOpenChange={(open) =>
+                          setOpenMenuId(open ? file.id : null)
+                        }
                       >
-                        {!file.isDir && (
-                          <>
-                            <Button
-                              variant='ghost'
-                              size='icon'
-                              className='h-8 w-8'
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant='ghost'
+                            size='icon'
+                            className={cn(
+                              'size-8 rounded-lg text-muted-foreground transition-colors',
+                              'hover:bg-primary/10 hover:text-primary',
+                              'group-hover:text-primary',
+                              openMenuId === file.id && 'bg-primary/10 text-primary'
+                            )}
+                            onClick={(e) => e.stopPropagation()}
+                            aria-label='更多操作'
+                          >
+                            <FileListRowActionIcon />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align='end'>
+                          {!file.isDir && (
+                            <DropdownMenuItem
                               onClick={(e) => {
                                 e.stopPropagation()
                                 onPreview(file)
                               }}
                             >
-                              <Eye className='h-4 w-4' />
-                            </Button>
-                            <Button
-                              variant='ghost'
-                              size='icon'
-                              className='h-8 w-8'
+                              <Eye className='size-4' />
+                              预览
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              onShare(file)
+                            }}
+                          >
+                            <Share2 className='size-4' />
+                            分享
+                          </DropdownMenuItem>
+                          {!file.isDir && (
+                            <DropdownMenuItem
                               onClick={(e) => {
                                 e.stopPropagation()
                                 onDownload(file)
                               }}
                             >
-                              <Download className='h-4 w-4' />
-                            </Button>
-                          </>
-                        )}
-                        <Button
-                          variant='ghost'
-                          size='icon'
-                          className='h-8 w-8'
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            onShare(file)
-                          }}
-                        >
-                          <Share2 className='h-4 w-4' />
-                        </Button>
-                        <Button
-                          variant='ghost'
-                          size='icon'
-                          className={cn(
-                            'h-8 w-8',
-                            file.isFavorite && 'text-red-500'
+                              <Download className='size-4' />
+                              下载
+                            </DropdownMenuItem>
                           )}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            onFavorite(file)
-                          }}
-                        >
-                          <Heart
-                            className={cn(
-                              'h-4 w-4',
-                              file.isFavorite && 'fill-current'
-                            )}
-                          />
-                        </Button>
-                        <Button
-                          variant='ghost'
-                          size='icon'
-                          className='h-8 w-8 text-destructive'
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            onDelete(file)
-                          }}
-                        >
-                          <Trash2 className='h-4 w-4' />
-                        </Button>
-                        <DropdownMenu
-                          modal={false}
-                          onOpenChange={(open) =>
-                            setOpenMenuId(open ? file.id : null)
-                          }
-                        >
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant='ghost'
-                              size='icon'
-                              className='h-8 w-8'
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <MoreHorizontal className='h-4 w-4' />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align='end'>
-                            <DropdownMenuItem
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                onRename(file)
-                              }}
-                            >
-                              <Edit className='mr-2 h-4 w-4' />
-                              重命名
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                onMove(file)
-                              }}
-                            >
-                              <Move className='mr-2 h-4 w-4' />
-                              移动到
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                onDetail(file)
-                              }}
-                            >
-                              <Info className='mr-2 h-4 w-4' />
-                              详细信息
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              onMove(file)
+                            }}
+                          >
+                            <Move className='size-4' />
+                            移动到
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              onRename(file)
+                            }}
+                          >
+                            <Edit className='size-4' />
+                            重命名
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              onDetail(file)
+                            }}
+                          >
+                            <Info className='size-4' />
+                            详细信息
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              onFavorite(file)
+                            }}
+                          >
+                            <Heart
+                              className={cn(
+                                'size-4',
+                                file.isFavorite && 'fill-current text-red-500'
+                              )}
+                            />
+                            {file.isFavorite ? '取消收藏' : '收藏'}
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator className='bg-border' />
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              onDelete(file)
+                            }}
+                            className='text-destructive focus:text-destructive'
+                          >
+                            <Trash2 className='size-4' />
+                            放入回收站
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 </ContextMenuTrigger>
@@ -544,7 +579,29 @@ export function FileListView({
             )
           })}
         </TableBody>
-      </Table>
+          </Table>
+      </div>
+      {scrollRootRef && onLoadMore && (
+        <FileListScrollSentinel
+          scrollRootRef={scrollRootRef}
+          hasMore={!!hasMore}
+          onLoadMore={onLoadMore}
+        />
+      )}
+      {loadingMore && (
+        <div className='flex justify-center py-4'>
+          <Loader2
+            className='h-5 w-5 shrink-0 animate-spin text-muted-foreground'
+            aria-hidden
+          />
+          <span className='sr-only'>加载中</span>
+        </div>
+      )}
+      {showNoMoreHint && (
+        <p className='py-6 text-center text-sm text-muted-foreground/55'>
+          没有更多了
+        </p>
+      )}
     </div>
   )
 }

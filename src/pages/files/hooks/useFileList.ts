@@ -1,4 +1,10 @@
-import { useState, useCallback, useEffect } from 'react'
+import {
+  useState,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+} from 'react'
 import type {
   FileItem,
   SortOrder,
@@ -7,30 +13,52 @@ import type {
 } from '@/types/file'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { getFileList, getFolderPath } from '@/api/file'
+import { useToolbarSearch } from '@/hooks/useToolbarSearch'
+
+/** 每页条数（与后端约定一致） */
+export const FILE_LIST_PAGE_SIZE = 100
+
+function mergeFileRecords(prev: FileItem[], incoming: FileItem[]): FileItem[] {
+  const seen = new Set(prev.map((f) => f.id))
+  const merged = [...prev]
+  for (const item of incoming) {
+    if (!seen.has(item.id)) {
+      seen.add(item.id)
+      merged.push(item)
+    }
+  }
+  return merged
+}
 
 export function useFileList() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
 
-  // 状态管理
   const [loading, setLoading] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [fileList, setFileList] = useState<FileItem[]>([])
+  const [total, setTotal] = useState(0)
+  const pageRef = useRef(1)
+  const totalRef = useRef(0)
+  const fileCountRef = useRef(0)
+  const fileListRef = useRef<FileItem[]>([])
+  const fetchGenerationRef = useRef(0)
+  const loadMoreInFlightRef = useRef(false)
+
+  /** 已确定没有后续页（空页 / 不足一页 / 已凑满 total / 合并无增量），避免 total 不准时无限请求 */
+  const [noMorePages, setNoMorePages] = useState(false)
+
   const [breadcrumbPath, setBreadcrumbPath] = useState<BreadcrumbItem[]>([])
-  const [searchKeyword, setSearchKeyword] = useState(
-    searchParams.get('keyword') || ''
-  )
+  const { searchInput, setSearchInput, searchKeyword, commitSearch } =
+    useToolbarSearch('keyword')
   const [orderBy, setOrderBy] = useState('updateTime')
   const [orderDirection, setOrderDirection] = useState<SortOrder>('DESC')
 
-  // 从 URL 获取当前目录 ID 和筛选参数
   const currentParentId = searchParams.get('parentId') || undefined
   const viewType = searchParams.get('view')
   const fileType = searchParams.get('type')
   const isDirFilter = searchParams.get('isDir') === 'true'
 
-  /**
-   * 更新面包屑路径
-   */
   const updateBreadcrumbPath = useCallback(async (parentId?: string) => {
     if (!parentId) {
       setBreadcrumbPath([])
@@ -52,16 +80,12 @@ export function useFileList() {
     }
   }, [])
 
-  /**
-   * 获取文件列表
-   */
-  const fetchFileList = useCallback(async () => {
-    setLoading(true)
-    try {
+  const buildQuery = useCallback(
+    (pageNum: number) => {
       const isFavoritesView = viewType === 'favorites'
       const isRecentsView = viewType === 'recents'
 
-      const response = await getFileList({
+      return {
         orderBy,
         orderDirection,
         parentId: currentParentId,
@@ -69,50 +93,147 @@ export function useFileList() {
         fileType: fileType as FileType | undefined,
         isFavorite: isFavoritesView ? true : undefined,
         isRecents: isRecentsView ? true : undefined,
-        isDir: searchParams.get('isDir') === 'true' ? true : undefined,
-      })
+        isDir: isDirFilter ? true : undefined,
+        page: pageNum,
+        pageSize: FILE_LIST_PAGE_SIZE,
+      }
+    },
+    [
+      viewType,
+      orderBy,
+      orderDirection,
+      currentParentId,
+      searchKeyword,
+      fileType,
+      isDirFilter,
+    ]
+  )
 
-      setFileList(response || [])
+  const fetchInitial = useCallback(async () => {
+    const gen = ++fetchGenerationRef.current
+    setLoading(true)
+    setNoMorePages(false)
+    try {
+      const isFavoritesView = viewType === 'favorites'
+      const isRecentsView = viewType === 'recents'
 
-      // 收藏/最近/类型筛选/文件夹筛选视图不需要面包屑
+      const response = await getFileList(buildQuery(1))
+      if (gen !== fetchGenerationRef.current) return
+
+      const records = response?.records ?? []
+      const t = response?.total ?? records.length
+
+      setFileList(records)
+      setTotal(t)
+      pageRef.current = 1
+
+      const firstPageDone =
+        records.length === 0 ||
+        records.length < FILE_LIST_PAGE_SIZE ||
+        (t > 0 && records.length >= t)
+      setNoMorePages(firstPageDone)
+
       if (isFavoritesView || isRecentsView || fileType || isDirFilter) {
         setBreadcrumbPath([])
       } else {
         await updateBreadcrumbPath(currentParentId)
+        if (gen !== fetchGenerationRef.current) return
       }
     } catch (error) {
       console.error('Failed to fetch file list:', error)
+      if (gen !== fetchGenerationRef.current) return
       setFileList([])
+      setTotal(0)
+      pageRef.current = 1
+      setNoMorePages(true)
     } finally {
-      setLoading(false)
+      if (gen === fetchGenerationRef.current) {
+        setLoading(false)
+      }
     }
   }, [
+    buildQuery,
     viewType,
-    orderBy,
-    orderDirection,
-    currentParentId,
-    searchKeyword,
     fileType,
     isDirFilter,
+    currentParentId,
     updateBreadcrumbPath,
   ])
 
-  /**
-   * 进入文件夹
-   */
+  useLayoutEffect(() => {
+    totalRef.current = total
+    fileCountRef.current = fileList.length
+    fileListRef.current = fileList
+  }, [total, fileList])
+
+  const loadMore = useCallback(async () => {
+    if (loading || loadingMore || loadMoreInFlightRef.current) return
+    if (noMorePages) return
+    if (fileCountRef.current >= totalRef.current) return
+
+    loadMoreInFlightRef.current = true
+    setLoadingMore(true)
+    try {
+      const nextPage = pageRef.current + 1
+      const response = await getFileList(buildQuery(nextPage))
+      const records = response?.records ?? []
+      const prev = fileListRef.current
+      const merged = mergeFileRecords(prev, records)
+      const serverTotal = response?.total ?? totalRef.current
+
+      const noProgress =
+        records.length > 0 && merged.length === prev.length
+      const reachedEnd =
+        noProgress ||
+        records.length === 0 ||
+        records.length < FILE_LIST_PAGE_SIZE ||
+        (serverTotal > 0 && merged.length >= serverTotal)
+
+      setFileList(merged)
+      if (reachedEnd) {
+        setNoMorePages(true)
+        setTotal(merged.length)
+      } else {
+        setTotal(serverTotal)
+      }
+      pageRef.current = nextPage
+    } catch (error) {
+      console.error('Failed to load more files:', error)
+    } finally {
+      loadMoreInFlightRef.current = false
+      setLoadingMore(false)
+    }
+  }, [loading, loadingMore, noMorePages, buildQuery])
+
+  const refresh = useCallback(() => {
+    fetchInitial()
+  }, [fetchInitial])
+
+  const handleSortChange = useCallback(
+    (field: string, direction: SortOrder) => {
+      setOrderBy(field)
+      setOrderDirection(direction)
+    },
+    []
+  )
+
+  useEffect(() => {
+    fetchInitial()
+  }, [fetchInitial])
+
+  const hasMore =
+    !noMorePages && total > 0 && fileList.length < total
+
   const enterFolder = useCallback(
-    (folderId: string, viewMode: string) => {
+    (folderId: string, viewModeParam: string) => {
       const params = new URLSearchParams(searchParams)
       params.set('parentId', folderId)
-      params.set('viewMode', viewMode)
+      params.set('viewMode', viewModeParam)
       navigate(`/files?${params.toString()}`)
     },
     [searchParams, navigate]
   )
 
-  /**
-   * 导航到指定文件夹
-   */
   const navigateToFolder = useCallback(
     (folderId?: string) => {
       const params = new URLSearchParams(searchParams)
@@ -126,65 +247,23 @@ export function useFileList() {
     [searchParams, navigate]
   )
 
-  /**
-   * 刷新列表
-   */
-  const refresh = useCallback(() => {
-    fetchFileList()
-  }, [fetchFileList])
-
-  /**
-   * 搜索
-   */
-  const search = useCallback((keyword: string) => {
-    setSearchKeyword(keyword)
-  }, [])
-
-  /**
-   * 处理排序变化
-   */
-  const handleSortChange = useCallback(
-    (field: string, direction: SortOrder) => {
-      setOrderBy(field)
-      setOrderDirection(direction)
-    },
-    []
-  )
-
-  // 监听 URL 参数变化自动刷新
-  useEffect(() => {
-    fetchFileList()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    currentParentId,
-    viewType,
-    fileType,
-    orderBy,
-    orderDirection,
-    searchKeyword,
-  ])
-
-  // 监听 URL 中的 keyword 参数变化
-  useEffect(() => {
-    const urlKeyword = searchParams.get('keyword') || ''
-    if (urlKeyword !== searchKeyword) {
-      setSearchKeyword(urlKeyword)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams])
-
   return {
     loading,
+    loadingMore,
+    hasMore,
+    loadMore,
+    total,
     fileList,
     breadcrumbPath,
     currentParentId,
     searchKeyword,
-    setSearchKeyword,
-    fetchFileList,
+    searchInput,
+    setSearchInput,
+    fetchFileList: fetchInitial,
     enterFolder,
     navigateToFolder,
     refresh,
-    search,
+    commitSearch,
     handleSortChange,
   }
 }

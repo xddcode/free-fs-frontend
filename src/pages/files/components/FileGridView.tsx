@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, type RefObject } from 'react'
 import type { FileItem } from '@/types/file'
 import {
   MoreHorizontal,
@@ -10,6 +10,7 @@ import {
   Edit,
   Eye,
   Info,
+  Loader2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatTime } from '@/utils/format'
@@ -30,6 +31,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { FileIcon } from '@/components/file-icon'
 import { useFileDragDrop } from '../hooks/useFileDragDrop'
+import { FileListScrollSentinel } from './FileListScrollSentinel'
 
 interface FileGridViewProps {
   fileList: FileItem[]
@@ -52,6 +54,11 @@ interface FileGridViewProps {
   onBatchShare?: (files: FileItem[]) => void
   onBatchMove?: (files: FileItem[]) => void
   onBatchDelete?: (files: FileItem[]) => void
+  hasMore?: boolean
+  loadingMore?: boolean
+  onLoadMore?: () => void
+  /** 主内容区滚动容器，用于触底自动加载 */
+  scrollRootRef?: RefObject<HTMLElement | null>
 }
 
 export function FileGridView({
@@ -72,6 +79,10 @@ export function FileGridView({
   onBatchShare,
   onBatchMove,
   onBatchDelete,
+  hasMore = false,
+  loadingMore = false,
+  onLoadMore,
+  scrollRootRef,
 }: FileGridViewProps) {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
 
@@ -126,17 +137,14 @@ export function FileGridView({
     }
   }
 
+  /** 已全部拉取且无加载中时展示（与常见网盘底部提示一致） */
+  const showNoMoreHint =
+    !hasMore && !loadingMore && fileList.length > 0
+
   return (
-    <div
-      className='p-4'
-      onClick={(e) => {
-        // 点击空白区域取消选择
-        if (e.target === e.currentTarget) {
-          onSelectionChange([])
-        }
-      }}
-    >
-      <div className='grid grid-cols-[repeat(auto-fill,minmax(130px,1fr))] gap-4'>
+    <div className='p-4'>
+      <div className='relative'>
+        <div className='grid grid-cols-[repeat(auto-fill,minmax(130px,1fr))] gap-4'>
         {fileList.map((file) => {
           const isSelected = selectedKeys.includes(file.id)
           const isDragging = dragState.draggedItems.some(
@@ -154,12 +162,13 @@ export function FileGridView({
             <ContextMenu key={file.id}>
               <ContextMenuTrigger asChild>
                 <div
+                  data-file-id={file.id}
                   className={cn(
                     'group relative cursor-pointer rounded-lg p-4 pb-2 text-center transition-all',
                     'hover:bg-accent',
                     isSelected && 'bg-primary/10 selected',
                     isDragging && 'cursor-move opacity-50',
-                    isDropTarget && 'bg-primary/15'
+                    isDropTarget && 'bg-primary/15 is-folder-drop-target'
                   )}
                   draggable={!openMenuId}
                   onDragStart={(e) => handleDragStart(e, file)}
@@ -291,19 +300,29 @@ export function FileGridView({
                     </DropdownMenu>
                   </div>
 
-                  {/* 文件图标或缩略图 */}
-                  <div className='mb-3 flex h-20 items-center justify-center pt-1'>
+                  {/* 缩略图 95×75；文件夹同宽，略增高以容纳 Folder 顶部标签（勿 overflow-hidden） */}
+                  <div className='mb-3 flex min-h-[90px] items-center justify-center overflow-visible pt-1'>
                     {file.thumbnailUrl ? (
-                      <img
-                        src={file.thumbnailUrl}
-                        alt={file.displayName}
-                        className='h-14 w-14 rounded object-cover transition-transform group-hover:scale-105 pointer-events-none select-none'
-                        draggable={false}
-                        onContextMenu={(e) => e.preventDefault()}
-                      />
+                      <div className='h-[75px] w-[95px] shrink-0 overflow-hidden rounded-md shadow-sm transition-transform group-hover:scale-[1.02]'>
+                        <img
+                          src={file.thumbnailUrl}
+                          alt={file.displayName}
+                          className='h-full w-full object-cover object-center pointer-events-none select-none'
+                          draggable={false}
+                          onContextMenu={(e) => e.preventDefault()}
+                        />
+                      </div>
+                    ) : file.isDir ? (
+                      <div className='flex w-[95px] shrink-0 items-center justify-center overflow-visible pt-1'>
+                        <FileIcon
+                          type='dir'
+                          size={86}
+                          className='transition-transform group-hover:scale-[1.02]'
+                        />
+                      </div>
                     ) : (
                       <FileIcon
-                        type={file.isDir ? 'dir' : file.suffix || ''}
+                        type={file.suffix || ''}
                         size={56}
                         className='transition-transform group-hover:scale-105'
                       />
@@ -311,7 +330,10 @@ export function FileGridView({
                   </div>
 
                   {/* 文件名 */}
-                  <div className='mb-1 truncate px-1 text-sm leading-snug font-normal text-foreground'>
+                  <div
+                    className='mb-1 line-clamp-2 break-words px-1 text-center text-sm leading-snug font-normal text-foreground'
+                    title={file.displayName}
+                  >
                     {file.displayName}
                   </div>
 
@@ -482,7 +504,29 @@ export function FileGridView({
             </ContextMenu>
           )
         })}
+        </div>
       </div>
+      {scrollRootRef && onLoadMore && (
+        <FileListScrollSentinel
+          scrollRootRef={scrollRootRef}
+          hasMore={!!hasMore}
+          onLoadMore={onLoadMore}
+        />
+      )}
+      {loadingMore && (
+        <div className='flex justify-center py-4'>
+          <Loader2
+            className='h-5 w-5 shrink-0 animate-spin text-muted-foreground'
+            aria-hidden
+          />
+          <span className='sr-only'>加载中</span>
+        </div>
+      )}
+      {showNoMoreHint && (
+        <p className='mt-6 pb-2 text-center text-sm text-muted-foreground/55'>
+          没有更多了
+        </p>
+      )}
     </div>
   )
 }

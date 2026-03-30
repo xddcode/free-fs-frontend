@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import type { FileItem, BreadcrumbItem } from '@/types/file'
-import { toast } from 'sonner'
 import { getFileDetail } from '@/api/file'
 import { formatFileSize, formatTime } from '@/utils/format'
 import {
@@ -88,14 +87,14 @@ export function FileDetailModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className='sm:max-w-[500px]'
+        className='max-w-[350px]'
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <DialogHeader>
           <DialogTitle>详细信息</DialogTitle>
         </DialogHeader>
 
-        <div className='space-y-6 px-6 pb-4'>
+        <div className='space-y-5 px-6 pb-4'>
           {/* 文件图标或缩略图 */}
           <div className='flex justify-center'>
             {displayFile.thumbnailUrl ? (

@@ -77,12 +77,13 @@ export function useFileOperations(
         toast.success('重命名成功')
         setRenameModalVisible(false)
         setRenamingFile(null)
+        clearSelectionCallback?.()
         refreshCallback()
       } catch (error) {
         toast.error('重命名失败')
       }
     },
-    [refreshCallback]
+    [refreshCallback, clearSelectionCallback]
   )
 
   /**
@@ -229,10 +230,7 @@ export function useFileOperations(
           await unfavoriteFile(fileIds)
           toast.success('取消收藏成功')
         }
-        // 如果是批量操作，清除选中状态
-        if (fileArray.length > 1) {
-          clearSelectionCallback?.()
-        }
+        clearSelectionCallback?.()
         refreshCallback()
       } catch (error) {
         toast.error(hasUnfavorited ? '收藏失败' : '取消收藏失败')
@@ -245,7 +243,7 @@ export function useFileOperations(
    * 预览文件
    */
   const openPreview = useCallback(async (file: FileItem) => {
-    await openFilePreviewWithToken(file.id, import.meta.env.VITE_API_VIEW_URL)
+    await openFilePreviewWithToken(file.id, import.meta.env.VITE_API_BASE_URL)
   }, [])
 
   /**

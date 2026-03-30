@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import type { FileItem } from '@/types/file'
 import {
   List,
@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
@@ -39,7 +40,7 @@ import {
   RenameModal,
   MoveModal,
   ShareModal,
-  SelectionDock,
+  FileBulkSelectionBar,
   RecycleBinView,
   DeleteConfirmDialog,
   FileDetailModal,
@@ -72,7 +73,8 @@ export default function FilesPage() {
   const [dragTargetName, setDragTargetName] = useState<string | null>(null)
   const [draggedCount, setDraggedCount] = useState(0)
 
-  // 使用 hooks
+  const fileScrollAreaRef = useRef<HTMLDivElement>(null)
+
   const fileList = useFileList()
 
   /**
@@ -217,6 +219,11 @@ export default function FilesPage() {
     clearSelection()
   }
 
+  const handleBatchRename = () => {
+    if (selectedFiles.length !== 1) return
+    operations.openRenameModal(selectedFiles[0])
+  }
+
   const handleBatchShare = () => {
     if (selectedFiles.length === 0) return
     operations.openBatchShareModal(selectedFiles)
@@ -307,9 +314,9 @@ export default function FilesPage() {
 
         {/* 右侧工具栏 */}
         <Toolbar
-          searchKeyword={fileList.searchKeyword}
-          onSearchChange={fileList.setSearchKeyword}
-          onSearch={fileList.search}
+          searchKeyword={fileList.searchInput}
+          onSearchChange={fileList.setSearchInput}
+          onSearch={fileList.commitSearch}
           onUpload={handleOpenUploadModal}
           onUploadDirectory={handleOpenUploadDirectoryModal}
           onCreateFolder={operations.openCreateFolderModal}
@@ -317,31 +324,6 @@ export default function FilesPage() {
           hideActions={false}
         />
       </div>
-
-      {/* 拖拽提示 */}
-      {dragTargetName && (
-        <div className='border-b border-blue-200 bg-blue-50 px-6 py-3 dark:border-blue-900 dark:bg-blue-950/20'>
-          <div className='flex items-center gap-2 text-sm text-blue-800 dark:text-blue-300'>
-            <svg
-              className='h-4 w-4'
-              fill='none'
-              stroke='currentColor'
-              viewBox='0 0 24 24'
-            >
-              <path
-                strokeLinecap='round'
-                strokeLinejoin='round'
-                strokeWidth={2}
-                d='M13 7l5 5m0 0l-5 5m5-5H6'
-              />
-            </svg>
-            <span>
-              移动至 "{dragTargetName}"{' '}
-              {draggedCount > 1 && `(共 ${draggedCount} 项)`}
-            </span>
-          </div>
-        </div>
-      )}
 
       {/* 次级工具栏：统计信息和视图切换 */}
       <div className='flex items-center justify-between border-b px-6 py-3'>
@@ -356,7 +338,7 @@ export default function FilesPage() {
           <span className='text-sm text-muted-foreground'>
             {selectedKeys.length > 0
               ? `已选 ${selectedKeys.length} 项`
-              : `共 ${fileList.fileList.length} 项`}
+              : `共 ${fileList.total} 项`}
           </span>
         </div>
         <ToggleGroup
@@ -377,7 +359,17 @@ export default function FilesPage() {
       <div className='flex-1 overflow-hidden'>
         <ContextMenu>
           <ContextMenuTrigger asChild>
-            <div className='h-full overflow-auto p-6'>
+            <div
+              ref={fileScrollAreaRef}
+              className='h-full overflow-auto p-6'
+              onClick={(e) => {
+                const t = e.target as HTMLElement
+                if (t.closest('[data-file-id]')) return
+                if (t.closest('thead')) return
+                if (t.closest('button')) return
+                clearSelection()
+              }}
+            >
               {fileList.loading ? (
                 <div className='flex h-full items-center justify-center'>
                   <p className='text-muted-foreground'>加载中...</p>
@@ -415,15 +407,7 @@ export default function FilesPage() {
                   </Empty>
                 </div>
               ) : (
-                <div
-                  className='h-full'
-                  onClick={(e) => {
-                    // 点击空白区域取消选择
-                    if (e.target === e.currentTarget) {
-                      clearSelection()
-                    }
-                  }}
-                >
+                <div className='h-full min-h-0'>
                   {viewMode === 'grid' ? (
                     <FileGridView
                       fileList={fileList.fileList}
@@ -443,6 +427,10 @@ export default function FilesPage() {
                       onBatchShare={handleBatchShare}
                       onBatchMove={handleBatchMove}
                       onBatchDelete={handleBatchDelete}
+                      hasMore={fileList.hasMore}
+                      loadingMore={fileList.loadingMore}
+                      onLoadMore={fileList.loadMore}
+                      scrollRootRef={fileScrollAreaRef}
                     />
                   ) : (
                     <FileListView
@@ -464,6 +452,10 @@ export default function FilesPage() {
                       onBatchShare={handleBatchShare}
                       onBatchMove={handleBatchMove}
                       onBatchDelete={handleBatchDelete}
+                      hasMore={fileList.hasMore}
+                      loadingMore={fileList.loadingMore}
+                      onLoadMore={fileList.loadMore}
+                      scrollRootRef={fileScrollAreaRef}
                     />
                   )}
                 </div>
@@ -492,11 +484,43 @@ export default function FilesPage() {
         </ContextMenu>
       </div>
 
-      {/* 底部批量操作 Dock */}
-      <SelectionDock
+      {/* 拖拽移动提示：fixed 底部，避免插入文档流导致布局抖动 */}
+      {dragTargetName && (
+        <div
+          className={cn(
+            'pointer-events-none fixed left-1/2 z-[90] -translate-x-1/2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-2.5 shadow-md dark:border-blue-900 dark:bg-blue-950/40',
+            selectedKeys.length > 0 ? 'bottom-24' : 'bottom-6'
+          )}
+          role='status'
+          aria-live='polite'
+        >
+          <div className='flex items-center gap-2 text-sm text-blue-800 dark:text-blue-300'>
+            <svg
+              className='h-4 w-4 shrink-0'
+              fill='none'
+              stroke='currentColor'
+              viewBox='0 0 24 24'
+            >
+              <path
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                strokeWidth={2}
+                d='M13 7l5 5m0 0l-5 5m5-5H6'
+              />
+            </svg>
+            <span>
+              {`移动至 "${dragTargetName}"`}{' '}
+              {draggedCount > 1 && `(共 ${draggedCount} 项)`}
+            </span>
+          </div>
+        </div>
+      )}
+
+      <FileBulkSelectionBar
         selectedCount={selectedKeys.length}
         hasUnfavorited={hasUnfavorited}
         onDownload={handleBatchDownload}
+        onRename={handleBatchRename}
         onShare={handleBatchShare}
         onFavorite={handleBatchFavorite}
         onMove={handleBatchMove}

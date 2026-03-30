@@ -1,9 +1,15 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
+import {
+  flexRender,
+  getCoreRowModel,
+  useReactTable,
+  type ColumnDef,
+} from '@tanstack/react-table'
 import type { FileRecycleItem } from '@/types/file'
-import { Undo2, Trash2, X, FileText } from 'lucide-react'
+import { Undo2, Trash2, FileText } from 'lucide-react'
 import { toast } from 'sonner'
 import {
-  getRecycleList,
+  getRecyclePage,
   restoreFiles,
   permanentDeleteFiles,
   clearRecycle,
@@ -20,9 +26,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { BulkSelectionBar } from '@/components/bulk-selection-bar'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Dock, DockIcon } from '@/components/ui/dock'
 import {
   Empty,
   EmptyDescription,
@@ -30,7 +36,6 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '@/components/ui/empty'
-import { Separator } from '@/components/ui/separator'
 import {
   Table,
   TableBody,
@@ -42,20 +47,41 @@ import {
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { FileIcon } from '@/components/file-icon'
+import { useToolbarSearch } from '@/hooks/useToolbarSearch'
 import { FileBreadcrumb } from './FileBreadcrumb'
 import { Toolbar } from './Toolbar'
+import { FileListRowActionIcon } from './FileListView'
+import { DataTablePagination } from '@/components/data-table'
+
+const RECYCLE_TABLE_HEAD: Record<string, string> = {
+  select: 'w-12',
+  displayName: '',
+  size: 'w-32',
+  deletedTime: 'w-48',
+  actions: 'w-40 text-center',
+}
 
 export default function RecycleBinView() {
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [fileList, setFileList] = useState<FileRecycleItem[]>([])
+  const [total, setTotal] = useState(0)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
-  const [searchKeyword, setSearchKeyword] = useState('')
+  const { searchInput, setSearchInput, searchKeyword, commitSearch } =
+    useToolbarSearch('keyword')
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 })
+  const prevSearchKeyword = useRef(searchKeyword)
 
-  // 确认对话框状态
   const [restoreDialogOpen, setRestoreDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [clearDialogOpen, setClearDialogOpen] = useState(false)
@@ -64,44 +90,30 @@ export default function RecycleBinView() {
     name: string
   } | null>(null)
 
-  /**
-   * 获取回收站文件列表
-   */
-  const fetchRecycleList = async (keyword?: string) => {
+  const fetchRecyclePage = useCallback(async () => {
     setLoading(true)
     try {
-      const response = await getRecycleList(keyword || undefined)
-      setFileList(response || [])
+      const result = await getRecyclePage({
+        keyword: searchKeyword || undefined,
+        page: pagination.pageIndex + 1,
+        pageSize: pagination.pageSize,
+      })
+      setFileList(result.records)
+      setTotal(Number(result.total ?? 0))
     } finally {
       setLoading(false)
     }
-  }
+  }, [searchKeyword, pagination.pageIndex, pagination.pageSize])
 
-  /**
-   * 处理搜索
-   */
-  const handleSearch = () => {
-    fetchRecycleList(searchKeyword || undefined)
-  }
-
-  /**
-   * 处理刷新
-   */
   const handleRefresh = () => {
-    fetchRecycleList(searchKeyword || undefined)
+    void fetchRecyclePage()
   }
 
-  /**
-   * 单个还原
-   */
   const handleRestoreSingle = (fileId: string, fileName: string) => {
     setOperatingItem({ id: fileId, name: fileName })
     setRestoreDialogOpen(true)
   }
 
-  /**
-   * 确认还原
-   */
   const confirmRestore = async () => {
     const ids = operatingItem ? [operatingItem.id] : selectedIds
     if (ids.length === 0) return
@@ -111,32 +123,23 @@ export default function RecycleBinView() {
       toast.success(`成功还原 ${ids.length} 个文件`)
       setSelectedIds([])
       setOperatingItem(null)
-      fetchRecycleList(searchKeyword || undefined)
+      void fetchRecyclePage()
     } finally {
-      // 无需处理
+      // noop
     }
   }
 
-  /**
-   * 批量还原
-   */
   const handleBatchRestore = () => {
     if (selectedIds.length === 0) return
     setOperatingItem(null)
     setRestoreDialogOpen(true)
   }
 
-  /**
-   * 单个彻底删除
-   */
   const handleDeleteSingle = (fileId: string, fileName: string) => {
     setOperatingItem({ id: fileId, name: fileName })
     setDeleteDialogOpen(true)
   }
 
-  /**
-   * 确认彻底删除
-   */
   const confirmDelete = async () => {
     const ids = operatingItem ? [operatingItem.id] : selectedIds
     if (ids.length === 0) return
@@ -146,64 +149,50 @@ export default function RecycleBinView() {
       toast.success(`成功删除 ${ids.length} 个文件`)
       setSelectedIds([])
       setOperatingItem(null)
-      fetchRecycleList(searchKeyword || undefined)
+      void fetchRecyclePage()
     } finally {
-      // 无需处理
+      // noop
     }
   }
 
-  /**
-   * 批量彻底删除
-   */
   const handleBatchDelete = () => {
     if (selectedIds.length === 0) return
     setOperatingItem(null)
     setDeleteDialogOpen(true)
   }
 
-  /**
-   * 清空回收站
-   */
   const handleClearRecycle = () => {
     setClearDialogOpen(true)
   }
 
-  /**
-   * 确认清空回收站
-   */
   const confirmClearRecycle = async () => {
+    setLoading(true)
     try {
       await clearRecycle()
       toast.success('回收站已清空')
+      setClearDialogOpen(false)
       setSelectedIds([])
-      setSearchKeyword('')
-      fetchRecycleList(undefined)
+      commitSearch('')
+      setPagination((p) => ({ ...p, pageIndex: 0 }))
     } finally {
-      // 无需处理
+      setLoading(false)
     }
   }
 
-  /**
-   * 清空选中
-   */
   const clearSelection = () => {
     setSelectedIds([])
   }
 
-  /**
-   * 全选/取消全选
-   */
   const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      setSelectedIds(fileList.map((f) => f.id))
-    } else {
-      setSelectedIds([])
-    }
+    const pageIds = fileList.map((f) => f.id)
+    setSelectedIds((prev) => {
+      if (checked) {
+        return [...new Set([...prev, ...pageIds])]
+      }
+      return prev.filter((id) => !pageIds.includes(id))
+    })
   }
 
-  /**
-   * 处理键盘事件
-   */
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -215,20 +204,189 @@ export default function RecycleBinView() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
 
-  // 监听搜索关键词变化，自动搜索
   useEffect(() => {
-    fetchRecycleList(searchKeyword || undefined)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchKeyword])
+    const keywordChanged = prevSearchKeyword.current !== searchKeyword
+    prevSearchKeyword.current = searchKeyword
 
-  const isAllSelected =
-    fileList.length > 0 && selectedIds.length === fileList.length
+    if (keywordChanged && pagination.pageIndex !== 0) {
+      setPagination((p) => ({ ...p, pageIndex: 0 }))
+      return
+    }
+
+    void fetchRecyclePage()
+  }, [searchKeyword, pagination.pageIndex, pagination.pageSize, fetchRecyclePage])
+
+  const pageIds = fileList.map((f) => f.id)
+  const selectedOnPageCount = pageIds.filter((id) =>
+    selectedIds.includes(id)
+  ).length
+  const isAllPageSelected =
+    pageIds.length > 0 && selectedOnPageCount === pageIds.length
+  const isSomePageSelected =
+    selectedOnPageCount > 0 && !isAllPageSelected
+
+  const columns = useMemo<ColumnDef<FileRecycleItem>[]>(
+    () => [
+      {
+        id: 'select',
+        header: () => (
+          <Checkbox
+            checked={
+              isAllPageSelected
+                ? true
+                : isSomePageSelected
+                  ? 'indeterminate'
+                  : false
+            }
+            onCheckedChange={handleSelectAll}
+            aria-label='全选当前页'
+          />
+        ),
+        cell: ({ row }) => (
+          <Checkbox
+            checked={selectedIds.includes(row.original.id)}
+            onCheckedChange={(checked) => {
+              const id = row.original.id
+              setSelectedIds((prev) => {
+                if (checked) {
+                  return prev.includes(id) ? prev : [...prev, id]
+                }
+                return prev.filter((x) => x !== id)
+              })
+            }}
+            aria-label={`选择 ${row.original.displayName}`}
+          />
+        ),
+        enableSorting: false,
+        size: 48,
+      },
+      {
+        accessorKey: 'displayName',
+        header: '文件名',
+        cell: ({ row }) => {
+          const file = row.original
+          return (
+            <div className='flex items-center gap-3'>
+              <div className='flex h-8 w-8 items-center justify-center rounded'>
+                <FileIcon
+                  type={file.isDir ? 'dir' : file.suffix || ''}
+                  size={28}
+                  className='shrink-0'
+                />
+              </div>
+              <span className='truncate text-sm font-normal text-foreground/90'>
+                {file.displayName}
+              </span>
+            </div>
+          )
+        },
+      },
+      {
+        accessorKey: 'size',
+        header: '大小',
+        cell: ({ row }) => (
+          <span className='text-sm text-muted-foreground'>
+            {row.original.isDir ? '-' : formatFileSize(row.original.size)}
+          </span>
+        ),
+      },
+      {
+        accessorKey: 'deletedTime',
+        header: '删除时间',
+        cell: ({ row }) => (
+          <span className='text-sm text-muted-foreground'>
+            {formatTime(row.original.deletedTime)}
+          </span>
+        ),
+      },
+      {
+        id: 'actions',
+        header: () => (
+          <span className='block w-full text-center'>操作</span>
+        ),
+        cell: ({ row }) => {
+          const file = row.original
+          return (
+            <div
+              className='text-center'
+              onClick={(e) => e.stopPropagation()}
+            >
+              <DropdownMenu
+                modal={false}
+                onOpenChange={(open) =>
+                  setOpenMenuId(open ? file.id : null)
+                }
+              >
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant='ghost'
+                    size='icon'
+                    className={cn(
+                      'size-8 rounded-lg text-muted-foreground transition-colors',
+                      'hover:bg-primary/10 hover:text-primary',
+                      'group-hover:text-primary',
+                      openMenuId === file.id &&
+                        'bg-primary/10 text-primary'
+                    )}
+                    onClick={(e) => e.stopPropagation()}
+                    aria-label='更多操作'
+                  >
+                    <FileListRowActionIcon />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align='end'>
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleRestoreSingle(file.id, file.displayName)
+                    }}
+                  >
+                    <Undo2 className='size-4' />
+                    还原
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className='text-destructive focus:text-destructive'
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleDeleteSingle(file.id, file.displayName)
+                    }}
+                  >
+                    <Trash2 className='size-4' />
+                    彻底删除
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          )
+        },
+        enableSorting: false,
+      },
+    ],
+    [fileList, selectedIds, openMenuId]
+  )
+
+  const pageCount = Math.max(
+    1,
+    Math.ceil(total / Math.max(1, pagination.pageSize))
+  )
+
+  const table = useReactTable({
+    data: fileList,
+    columns,
+    state: { pagination },
+    onPaginationChange: setPagination,
+    manualPagination: true,
+    pageCount,
+    rowCount: total,
+    getCoreRowModel: getCoreRowModel(),
+    getRowId: (row) => row.id,
+    enableSorting: false,
+  })
 
   return (
     <div className='flex h-full flex-col'>
-      {/* 现代化顶部工具栏 */}
       <div className='flex items-center gap-4 border-b px-6 py-4'>
-        {/* 面包屑导航 */}
         <div className='min-w-0 flex-1'>
           <FileBreadcrumb
             breadcrumbPath={[]}
@@ -237,11 +395,10 @@ export default function RecycleBinView() {
           />
         </div>
 
-        {/* 右侧工具栏 */}
         <Toolbar
-          searchKeyword={searchKeyword}
-          onSearchChange={setSearchKeyword}
-          onSearch={handleSearch}
+          searchKeyword={searchInput}
+          onSearchChange={setSearchInput}
+          onSearch={commitSearch}
           onUpload={() => {}}
           onCreateFolder={() => {}}
           onRefresh={handleRefresh}
@@ -251,7 +408,7 @@ export default function RecycleBinView() {
         <Button
           variant='destructive'
           size='sm'
-          disabled={fileList.length === 0}
+          disabled={total === 0}
           onClick={handleClearRecycle}
         >
           <Trash2 className='mr-2 h-4 w-4' />
@@ -259,20 +416,18 @@ export default function RecycleBinView() {
         </Button>
       </div>
 
-      {/* 次级工具栏：统计信息 */}
       <div className='flex items-center justify-between border-b px-6 py-3'>
         <div className='flex items-center gap-3'>
           <span className='text-sm text-muted-foreground'>
             {selectedIds.length > 0
               ? `已选 ${selectedIds.length} 项 · 回收站内容保存 7 天，到期后自动清理`
-              : `共 ${fileList.length} 项 · 回收站内容保存 7 天，到期后自动清理`}
+              : `共 ${total} 项 · 回收站内容保存 7 天，到期后自动清理`}
           </span>
         </div>
       </div>
 
-      {/* 主内容区域 */}
       <div className='flex-1 overflow-hidden'>
-        <div className='h-full overflow-auto p-6'>
+        <div className='flex h-full min-h-0 flex-col'>
           {loading ? (
             <div className='flex h-full items-center justify-center'>
               <p className='text-muted-foreground'>加载中...</p>
@@ -285,203 +440,135 @@ export default function RecycleBinView() {
                     <FileText className='h-12 w-12' />
                   </EmptyMedia>
                   <EmptyTitle>暂无文件</EmptyTitle>
-                  <EmptyDescription>删除的文件会显示在这里</EmptyDescription>
+                  <EmptyDescription>
+                    {searchKeyword
+                      ? '未找到匹配项，请尝试调整关键词'
+                      : '删除的文件会显示在这里'}
+                  </EmptyDescription>
                 </EmptyHeader>
               </Empty>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow className='bg-muted/50'>
-                  <TableHead className='w-12'>
-                    <Checkbox
-                      checked={isAllSelected}
-                      onCheckedChange={handleSelectAll}
-                      aria-label='全选'
-                    />
-                  </TableHead>
-                  <TableHead className='font-medium text-muted-foreground'>
-                    文件名
-                  </TableHead>
-                  <TableHead className='w-32 font-medium text-muted-foreground'>
-                    大小
-                  </TableHead>
-                  <TableHead className='w-48 font-medium text-muted-foreground'>
-                    删除时间
-                  </TableHead>
-                  <TableHead className='w-40 text-center font-medium text-muted-foreground'>
-                    操作
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {fileList.map((file) => {
-                  const isSelected = selectedIds.includes(file.id)
-                  return (
-                    <TableRow
-                      key={file.id}
-                      className={cn(
-                        'group transition-colors',
-                        isSelected && 'bg-primary/5'
+            <>
+              <div className='min-h-0 flex-1 overflow-auto px-6 pt-6'>
+                <div className='rounded-md border'>
+                  <Table>
+                    <TableHeader>
+                      {table.getHeaderGroups().map((headerGroup) => (
+                        <TableRow key={headerGroup.id} className='bg-muted/50'>
+                          {headerGroup.headers.map((header) => (
+                            <TableHead
+                              key={header.id}
+                              className={cn(
+                                'font-medium text-muted-foreground',
+                                RECYCLE_TABLE_HEAD[header.column.id] ?? ''
+                              )}
+                            >
+                              {header.isPlaceholder
+                                ? null
+                                : flexRender(
+                                    header.column.columnDef.header,
+                                    header.getContext()
+                                  )}
+                            </TableHead>
+                          ))}
+                        </TableRow>
+                      ))}
+                    </TableHeader>
+                    <TableBody>
+                      {table.getRowModel().rows.length > 0 ? (
+                        table.getRowModel().rows.map((row) => (
+                          <TableRow
+                            key={row.id}
+                            className={cn(
+                              'group transition-colors',
+                              selectedIds.includes(row.original.id) &&
+                                'bg-primary/5'
+                            )}
+                          >
+                            {row.getVisibleCells().map((cell) => (
+                              <TableCell
+                                key={cell.id}
+                                onClick={
+                                  cell.column.id === 'select' ||
+                                  cell.column.id === 'actions'
+                                    ? (e) => e.stopPropagation()
+                                    : undefined
+                                }
+                              >
+                                {flexRender(
+                                  cell.column.columnDef.cell,
+                                  cell.getContext()
+                                )}
+                              </TableCell>
+                            ))}
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell
+                            colSpan={columns.length}
+                            className='h-24 text-center'
+                          >
+                            无数据
+                          </TableCell>
+                        </TableRow>
                       )}
-                    >
-                      <TableCell>
-                        <Checkbox
-                          checked={isSelected}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              setSelectedIds([...selectedIds, file.id])
-                            } else {
-                              setSelectedIds(
-                                selectedIds.filter((id) => id !== file.id)
-                              )
-                            }
-                          }}
-                          aria-label={`选择 ${file.displayName}`}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <div className='flex items-center gap-3'>
-                          <div className='flex h-8 w-8 items-center justify-center rounded'>
-                            <FileIcon
-                              type={file.isDir ? 'dir' : file.suffix || ''}
-                              size={28}
-                              className='shrink-0'
-                            />
-                          </div>
-                          <span className='truncate text-sm font-normal text-foreground/90'>
-                            {file.displayName}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className='text-sm text-muted-foreground'>
-                        {file.isDir ? '-' : formatFileSize(file.size)}
-                      </TableCell>
-                      <TableCell className='text-sm text-muted-foreground'>
-                        {formatTime(file.deletedTime)}
-                      </TableCell>
-                      <TableCell>
-                        <div className='flex items-center justify-center gap-1 opacity-0 transition-opacity group-hover:opacity-100'>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant='ghost'
-                                  size='icon'
-                                  className='h-8 w-8'
-                                  onClick={() =>
-                                    handleRestoreSingle(
-                                      file.id,
-                                      file.displayName
-                                    )
-                                  }
-                                >
-                                  <Undo2 className='h-4 w-4' />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>还原</TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant='ghost'
-                                  size='icon'
-                                  className='h-8 w-8 text-destructive hover:text-destructive'
-                                  onClick={() =>
-                                    handleDeleteSingle(
-                                      file.id,
-                                      file.displayName
-                                    )
-                                  }
-                                >
-                                  <Trash2 className='h-4 w-4' />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>删除</TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  )
-                })}
-              </TableBody>
-            </Table>
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+              <div className='shrink-0 border-t px-6 py-3'>
+                <DataTablePagination table={table} />
+              </div>
+            </>
           )}
         </div>
       </div>
 
-      {/* 底部悬浮批量操作栏 */}
       {selectedIds.length > 0 && (
-        <div className='fixed bottom-8 left-1/2 z-50 -translate-x-1/2'>
-          <TooltipProvider>
-            <Dock direction='middle' className='h-16 px-4'>
-              <DockIcon>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant='ghost'
-                      size='icon'
-                      className='size-12 rounded-full'
-                      onClick={handleBatchRestore}
-                      aria-label='还原'
-                    >
-                      <Undo2 className='size-5' />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>还原</p>
-                  </TooltipContent>
-                </Tooltip>
-              </DockIcon>
-
-              <DockIcon>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant='ghost'
-                      size='icon'
-                      className='size-12 rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive'
-                      onClick={handleBatchDelete}
-                      aria-label='彻底删除'
-                    >
-                      <Trash2 className='size-5' />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>彻底删除</p>
-                  </TooltipContent>
-                </Tooltip>
-              </DockIcon>
-
-              <Separator orientation='vertical' className='mx-2 h-8' />
-
-              <DockIcon>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant='ghost'
-                      size='icon'
-                      className='size-12 rounded-full'
-                      onClick={clearSelection}
-                      aria-label='取消选择'
-                    >
-                      <X className='size-5' />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>取消选择</p>
-                  </TooltipContent>
-                </Tooltip>
-              </DockIcon>
-            </Dock>
-          </TooltipProvider>
-        </div>
+        <BulkSelectionBar
+          selectedCount={selectedIds.length}
+          onClear={clearSelection}
+          ariaLabel='回收站批量操作'
+        >
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type='button'
+                variant='outline'
+                size='icon'
+                className='size-8 shrink-0'
+                onClick={handleBatchRestore}
+                aria-label='还原'
+              >
+                <Undo2 />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>还原</p>
+            </TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type='button'
+                variant='destructive'
+                size='icon'
+                className='size-8 shrink-0'
+                onClick={handleBatchDelete}
+                aria-label='彻底删除'
+              >
+                <Trash2 />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>彻底删除</p>
+            </TooltipContent>
+          </Tooltip>
+        </BulkSelectionBar>
       )}
 
-      {/* 还原确认对话框 */}
       <AlertDialog open={restoreDialogOpen} onOpenChange={setRestoreDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -499,7 +586,6 @@ export default function RecycleBinView() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* 删除确认对话框 */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -522,7 +608,6 @@ export default function RecycleBinView() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* 清空回收站确认对话框 */}
       <AlertDialog open={clearDialogOpen} onOpenChange={setClearDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>

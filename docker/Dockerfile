@@ -9,7 +9,6 @@ COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 
 ARG VITE_API_BASE_URL
-ARG VITE_API_VIEW_URL
 
 COPY . .
 RUN pnpm build

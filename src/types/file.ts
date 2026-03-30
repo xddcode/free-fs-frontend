@@ -29,6 +29,13 @@ export interface FileRecycleItem {
   deletedTime: string
 }
 
+/** 回收站分页列表查询（与后端 /apis/recycle/pages 一致） */
+export interface RecyclePageQuery {
+  keyword?: string
+  page?: number
+  pageSize?: number
+}
+
 export type FileType = 'image' | 'video' | 'audio' | 'document' | 'other'
 export type SortOrder = 'ASC' | 'DESC'
 
@@ -41,6 +48,8 @@ export interface FileListParams {
   isFavorite?: boolean
   isRecents?: boolean
   isDir?: boolean
+  page?: number
+  pageSize?: number
 }
 
 export interface BreadcrumbItem {
