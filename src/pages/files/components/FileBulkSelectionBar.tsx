@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import {
   Download,
   Edit,
@@ -13,6 +14,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { RequirePermission } from '@/components/require-permission'
 
 interface FileBulkSelectionBarProps {
   selectedCount: number
@@ -37,122 +39,135 @@ export function FileBulkSelectionBar({
   onDelete,
   onClear,
 }: FileBulkSelectionBarProps) {
+  const { t } = useTranslation('files')
   return (
     <BulkSelectionBar
       selectedCount={selectedCount}
       onClear={onClear}
-      ariaLabel='文件列表批量操作'
+      ariaLabel={t('bulk.ariaBar')}
     >
       {selectedCount === 1 ? (
         <>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type='button'
-                variant='outline'
-                size='icon'
-                className='size-8 shrink-0'
-                onClick={onDownload}
-                aria-label='下载'
-              >
-                <Download />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>下载</p>
-            </TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type='button'
-                variant='outline'
-                size='icon'
-                className='size-8 shrink-0'
-                onClick={onRename}
-                aria-label='重命名'
-              >
-                <Edit />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>重命名</p>
-            </TooltipContent>
-          </Tooltip>
+          <RequirePermission code='file:read'>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type='button'
+                  variant='outline'
+                  size='icon'
+                  className='size-8 shrink-0'
+                  onClick={onDownload}
+                  aria-label={t('bulk.ariaDownload')}
+                >
+                  <Download />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{t('rowMenu.download')}</p>
+              </TooltipContent>
+            </Tooltip>
+          </RequirePermission>
+          <RequirePermission code='file:write'>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type='button'
+                  variant='outline'
+                  size='icon'
+                  className='size-8 shrink-0'
+                  onClick={onRename}
+                  aria-label={t('bulk.ariaRename')}
+                >
+                  <Edit />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{t('rowMenu.rename')}</p>
+              </TooltipContent>
+            </Tooltip>
+          </RequirePermission>
         </>
       ) : null}
 
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            type='button'
-            variant='outline'
-            size='icon'
-            className='size-8 shrink-0'
-            onClick={onShare}
-            aria-label='分享'
-          >
-            <Share2 />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>分享</p>
-        </TooltipContent>
-      </Tooltip>
+      <RequirePermission code='file:share'>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              type='button'
+              variant='outline'
+              size='icon'
+              className='size-8 shrink-0'
+              onClick={onShare}
+              aria-label={t('bulk.ariaShare')}
+            >
+              <Share2 />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>{t('rowMenu.share')}</p>
+          </TooltipContent>
+        </Tooltip>
+      </RequirePermission>
 
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            type='button'
-            variant='outline'
-            size='icon'
-            className='size-8 shrink-0'
-            onClick={onFavorite}
-            aria-label='收藏'
-          >
-            <Heart fill={hasUnfavorited ? 'none' : 'currentColor'} />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>收藏</p>
-        </TooltipContent>
-      </Tooltip>
+      <RequirePermission code='file:write'>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              type='button'
+              variant='outline'
+              size='icon'
+              className='size-8 shrink-0'
+              onClick={onFavorite}
+              aria-label={t('bulk.ariaFavorite')}
+            >
+              <Heart fill={hasUnfavorited ? 'none' : 'currentColor'} />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>{t('rowMenu.favorite')}</p>
+          </TooltipContent>
+        </Tooltip>
+      </RequirePermission>
 
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            type='button'
-            variant='outline'
-            size='icon'
-            className='size-8 shrink-0'
-            onClick={onMove}
-            aria-label='移动到'
-          >
-            <Move />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>移动到</p>
-        </TooltipContent>
-      </Tooltip>
+      <RequirePermission code='file:write'>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              type='button'
+              variant='outline'
+              size='icon'
+              className='size-8 shrink-0'
+              onClick={onMove}
+              aria-label={t('bulk.ariaMove')}
+            >
+              <Move />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>{t('rowMenu.move')}</p>
+          </TooltipContent>
+        </Tooltip>
+      </RequirePermission>
 
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            type='button'
-            variant='destructive'
-            size='icon'
-            className='size-8 shrink-0'
-            onClick={onDelete}
-            aria-label='放入回收站'
-          >
-            <Trash2 />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>放入回收站</p>
-        </TooltipContent>
-      </Tooltip>
+      <RequirePermission code='file:write'>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              type='button'
+              variant='destructive'
+              size='icon'
+              className='size-8 shrink-0'
+              onClick={onDelete}
+              aria-label={t('bulk.ariaTrash')}
+            >
+              <Trash2 />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>{t('rowMenu.trash')}</p>
+          </TooltipContent>
+        </Tooltip>
+      </RequirePermission>
     </BulkSelectionBar>
   )
 }

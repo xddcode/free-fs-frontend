@@ -10,6 +10,12 @@ import {
 } from '@/components/ui/dialog'
 import { Skeleton } from '@/components/ui/skeleton'
 import { FileIcon } from '@/components/file-icon'
+import {
+  DescriptionField,
+  DescriptionFieldLabel,
+  DescriptionFieldList,
+  DescriptionFieldValue,
+} from '@/components/field-layout'
 
 interface FileDetailModalProps {
   open: boolean
@@ -87,14 +93,14 @@ export function FileDetailModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className='max-w-[350px]'
+        className='sm:max-w-[500px]'
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <DialogHeader>
           <DialogTitle>详细信息</DialogTitle>
         </DialogHeader>
 
-        <div className='space-y-5 px-6 pb-4'>
+        <div className='space-y-6'>
           {/* 文件图标或缩略图 */}
           <div className='flex justify-center'>
             {displayFile.thumbnailUrl ? (
@@ -114,30 +120,25 @@ export function FileDetailModal({
           </div>
 
           {/* 详细信息列表 */}
-          <div className='space-y-3'>
+          <DescriptionFieldList>
             {loading ? (
-              // 加载骨架屏
               <>
                 {[1, 2, 3, 4, 5].map((i) => (
-                  <div key={i} className='space-y-1.5'>
+                  <DescriptionField key={i}>
                     <Skeleton className='h-3 w-20' />
                     <Skeleton className='h-4 w-full' />
-                  </div>
+                  </DescriptionField>
                 ))}
               </>
             ) : (
               detailItems.map((item, index) => (
-                <div key={index} className='space-y-1.5'>
-                  <div className='text-xs text-muted-foreground'>
-                    {item.label}
-                  </div>
-                  <div className='text-sm break-all text-foreground'>
-                    {item.value}
-                  </div>
-                </div>
+                <DescriptionField key={index}>
+                  <DescriptionFieldLabel>{item.label}</DescriptionFieldLabel>
+                  <DescriptionFieldValue breakAll>{item.value}</DescriptionFieldValue>
+                </DescriptionField>
               ))
             )}
-          </div>
+          </DescriptionFieldList>
         </div>
       </DialogContent>
     </Dialog>

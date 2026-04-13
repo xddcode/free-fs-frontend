@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { TransferSettingForm } from '@/types/transfer-setting'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -19,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { FormFieldStack, FormInlineOption } from '@/components/field-layout'
 
 interface TransferSettingModalProps {
   open: boolean
@@ -29,6 +31,7 @@ export default function TransferSettingModal({
   open,
   onOpenChange,
 }: TransferSettingModalProps) {
+  const { t } = useTranslation('transfer')
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState<TransferSettingForm>({
     downloadLocation: '',
@@ -59,7 +62,7 @@ export default function TransferSettingModal({
 
   const handleSave = async () => {
     if (!formData.downloadLocation) {
-      toast.error('请输入文件下载位置')
+      toast.error(t('settings.toastPath'))
       return
     }
 
@@ -67,7 +70,7 @@ export default function TransferSettingModal({
     try {
       // TODO: 调用 API 保存设置
       // await updateTransferSetting(formData);
-      toast.success('保存成功')
+      toast.success(t('settings.toastSaveOk'))
       onOpenChange(false)
     } finally {
       setLoading(false)
@@ -76,24 +79,24 @@ export default function TransferSettingModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className='max-w-2xl'>
+      <DialogContent className='sm:max-w-2xl'>
         <DialogHeader>
-          <DialogTitle>传输设置</DialogTitle>
+          <DialogTitle>{t('settings.title')}</DialogTitle>
         </DialogHeader>
 
         <div className='space-y-6 py-4'>
           {/* 文件下载位置 */}
-          <div className='space-y-2'>
-            <Label htmlFor='downloadLocation'>文件下载位置 *</Label>
+          <FormFieldStack>
+            <Label htmlFor='downloadLocation'>{t('settings.downloadPath')}</Label>
             <Input
               id='downloadLocation'
               value={formData.downloadLocation}
               onChange={(e) =>
                 setFormData({ ...formData, downloadLocation: e.target.value })
               }
-              placeholder='Windows: C:\Users\用户名\Desktop  |  Linux/Mac: /home/username/Desktop'
+              placeholder={t('settings.downloadPathPh')}
             />
-          </div>
+          </FormFieldStack>
 
           {/* 默认下载路径 */}
           <div className='flex items-center space-x-2'>
@@ -111,17 +114,17 @@ export default function TransferSettingModal({
               htmlFor='isDefaultDownloadLocation'
               className='text-sm font-normal'
             >
-              默认此路径为下载路径
+              {t('settings.defaultPath')}
               <span className='ml-2 text-muted-foreground'>
-                如果不勾选，每次下载时会询问保存地址
+                {t('settings.defaultPathHint')}
               </span>
             </Label>
           </div>
 
           {/* 下载速率限制 */}
-          <div className='space-y-2'>
-            <Label>下载速率限制</Label>
-            <div className='flex items-center gap-4'>
+          <FormFieldStack>
+            <Label>{t('settings.speedLimit')}</Label>
+            <div className='flex flex-wrap items-center gap-x-6 gap-y-2'>
               <RadioGroup
                 value={
                   formData.enableDownloadSpeedLimit ? 'limited' : 'unlimited'
@@ -132,19 +135,20 @@ export default function TransferSettingModal({
                     enableDownloadSpeedLimit: value === 'limited',
                   })
                 }
+                className='flex flex-wrap gap-x-6 gap-y-2'
               >
-                <div className='flex items-center space-x-2'>
+                <FormInlineOption>
                   <RadioGroupItem value='unlimited' id='unlimited' />
                   <Label htmlFor='unlimited' className='font-normal'>
-                    不限制
+                    {t('settings.unlimited')}
                   </Label>
-                </div>
-                <div className='flex items-center space-x-2'>
+                </FormInlineOption>
+                <FormInlineOption>
                   <RadioGroupItem value='limited' id='limited' />
                   <Label htmlFor='limited' className='font-normal'>
-                    上限
+                    {t('settings.limited')}
                   </Label>
-                </div>
+                </FormInlineOption>
               </RadioGroup>
 
               {formData.enableDownloadSpeedLimit && (
@@ -164,19 +168,19 @@ export default function TransferSettingModal({
                   />
                   <span className='text-sm text-muted-foreground'>MB/s</span>
                   <span className='text-sm text-muted-foreground'>
-                    (可输入 1-200 之间的整数)
+                    {t('settings.speedHint')}
                   </span>
                 </div>
               )}
             </div>
-          </div>
+          </FormFieldStack>
 
           {/* 并发限制 */}
-          <div className='space-y-2'>
-            <Label>并发限制</Label>
+          <FormFieldStack>
+            <Label>{t('settings.concurrent')}</Label>
             <div className='flex items-center gap-4'>
               <span className='text-sm text-muted-foreground'>
-                同时上传数量
+                {t('settings.uploadConcurrency')}
               </span>
               <Select
                 value={formData.concurrentUploadQuantity.toString()}
@@ -193,14 +197,14 @@ export default function TransferSettingModal({
                 <SelectContent>
                   {[1, 2, 3].map((num) => (
                     <SelectItem key={num} value={num.toString()}>
-                      {num}个
+                      {t('settings.countUnit', { n: num })}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
 
               <span className='text-sm text-muted-foreground'>
-                同时下载数量
+                {t('settings.downloadConcurrency')}
               </span>
               <Select
                 value={formData.concurrentDownloadQuantity.toString()}
@@ -217,17 +221,17 @@ export default function TransferSettingModal({
                 <SelectContent>
                   {[1, 2, 3].map((num) => (
                     <SelectItem key={num} value={num.toString()}>
-                      {num}个
+                      {t('settings.countUnit', { n: num })}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-          </div>
+          </FormFieldStack>
 
           {/* 分片大小 */}
-          <div className='space-y-2'>
-            <Label>分片大小</Label>
+          <FormFieldStack>
+            <Label>{t('settings.chunkSize')}</Label>
             <div className='flex items-center gap-4'>
               <Select
                 value={formData.chunkSize.toString()}
@@ -254,18 +258,21 @@ export default function TransferSettingModal({
                 </SelectContent>
               </Select>
               <span className='text-sm text-muted-foreground'>
-                上传文件时的分片大小，推荐设置 5 MB
+                {t('settings.chunkHint')}
               </span>
             </div>
-          </div>
+          </FormFieldStack>
         </div>
 
         <div className='flex justify-end gap-2'>
           <Button variant='outline' onClick={() => onOpenChange(false)}>
-            取消
+            {t('settings.cancel')}
           </Button>
-          <Button onClick={handleSave} disabled={loading}>
-            {loading ? '保存中...' : '保存'}
+          <Button
+            onClick={handleSave}
+            disabled={loading || !formData.downloadLocation.trim()}
+          >
+            {loading ? t('settings.saving') : t('settings.save')}
           </Button>
         </div>
       </DialogContent>

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { FileItem } from '@/types/file'
 import { Button } from '@/components/ui/button'
 import {
@@ -24,6 +25,7 @@ export function RenameModal({
   file,
   onConfirm,
 }: RenameModalProps) {
+  const { t } = useTranslation('files')
   const [newName, setNewName] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -77,9 +79,9 @@ export function RenameModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className='sm:max-w-[420px]'>
         <DialogHeader>
-          <DialogTitle>重命名</DialogTitle>
+          <DialogTitle>{t('rename.title')}</DialogTitle>
         </DialogHeader>
-        <div className='space-y-6 px-6 pb-4'>
+        <div className='space-y-6'>
           {/* 文件图标预览 */}
           <div className='flex justify-center'>
             <FileIcon
@@ -90,7 +92,7 @@ export function RenameModal({
           {/* 输入框 */}
           <Input
             ref={inputRef}
-            placeholder='请输入新名称'
+            placeholder={t('rename.placeholder')}
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -99,10 +101,10 @@ export function RenameModal({
         </div>
         <DialogFooter>
           <Button variant='outline' onClick={() => onOpenChange(false)}>
-            取消
+            {t('common.cancel')}
           </Button>
           <Button onClick={handleConfirm} disabled={!newName.trim()}>
-            确认
+            {t('rename.confirm')}
           </Button>
         </DialogFooter>
       </DialogContent>

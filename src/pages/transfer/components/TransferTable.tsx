@@ -1,3 +1,5 @@
+import * as React from 'react'
+import { useTranslation } from 'react-i18next'
 import { useTransferStore } from '@/store/transfer'
 import type { TransferTask, TaskStatus } from '@/types/transfer'
 import { Play, Pause, X, RotateCw } from 'lucide-react'
@@ -33,26 +35,15 @@ const formatSpeed = (bytesPerSecond: number): string => {
   return `${(bytesPerSecond / Math.pow(k, i)).toFixed(2)} ${units[i]}`
 }
 
-const formatRemainingTime = (seconds: number): string => {
+function formatRemainingTime(
+  seconds: number,
+  tr: (key: string, opt?: Record<string, unknown>) => string
+): string {
   if (seconds === 0 || !isFinite(seconds)) return '--'
-  if (seconds < 60) return `${Math.round(seconds)}秒`
-  if (seconds < 3600) return `${Math.round(seconds / 60)}分钟`
-  return `${Math.round(seconds / 3600)}小时`
-}
-
-const getStatusText = (status: TaskStatus): string => {
-  const statusMap: Record<TaskStatus, string> = {
-    idle: '空闲',
-    initialized: '准备中',
-    checking: '校验中',
-    uploading: '上传中',
-    paused: '已暂停',
-    merging: '处理中',
-    completed: '已完成',
-    failed: '失败',
-    cancelled: '已取消',
-  }
-  return statusMap[status] || '未知'
+  if (seconds < 60) return tr('time.sec', { n: Math.round(seconds) })
+  if (seconds < 3600)
+    return tr('time.min', { n: Math.round(seconds / 60) })
+  return tr('time.hour', { n: Math.round(seconds / 3600) })
 }
 
 const getStatusColor = (
@@ -85,7 +76,27 @@ export default function TransferTable({
   onCancel,
   onRetry,
 }: TransferTableProps) {
+  const { t } = useTranslation('transfer')
   const { getDisplayData } = useTransferStore()
+
+  const statusMap = React.useMemo(
+    () =>
+      ({
+        idle: t('status.idle'),
+        initialized: t('status.initialized'),
+        checking: t('status.checking'),
+        uploading: t('status.uploading'),
+        paused: t('status.paused'),
+        merging: t('status.merging'),
+        completed: t('status.completed'),
+        failed: t('status.failed'),
+        cancelled: t('status.cancelled'),
+      }) satisfies Record<TaskStatus, string>,
+    [t]
+  )
+
+  const statusText = (status: TaskStatus) =>
+    statusMap[status] ?? t('status.unknown')
 
   const canPause = (status: TaskStatus) => status === 'uploading'
   const canResume = (status: TaskStatus) => status === 'paused'
@@ -101,25 +112,25 @@ export default function TransferTable({
         <TableHeader className='bg-muted/30 [&_tr]:border-border/60'>
           <TableRow className='border-border/60 hover:bg-transparent'>
             <TableHead className='text-muted-foreground h-11 px-4 font-medium'>
-              文件名称
+              {t('table.colFileName')}
             </TableHead>
             <TableHead className='text-muted-foreground h-11 px-4 font-medium'>
-              文件大小
+              {t('table.colSize')}
             </TableHead>
             <TableHead className='text-muted-foreground h-11 px-4 font-medium'>
-              状态
+              {t('table.colStatus')}
             </TableHead>
             <TableHead className='text-muted-foreground h-11 min-w-[200px] px-4 font-medium'>
-              进度
+              {t('table.colProgress')}
             </TableHead>
             {showActions && (
               <TableHead className='text-muted-foreground h-11 px-4 text-center font-medium'>
-                操作
+                {t('table.colActions')}
               </TableHead>
             )}
             {showCompleteTime && (
               <TableHead className='text-muted-foreground h-11 px-4 text-right font-medium'>
-                完成时间
+                {t('table.colCompletedAt')}
               </TableHead>
             )}
           </TableRow>
@@ -165,7 +176,7 @@ export default function TransferTable({
                     variant={getStatusColor(task.status)}
                     className='rounded-full px-2.5'
                   >
-                    {getStatusText(task.status)}
+                    {statusText(task.status)}
                   </Badge>
                 </TableCell>
 
@@ -176,7 +187,7 @@ export default function TransferTable({
                     <div className='flex items-center gap-2'>
                       <div className='h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent' />
                       <span className='text-sm text-muted-foreground'>
-                        准备中...
+                        {t('table.prep')}
                       </span>
                     </div>
                   )}
@@ -186,7 +197,7 @@ export default function TransferTable({
                     <div className='flex items-center gap-2'>
                       <div className='h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent' />
                       <span className='text-sm text-muted-foreground'>
-                        校验文件...
+                        {t('table.checking')}
                       </span>
                     </div>
                   )}
@@ -204,8 +215,12 @@ export default function TransferTable({
                         </span>
                         {displayData.remainingTime > 0 && (
                           <span className='text-xs text-muted-foreground'>
-                            剩余{' '}
-                            {formatRemainingTime(displayData.remainingTime)}
+                            {t('table.remaining', {
+                              time: formatRemainingTime(
+                                displayData.remainingTime,
+                                t
+                              ),
+                            })}
                           </span>
                         )}
                       </div>
@@ -220,7 +235,7 @@ export default function TransferTable({
                         className='w-[200px]'
                       />
                       <span className='min-w-[100px] text-sm text-muted-foreground'>
-                        已暂停
+                        {t('table.paused')}
                       </span>
                     </div>
                   )}
@@ -230,7 +245,7 @@ export default function TransferTable({
                     <div className='flex items-center gap-2'>
                       <div className='h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent' />
                       <span className='text-sm text-muted-foreground'>
-                        正在处理文件...
+                        {t('table.merging')}
                       </span>
                     </div>
                   )}
@@ -245,14 +260,14 @@ export default function TransferTable({
                   {/* Failed */}
                   {task.status === 'failed' && (
                     <span className='text-sm text-destructive'>
-                      {task.errorMessage || '上传失败'}
+                      {task.errorMessage || t('table.uploadFailed')}
                     </span>
                   )}
 
                   {/* Cancelled */}
                   {task.status === 'cancelled' && (
                     <span className='text-sm text-muted-foreground'>
-                      已取消
+                      {t('table.cancelled')}
                     </span>
                   )}
                 </TableCell>
@@ -267,7 +282,7 @@ export default function TransferTable({
                           onClick={() => onPause(task.taskId)}
                         >
                           <Pause className='mr-1 h-4 w-4' />
-                          暂停
+                          {t('table.btnPause')}
                         </Button>
                       )}
 
@@ -278,7 +293,7 @@ export default function TransferTable({
                           onClick={() => onResume(task.taskId)}
                         >
                           <Play className='mr-1 h-4 w-4' />
-                          开始
+                          {t('table.btnResume')}
                         </Button>
                       )}
 
@@ -289,7 +304,7 @@ export default function TransferTable({
                           onClick={() => onRetry(task.taskId)}
                         >
                           <RotateCw className='mr-1 h-4 w-4' />
-                          重试
+                          {t('table.btnRetry')}
                         </Button>
                       )}
 
@@ -300,7 +315,7 @@ export default function TransferTable({
                           onClick={() => onCancel(task.taskId)}
                         >
                           <X className='mr-1 h-4 w-4' />
-                          取消
+                          {t('table.btnCancel')}
                         </Button>
                       )}
                     </div>

@@ -4,21 +4,56 @@ import axios, {
   InternalAxiosRequestConfig,
 } from 'axios'
 import { toast } from 'sonner'
+import i18n, { getRequestLangHeader } from '@/i18n'
 import { getToken, clearToken } from '@/utils/auth'
+import { getCurrentWorkspaceId } from '@/store/workspace'
 
+/** 与后端统一包装 `{ code, msg, data }` 一致 */
 export interface HttpResponse<T = unknown> {
-  status: number
-  msg: string
   code: number
+  msg: string
   data: T
 }
 
-let isShowingLogoutModal = false
-let logoutDialogCallback: (() => void) | null = null
+let isRedirectingToLogin = false
 
-// 设置登录过期回调
-export const setLogoutCallback = (callback: () => void) => {
-  logoutDialogCallback = callback
+/** 登录页上失败类 401，不应整页踢回（避免密码错误也触发跳转） */
+function shouldSkipUnauthorizedRedirect(url: string | undefined): boolean {
+  if (!url) return false
+  return (
+    url.includes('/apis/auth/login') ||
+    url.includes('/apis/auth/register') ||
+    url.includes('/apis/user/register')
+  )
+}
+
+/** 401：清本地状态并整页跳转登录（带 redirect 便于登录后返回） */
+export function redirectToLoginDueToUnauthorized() {
+  if (isRedirectingToLogin) return
+  isRedirectingToLogin = true
+
+  clearToken()
+  localStorage.removeItem('userInfo')
+  sessionStorage.removeItem('userInfo')
+  localStorage.removeItem('current-storage-platform')
+  localStorage.removeItem('user-storage')
+  localStorage.removeItem('workspace-storage')
+
+  import('@/store/workspace').then(({ useWorkspaceStore }) => {
+    useWorkspaceStore.getState().clear()
+  })
+  import('@/store/user').then(({ useUserStore }) => {
+    useUserStore.getState().clearUserInfo()
+  })
+
+  const path =
+    window.location.pathname + window.location.search + window.location.hash
+  const loginBase = '/login'
+  if (path === loginBase || path.startsWith(`${loginBase}?`)) {
+    window.location.href = loginBase
+    return
+  }
+  window.location.href = `${loginBase}?redirect=${encodeURIComponent(path)}`
 }
 
 const service = axios.create({
@@ -53,6 +88,15 @@ service.interceptors.request.use(
       config.headers['X-Storage-Platform-Config-Id'] = platformId
     }
 
+    const workspaceId = getCurrentWorkspaceId()
+    if (workspaceId) {
+      config.headers = config.headers || {}
+      config.headers['X-Workspace-Id'] = workspaceId
+    }
+
+    config.headers = config.headers || {}
+    config.headers.lang = getRequestLangHeader()
+
     return config
   },
   (error) => {
@@ -74,30 +118,26 @@ service.interceptors.response.use(
 
     const showError = (config as any).showErrorMessage !== false
 
-    if ([401, 403].includes(res.code)) {
-      if (response.config.url !== '/apis/user/info' && !isShowingLogoutModal) {
-        isShowingLogoutModal = true
-        if (logoutDialogCallback) {
-          logoutDialogCallback()
-        } else {
-          // 降级方案：如果没有设置回调，使用 toast
-          toast.error('登录已过期，请重新登录')
-          setTimeout(() => {
-            clearToken()
-            localStorage.removeItem('userInfo')
-            sessionStorage.removeItem('userInfo')
-            window.location.href = '/login'
-            isShowingLogoutModal = false
-          }, 1500)
-        }
+    if (res.code === 401) {
+      if (!shouldSkipUnauthorizedRedirect(response.config?.url)) {
+        redirectToLoginDueToUnauthorized()
+      } else if (showError) {
+        toast.error(res.msg || i18n.t('common:api.loginFailed'))
+      }
+    } else if (res.code === 403) {
+      if (showError) {
+        toast.error(res.msg || i18n.t('common:api.noPermission'))
       }
     } else if (showError) {
-      toast.error(res.msg || '操作失败')
+      toast.error(res.msg || i18n.t('common:api.operationFailed'))
     }
 
     const error: any = new Error(res.msg || 'Error')
     error.code = res.code
     error.response = response
+    /** 已在上方 toast 或 401 跳转时，避免业务层再弹一层 */
+    error.handled =
+      res.code === 401 || res.code === 403 || showError
     return Promise.reject(error)
   },
   (error) => {
@@ -105,49 +145,52 @@ service.interceptors.response.use(
     const showError = (config as any).showErrorMessage !== false
 
     if (showError && !error.isErrorShown) {
-      let errorMessage = '网络请求失败'
+      let errorMessage = i18n.t('common:api.networkFailed')
+      let skipToast = false
 
       if (error.response) {
         const { status } = error.response
         switch (status) {
           case 400:
-            errorMessage = error.response.data?.msg || '请求参数错误'
+            errorMessage =
+              error.response.data?.msg || i18n.t('common:api.badRequest')
             break
           case 401:
-          case 403:
-            errorMessage = '登录已过期，请重新登录'
-            if (!isShowingLogoutModal) {
-              isShowingLogoutModal = true
-              if (logoutDialogCallback) {
-                logoutDialogCallback()
-              } else {
-                // 降级方案
-                setTimeout(() => {
-                  clearToken()
-                  localStorage.removeItem('userInfo')
-                  sessionStorage.removeItem('userInfo')
-                  window.location.href = '/login'
-                  isShowingLogoutModal = false
-                }, 1500)
-              }
+            if (!shouldSkipUnauthorizedRedirect(error.config?.url)) {
+              redirectToLoginDueToUnauthorized()
+              skipToast = true
+            } else {
+              errorMessage =
+                error.response.data?.msg || i18n.t('common:api.wrongCredentials')
             }
             break
+          case 403:
+            errorMessage =
+              error.response.data?.msg || i18n.t('common:api.noPermission')
+            break
           case 404:
-            errorMessage = '请求的资源不存在'
+            errorMessage =
+              error.response.data?.msg || i18n.t('common:api.notFound')
             break
           case 500:
-            errorMessage = error.response.data?.msg || '服务器内部错误'
+            errorMessage =
+              error.response.data?.msg || i18n.t('common:api.serverError')
             break
           default:
-            errorMessage = error.response.data?.msg || `请求失败(${status})`
+            errorMessage =
+              error.response.data?.msg ||
+              i18n.t('common:api.requestFailed', { status })
         }
       } else if (error.message.includes('timeout')) {
-        errorMessage = '请求超时，请检查网络连接'
+        errorMessage = i18n.t('common:api.timeout')
       } else if (error.message.includes('Network Error')) {
-        errorMessage = '网络连接失败，请检查网络'
+        errorMessage = i18n.t('common:api.networkError')
       }
 
-      toast.error(errorMessage)
+      if (!skipToast) {
+        toast.error(errorMessage)
+      }
+      error.handled = true
     }
 
     return Promise.reject(error)

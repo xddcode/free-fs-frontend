@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 import {
@@ -67,8 +68,10 @@ export function ChartAreaInteractive({
   unit,
   onUnitChange,
 }: ChartAreaInteractiveProps) {
+  const { t, i18n } = useTranslation('home')
   const isMobile = useIsMobile()
   const [timeRange, setTimeRange] = React.useState('90d')
+  const dateLocale = i18n.language?.startsWith('zh') ? 'zh-CN' : 'en-US'
 
   React.useEffect(() => {
     if (isMobile) {
@@ -94,11 +97,11 @@ export function ChartAreaInteractive({
     () =>
       ({
         used: {
-          label: `已用存储 (${unitLabel})`,
+          label: t('chart.seriesLabel', { unit: unitLabel }),
           color: 'var(--chart-1)',
         },
       }) satisfies ChartConfig,
-    [unitLabel]
+    [unitLabel, t]
   )
 
   const chartData = React.useMemo(() => {
@@ -126,12 +129,14 @@ export function ChartAreaInteractive({
       )}
     >
       <CardHeader className='shrink-0 space-y-1.5 pb-0'>
-        <CardTitle>存储增长</CardTitle>
+        <CardTitle>{t('chart.title')}</CardTitle>
         <CardDescription>
           <span className='hidden @[540px]/card:block'>
-            已用存储随时间变化（{unitLabel}）
+            {t('chart.descDesktop', { unit: unitLabel })}
           </span>
-          <span className='@[540px]/card:hidden'>存储趋势</span>
+          <span className='@[540px]/card:hidden'>
+            {t('chart.descMobile')}
+          </span>
         </CardDescription>
         <CardAction className='flex flex-wrap items-center justify-end gap-2'>
           <ToggleGroup
@@ -141,9 +146,9 @@ export function ChartAreaInteractive({
             variant='outline'
             className='hidden @[767px]/card:flex [&>button]:px-4'
           >
-            <ToggleGroupItem value='90d'>近 3 个月</ToggleGroupItem>
-            <ToggleGroupItem value='30d'>近 30 天</ToggleGroupItem>
-            <ToggleGroupItem value='7d'>近 7 天</ToggleGroupItem>
+            <ToggleGroupItem value='90d'>{t('chart.range90d')}</ToggleGroupItem>
+            <ToggleGroupItem value='30d'>{t('chart.range30d')}</ToggleGroupItem>
+            <ToggleGroupItem value='7d'>{t('chart.range7d')}</ToggleGroupItem>
           </ToggleGroup>
           <Select
             value={String(unit)}
@@ -154,7 +159,7 @@ export function ChartAreaInteractive({
             <SelectTrigger
               className='h-8 w-22 shrink-0'
               size='sm'
-              aria-label='数据单位'
+              aria-label={t('chart.unitAria')}
             >
               <SelectValue />
             </SelectTrigger>
@@ -174,19 +179,19 @@ export function ChartAreaInteractive({
             <SelectTrigger
               className='flex w-40 @[767px]/card:hidden'
               size='sm'
-              aria-label='选择时间范围'
+              aria-label={t('chart.timeRangeAria')}
             >
-              <SelectValue placeholder='近 3 个月' />
+              <SelectValue placeholder={t('chart.range90d')} />
             </SelectTrigger>
             <SelectContent className='rounded-xl'>
               <SelectItem value='90d' className='rounded-lg'>
-                近 3 个月
+                {t('chart.range90d')}
               </SelectItem>
               <SelectItem value='30d' className='rounded-lg'>
-                近 30 天
+                {t('chart.range30d')}
               </SelectItem>
               <SelectItem value='7d' className='rounded-lg'>
-                近 7 天
+                {t('chart.range7d')}
               </SelectItem>
             </SelectContent>
           </Select>
@@ -197,11 +202,11 @@ export function ChartAreaInteractive({
           <Skeleton className='min-h-[220px] w-full flex-1 rounded-lg sm:min-h-[260px]' />
         ) : isError ? (
           <div className='flex min-h-[220px] flex-1 items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground sm:min-h-[260px]'>
-            加载失败，请稍后重试
+            {t('chart.loadFailed')}
           </div>
         ) : chartData.length === 0 ? (
           <div className='flex min-h-[220px] flex-1 items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground sm:min-h-[260px]'>
-            暂无数据
+            {t('chart.noData')}
           </div>
         ) : (
         <ChartContainer
@@ -250,7 +255,7 @@ export function ChartAreaInteractive({
               minTickGap={28}
               tickFormatter={(value) => {
                 const date = new Date(value)
-                return date.toLocaleDateString('zh-CN', {
+                return date.toLocaleDateString(dateLocale, {
                   month: 'short',
                   day: 'numeric',
                 })
@@ -263,7 +268,7 @@ export function ChartAreaInteractive({
                   labelFormatter={(value) => {
                     const d = new Date(value as string)
                     if (Number.isNaN(d.getTime())) return String(value)
-                    return d.toLocaleDateString('zh-CN', {
+                    return d.toLocaleDateString(dateLocale, {
                       month: 'short',
                       day: 'numeric',
                     })
@@ -284,7 +289,7 @@ export function ChartAreaInteractive({
               }
             />
             <Area
-              name='已用存储'
+              name={t('chart.areaName')}
               dataKey='used'
               type='linear'
               fill='url(#fillUsed)'

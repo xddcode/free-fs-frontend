@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import type { FileItem } from '@/types/file'
 import { Eye, Download } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -28,6 +29,7 @@ export function ShareFileListView({
   onPreview,
   onDownload,
 }: ShareFileListViewProps) {
+  const { t } = useTranslation('share')
   const hasPreviewPermission = () => scope?.includes('preview') ?? true
   const hasDownloadPermission = () => scope?.includes('download') ?? true
 
@@ -43,16 +45,16 @@ export function ShareFileListView({
         <TableHeader>
           <TableRow className='bg-muted/50'>
             <TableHead className='font-medium text-muted-foreground'>
-              文件名
+              {t('fileList.name')}
             </TableHead>
             <TableHead className='w-32 font-medium text-muted-foreground'>
-              大小
+              {t('fileList.size')}
             </TableHead>
             <TableHead className='w-48 font-medium text-muted-foreground'>
-              修改时间
+              {t('fileList.modified')}
             </TableHead>
             <TableHead className='w-40 text-center font-medium text-muted-foreground'>
-              操作
+              {t('fileList.actions')}
             </TableHead>
           </TableRow>
         </TableHeader>
@@ -97,7 +99,7 @@ export function ShareFileListView({
                         e.stopPropagation()
                         onPreview(file)
                       }}
-                      title='预览'
+                      title={t('fileList.preview')}
                     >
                       <Eye className='h-4 w-4' />
                     </Button>
@@ -111,7 +113,7 @@ export function ShareFileListView({
                         e.stopPropagation()
                         onDownload(file)
                       }}
-                      title='下载'
+                      title={t('fileList.download')}
                     >
                       <Download className='h-4 w-4' />
                     </Button>

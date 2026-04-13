@@ -1,4 +1,5 @@
 import { useState, useEffect, type RefObject } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { FileItem } from '@/types/file'
 import {
   MoreHorizontal,
@@ -14,6 +15,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatTime } from '@/utils/format'
+import { usePermission } from '@/hooks/use-permission'
 import { Button } from '@/components/ui/button'
 import {
   ContextMenu,
@@ -84,7 +86,12 @@ export function FileGridView({
   onLoadMore,
   scrollRootRef,
 }: FileGridViewProps) {
+  const { t } = useTranslation('files')
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
+  const { hasPermission } = usePermission()
+  const canRead = hasPermission('file:read')
+  const canWrite = hasPermission('file:write')
+  const canShare = hasPermission('file:share')
 
   // 拖拽功能
   const {
@@ -132,7 +139,7 @@ export function FileGridView({
   const handleDoubleClick = (file: FileItem) => {
     if (file.isDir) {
       onFileClick(file)
-    } else {
+    } else if (canRead) {
       onPreview(file)
     }
   }
@@ -170,13 +177,13 @@ export function FileGridView({
                     isDragging && 'cursor-move opacity-50',
                     isDropTarget && 'bg-primary/15 is-folder-drop-target'
                   )}
-                  draggable={!openMenuId}
-                  onDragStart={(e) => handleDragStart(e, file)}
-                  onDragEnd={handleDragEnd}
-                  onDragEnter={(e) => handleDragEnter(e, file)}
-                  onDragOver={(e) => handleDragOver(e, file)}
-                  onDragLeave={(e) => handleDragLeave(e, file)}
-                  onDrop={(e) => handleDrop(e, file)}
+                  draggable={canWrite && !openMenuId}
+                  onDragStart={(e) => canWrite && handleDragStart(e, file)}
+                  onDragEnd={() => canWrite && handleDragEnd()}
+                  onDragEnter={(e) => canWrite && handleDragEnter(e, file)}
+                  onDragOver={(e) => canWrite && handleDragOver(e, file)}
+                  onDragLeave={(e) => canWrite && handleDragLeave(e, file)}
+                  onDrop={(e) => canWrite && handleDrop(e, file)}
                   onClick={(e) => handleItemClick(file, e)}
                   onDoubleClick={() => handleDoubleClick(file)}
                 >
@@ -210,7 +217,7 @@ export function FileGridView({
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align='end'>
-                        {!file.isDir && (
+                        {!file.isDir && canRead && (
                           <>
                             <DropdownMenuItem
                               onClick={(e) => {
@@ -219,34 +226,40 @@ export function FileGridView({
                               }}
                             >
                               <Eye className='mr-2 h-4 w-4' />
-                              预览
+                              {t('rowMenu.preview')}
                             </DropdownMenuItem>
                           </>
                         )}
-                        <DropdownMenuItem
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            onShare(file)
-                          }}
-                        >
-                          <Share2 className='mr-2 h-4 w-4' />
-                          分享
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            onFavorite(file)
-                          }}
-                        >
-                          <Heart
-                            className={cn(
-                              'mr-2 h-4 w-4',
-                              file.isFavorite && 'fill-current text-red-500'
-                            )}
-                          />
-                          {file.isFavorite ? '取消收藏' : '收藏'}
-                        </DropdownMenuItem>
-                        {!file.isDir && (
+                        {canShare && (
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              onShare(file)
+                            }}
+                          >
+                            <Share2 className='mr-2 h-4 w-4' />
+                            {t('rowMenu.share')}
+                          </DropdownMenuItem>
+                        )}
+                        {canWrite && (
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              onFavorite(file)
+                            }}
+                          >
+                            <Heart
+                              className={cn(
+                                'mr-2 h-4 w-4',
+                                file.isFavorite && 'fill-current text-red-500'
+                              )}
+                            />
+                            {file.isFavorite
+                              ? t('rowMenu.unfavorite')
+                              : t('rowMenu.favorite')}
+                          </DropdownMenuItem>
+                        )}
+                        {!file.isDir && canRead && (
                           <DropdownMenuItem
                             onClick={(e) => {
                               e.stopPropagation()
@@ -254,28 +267,32 @@ export function FileGridView({
                             }}
                           >
                             <Download className='mr-2 h-4 w-4' />
-                            下载
+                            {t('rowMenu.download')}
                           </DropdownMenuItem>
                         )}
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            onRename(file)
-                          }}
-                        >
-                          <Edit className='mr-2 h-4 w-4' />
-                          重命名
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            onMove(file)
-                          }}
-                        >
-                          <Move className='mr-2 h-4 w-4' />
-                          移动到
-                        </DropdownMenuItem>
+                        {canWrite && <DropdownMenuSeparator />}
+                        {canWrite && (
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              onRename(file)
+                            }}
+                          >
+                            <Edit className='mr-2 h-4 w-4' />
+                            {t('rowMenu.rename')}
+                          </DropdownMenuItem>
+                        )}
+                        {canWrite && (
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              onMove(file)
+                            }}
+                          >
+                            <Move className='mr-2 h-4 w-4' />
+                            {t('rowMenu.move')}
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem
                           onClick={(e) => {
                             e.stopPropagation()
@@ -283,19 +300,23 @@ export function FileGridView({
                           }}
                         >
                           <Info className='mr-2 h-4 w-4' />
-                          详细信息
+                          {t('rowMenu.detail')}
                         </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            onDelete(file)
-                          }}
-                          className='text-destructive'
-                        >
-                          <Trash2 className='mr-2 h-4 w-4' />
-                          放入回收站
-                        </DropdownMenuItem>
+                        {canWrite && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                onDelete(file)
+                              }}
+                              className='text-destructive'
+                            >
+                              <Trash2 className='mr-2 h-4 w-4' />
+                              {t('rowMenu.trash')}
+                            </DropdownMenuItem>
+                          </>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
@@ -347,7 +368,7 @@ export function FileGridView({
                 {isMultiSelected ? (
                   // 多选菜单
                   <>
-                    {downloadableFiles.length > 0 && (
+                    {canRead && downloadableFiles.length > 0 && (
                       <ContextMenuItem
                         onClick={(e) => {
                           e.stopPropagation()
@@ -355,10 +376,10 @@ export function FileGridView({
                         }}
                       >
                         <Download className='mr-2 h-4 w-4' />
-                        下载
+                        {t('rowMenu.download')}
                       </ContextMenuItem>
                     )}
-                    {onBatchShare && (
+                    {canShare && onBatchShare && (
                       <ContextMenuItem
                         onClick={(e) => {
                           e.stopPropagation()
@@ -366,25 +387,29 @@ export function FileGridView({
                         }}
                       >
                         <Share2 className='mr-2 h-4 w-4' />
-                        分享
+                        {t('rowMenu.share')}
                       </ContextMenuItem>
                     )}
-                    <ContextMenuItem
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        onFavorite(selectedFiles)
-                      }}
-                    >
-                      <Heart
-                        className={cn(
-                          'mr-2 h-4 w-4',
-                          !hasUnfavorited && 'fill-current text-red-500'
-                        )}
-                      />
-                      {hasUnfavorited ? '收藏' : '取消收藏'}
-                    </ContextMenuItem>
-                    <ContextMenuSeparator />
-                    {onBatchMove && (
+                    {canWrite && (
+                      <ContextMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onFavorite(selectedFiles)
+                        }}
+                      >
+                        <Heart
+                          className={cn(
+                            'mr-2 h-4 w-4',
+                            !hasUnfavorited && 'fill-current text-red-500'
+                          )}
+                        />
+                        {hasUnfavorited
+                          ? t('rowMenu.favorite')
+                          : t('rowMenu.unfavorite')}
+                      </ContextMenuItem>
+                    )}
+                    {canWrite && <ContextMenuSeparator />}
+                    {canWrite && onBatchMove && (
                       <ContextMenuItem
                         onClick={(e) => {
                           e.stopPropagation()
@@ -392,11 +417,10 @@ export function FileGridView({
                         }}
                       >
                         <Move className='mr-2 h-4 w-4' />
-                        移动到
+                        {t('rowMenu.move')}
                       </ContextMenuItem>
                     )}
-                    <ContextMenuSeparator />
-                    {onBatchDelete && (
+                    {canWrite && onBatchDelete && (
                       <ContextMenuItem
                         onClick={(e) => {
                           e.stopPropagation()
@@ -405,14 +429,14 @@ export function FileGridView({
                         className='text-destructive focus:text-destructive'
                       >
                         <Trash2 className='mr-2 h-4 w-4' />
-                        放入回收站
+                        {t('rowMenu.trash')}
                       </ContextMenuItem>
                     )}
                   </>
                 ) : (
                   // 单选菜单
                   <>
-                    {!file.isDir && (
+                    {!file.isDir && canRead && (
                       <>
                         <ContextMenuItem
                           onClick={(e) => {
@@ -421,34 +445,40 @@ export function FileGridView({
                           }}
                         >
                           <Eye className='mr-2 h-4 w-4' />
-                          预览
+                          {t('rowMenu.preview')}
                         </ContextMenuItem>
                       </>
                     )}
-                    <ContextMenuItem
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        onShare(file)
-                      }}
-                    >
-                      <Share2 className='mr-2 h-4 w-4' />
-                      分享
-                    </ContextMenuItem>
-                    <ContextMenuItem
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        onFavorite(file)
-                      }}
-                    >
-                      <Heart
-                        className={cn(
-                          'mr-2 h-4 w-4',
-                          file.isFavorite && 'fill-current text-red-500'
-                        )}
-                      />
-                      {file.isFavorite ? '取消收藏' : '收藏'}
-                    </ContextMenuItem>
-                    {!file.isDir && (
+                    {canShare && (
+                      <ContextMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onShare(file)
+                        }}
+                      >
+                        <Share2 className='mr-2 h-4 w-4' />
+                        {t('rowMenu.share')}
+                      </ContextMenuItem>
+                    )}
+                    {canWrite && (
+                      <ContextMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onFavorite(file)
+                        }}
+                      >
+                        <Heart
+                          className={cn(
+                            'mr-2 h-4 w-4',
+                            file.isFavorite && 'fill-current text-red-500'
+                          )}
+                        />
+                        {file.isFavorite
+                          ? t('rowMenu.unfavorite')
+                          : t('rowMenu.favorite')}
+                      </ContextMenuItem>
+                    )}
+                    {!file.isDir && canRead && (
                       <ContextMenuItem
                         onClick={(e) => {
                           e.stopPropagation()
@@ -456,28 +486,32 @@ export function FileGridView({
                         }}
                       >
                         <Download className='mr-2 h-4 w-4' />
-                        下载
+                        {t('rowMenu.download')}
                       </ContextMenuItem>
                     )}
-                    <ContextMenuSeparator />
-                    <ContextMenuItem
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        onRename(file)
-                      }}
-                    >
-                      <Edit className='mr-2 h-4 w-4' />
-                      重命名
-                    </ContextMenuItem>
-                    <ContextMenuItem
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        onMove(file)
-                      }}
-                    >
-                      <Move className='mr-2 h-4 w-4' />
-                      移动到
-                    </ContextMenuItem>
+                    {canWrite && <ContextMenuSeparator />}
+                    {canWrite && (
+                      <ContextMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onRename(file)
+                        }}
+                      >
+                        <Edit className='mr-2 h-4 w-4' />
+                        {t('rowMenu.rename')}
+                      </ContextMenuItem>
+                    )}
+                    {canWrite && (
+                      <ContextMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onMove(file)
+                        }}
+                      >
+                        <Move className='mr-2 h-4 w-4' />
+                        {t('rowMenu.move')}
+                      </ContextMenuItem>
+                    )}
                     <ContextMenuItem
                       onClick={(e) => {
                         e.stopPropagation()
@@ -485,19 +519,23 @@ export function FileGridView({
                       }}
                     >
                       <Info className='mr-2 h-4 w-4' />
-                      详细信息
+                      {t('rowMenu.detail')}
                     </ContextMenuItem>
-                    <ContextMenuSeparator />
-                    <ContextMenuItem
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        onDelete(file)
-                      }}
-                      className='text-destructive focus:text-destructive'
-                    >
-                      <Trash2 className='mr-2 h-4 w-4' />
-                      放入回收站
-                    </ContextMenuItem>
+                    {canWrite && (
+                      <>
+                        <ContextMenuSeparator />
+                        <ContextMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onDelete(file)
+                          }}
+                          className='text-destructive focus:text-destructive'
+                        >
+                          <Trash2 className='mr-2 h-4 w-4' />
+                          {t('rowMenu.trash')}
+                        </ContextMenuItem>
+                      </>
+                    )}
                   </>
                 )}
               </ContextMenuContent>
@@ -519,12 +557,12 @@ export function FileGridView({
             className='h-5 w-5 shrink-0 animate-spin text-muted-foreground'
             aria-hidden
           />
-          <span className='sr-only'>加载中</span>
+          <span className='sr-only'>{t('list.loading')}</span>
         </div>
       )}
       {showNoMoreHint && (
         <p className='mt-6 pb-2 text-center text-sm text-muted-foreground/55'>
-          没有更多了
+          {t('index.noMore')}
         </p>
       )}
     </div>

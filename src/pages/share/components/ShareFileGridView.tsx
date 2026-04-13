@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import type { FileItem } from '@/types/file'
 import { Eye, Download, MoreVertical } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -26,6 +27,7 @@ export function ShareFileGridView({
   onPreview,
   onDownload,
 }: ShareFileGridViewProps) {
+  const { t } = useTranslation('share')
   const hasPreviewPermission = () => scope?.includes('preview') ?? true
   const hasDownloadPermission = () => scope?.includes('download') ?? true
 
@@ -75,7 +77,7 @@ export function ShareFileGridView({
                           }}
                         >
                           <Eye className='mr-2 h-4 w-4' />
-                          预览
+                          {t('fileList.preview')}
                         </DropdownMenuItem>
                       )}
                       {hasDownloadPermission() && (
@@ -86,7 +88,7 @@ export function ShareFileGridView({
                           }}
                         >
                           <Download className='mr-2 h-4 w-4' />
-                          下载
+                          {t('fileList.download')}
                         </DropdownMenuItem>
                       )}
                     </DropdownMenuContent>

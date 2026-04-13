@@ -1,6 +1,7 @@
 import * as React from 'react'
+import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import {
   getHomeInfo,
   HOME_INFO_REFETCH_INTERVAL_MS,
@@ -23,12 +24,14 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 
 function RecentFilesTableInner({ files }: { files: FileItem[] }) {
+  const { t } = useTranslation('home')
   const navigate = useNavigate()
+  const { slug } = useParams<{ slug: string }>()
 
   const openItem = React.useCallback(
     async (file: FileItem) => {
       if (file.isDir) {
-        navigate(`/files?parentId=${file.id}`)
+        navigate(`/w/${slug}/files?parentId=${file.id}`)
         return
       }
       await openFilePreviewWithToken(
@@ -36,18 +39,20 @@ function RecentFilesTableInner({ files }: { files: FileItem[] }) {
         import.meta.env.VITE_API_BASE_URL
       )
     },
-    [navigate]
+    [navigate, slug]
   )
 
   return (
     <>
       <div className='mb-4 flex items-center justify-between gap-3'>
-        <h2 className='text-lg font-semibold tracking-tight'>最近文件</h2>
+        <h2 className='text-lg font-semibold tracking-tight'>
+          {t('recentFiles.title')}
+        </h2>
         <Link
-          to='/files'
+          to={`/w/${slug}/files`}
           className='text-muted-foreground hover:text-foreground text-sm font-medium transition-colors'
         >
-          文件管理
+          {t('recentFiles.manageLink')}
         </Link>
       </div>
 
@@ -56,13 +61,13 @@ function RecentFilesTableInner({ files }: { files: FileItem[] }) {
           <TableHeader className='[&_tr]:border-0'>
             <TableRow className='border-0 hover:bg-transparent'>
               <TableHead className='text-muted-foreground h-[48px] px-4 text-left text-sm font-medium'>
-                名称
+                {t('recentFiles.colName')}
               </TableHead>
               <TableHead className='text-muted-foreground h-[48px] min-w-[11rem] px-4 text-left text-sm font-medium'>
-                修改时间
+                {t('recentFiles.colModified')}
               </TableHead>
               <TableHead className='text-muted-foreground h-[48px] px-4 text-right text-sm font-medium'>
-                大小
+                {t('recentFiles.colSize')}
               </TableHead>
             </TableRow>
           </TableHeader>
@@ -114,7 +119,7 @@ function RecentFilesTableInner({ files }: { files: FileItem[] }) {
                   colSpan={3}
                   className='text-muted-foreground h-28 text-center'
                 >
-                  暂无最近文件
+                  {t('recentFiles.empty')}
                 </TableCell>
               </TableRow>
             )}
@@ -145,10 +150,12 @@ function TableSkeleton() {
 }
 
 export function RecentFilesTable({ unit }: { unit: HomeUsedBytesUnit }) {
+  const { t } = useTranslation('home')
+  const { slug } = useParams<{ slug: string }>()
   const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: ['homeInfo', 'summary', unit],
+    queryKey: ['homeInfo', 'summary', slug, unit],
     queryFn: () => getHomeInfo({ unit }),
-    staleTime: 0,
+    staleTime: 30_000,
     refetchInterval: HOME_INFO_REFETCH_INTERVAL_MS,
   })
 
@@ -161,14 +168,14 @@ export function RecentFilesTable({ unit }: { unit: HomeUsedBytesUnit }) {
           <TableSkeleton />
         ) : isError ? (
           <div className='text-muted-foreground py-8 text-center text-sm'>
-            加载失败
+            {t('recentFiles.loadFailed')}
             <Button
               variant='outline'
               size='sm'
               className='mt-3'
               onClick={() => void refetch()}
             >
-              重试
+              {t('recentFiles.retry')}
             </Button>
           </div>
         ) : (

@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useTransferStore } from '@/store/transfer'
 import { X, FileIcon, CheckCircle2 } from 'lucide-react'
 import { Progress } from '@/components/ui/progress'
@@ -23,6 +24,7 @@ interface UploadPanelProps {
 }
 
 export default function UploadPanel({ onSuccess }: UploadPanelProps) {
+  const { t } = useTranslation('files')
   const [showPanel, setShowPanel] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
   const [prevCompletedCount, setPrevCompletedCount] = useState(0)
@@ -41,9 +43,16 @@ export default function UploadPanel({ onSuccess }: UploadPanelProps) {
       ['completed', 'failed', 'cancelled'].includes(t.status)
     )
 
-  const summaryText = isUploading
-    ? `正在上传... (${completedCount}/${taskList.length})`
-    : `上传完成 · 共 ${taskList.length} 项`
+  const summaryText = useMemo(
+    () =>
+      isUploading
+        ? t('uploadPanel.uploading', {
+            done: completedCount,
+            total: taskList.length,
+          })
+        : t('uploadPanel.done', { count: taskList.length }),
+    [isUploading, completedCount, taskList.length, t]
+  )
 
   // 显示面板：有任务时显示
   useEffect(() => {

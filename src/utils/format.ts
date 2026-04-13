@@ -1,6 +1,7 @@
 import dayjs from 'dayjs'
 
 import type { HomeUsedBytesUnit } from '@/api/home'
+import i18n from '@/i18n'
 
 export const formatFileSize = (bytes: number): string => {
   if (bytes === 0) return '0 B'
@@ -94,7 +95,7 @@ export function formatTime(dateStr: string | number | Date): string {
     date.getDate() === now.getDate()
 
   if (isToday) {
-    return `今天 ${timeStr}`
+    return i18n.t('common:format.todayTime', { time: timeStr })
   }
 
   // 非今天，显示完整日期 YYYY/MM/DD HH:mm
@@ -123,7 +124,7 @@ export function formatFileListDisplayTime(
     date.getDate() === now.getDate()
 
   if (isToday) {
-    return `今天 | ${timeStr}`
+    return i18n.t('common:format.todayListRow', { time: timeStr })
   }
 
   const year = date.getFullYear()

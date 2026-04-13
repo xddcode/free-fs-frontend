@@ -1,3 +1,11 @@
+import type { PermissionCodeType } from '@/types/permission'
+
+/** 侧边栏导航：默认 Line，选中时 Fill（@remixicon/react） */
+type SidebarNavIconPair = {
+  line: React.ElementType<{ className?: string }>
+  fill: React.ElementType<{ className?: string }>
+}
+
 type User = {
   name: string
   email: string
@@ -11,9 +19,11 @@ type Team = {
 }
 
 type BaseNavItem = {
-  title: string
+  /** i18n key under `layout` namespace, e.g. sidebar.nav.home */
+  titleKey: string
   badge?: string
-  icon?: React.ElementType
+  icon?: SidebarNavIconPair
+  permission?: PermissionCodeType
 }
 
 type NavLink = BaseNavItem & {
@@ -29,7 +39,7 @@ type NavCollapsible = BaseNavItem & {
 type NavItem = NavCollapsible | NavLink
 
 type NavGroup = {
-  title: string
+  titleKey: string
   items: NavItem[]
 }
 
@@ -39,4 +49,11 @@ type SidebarData = {
   navGroups: NavGroup[]
 }
 
-export type { SidebarData, NavGroup, NavItem, NavCollapsible, NavLink }
+export type {
+  SidebarData,
+  NavGroup,
+  NavItem,
+  NavCollapsible,
+  NavLink,
+  SidebarNavIconPair,
+}

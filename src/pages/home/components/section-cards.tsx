@@ -1,3 +1,4 @@
+import type { TFunction } from 'i18next'
 import type { LucideIcon } from 'lucide-react'
 import {
   Archive,
@@ -16,12 +17,35 @@ export type CategoryShortcut = {
   icon: LucideIcon
 }
 
-export const CATEGORY_SHORTCUTS: CategoryShortcut[] = [
-  { title: '文档', href: '/files?type=document', icon: FileText },
-  { title: '图片', href: '/files?type=image', icon: Image },
-  { title: '视频', href: '/files?type=video', icon: Film },
-  { title: '音频', href: '/files?type=audio', icon: Music },
-  { title: '其他', href: '/files?type=other', icon: Archive },
+export const buildCategoryShortcuts = (
+  slug: string,
+  t: TFunction
+): CategoryShortcut[] => [
+  {
+    title: t('category.document'),
+    href: `/w/${slug}/files?type=document`,
+    icon: FileText,
+  },
+  {
+    title: t('category.image'),
+    href: `/w/${slug}/files?type=image`,
+    icon: Image,
+  },
+  {
+    title: t('category.video'),
+    href: `/w/${slug}/files?type=video`,
+    icon: Film,
+  },
+  {
+    title: t('category.audio'),
+    href: `/w/${slug}/files?type=audio`,
+    icon: Music,
+  },
+  {
+    title: t('category.other'),
+    href: `/w/${slug}/files?type=other`,
+    icon: Archive,
+  },
 ]
 
 /** 自上而下的紫系渐变，与 sidebar-primary 图标、存储图表面积色一致 */

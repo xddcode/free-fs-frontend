@@ -41,7 +41,7 @@ const CommandDialog = ({
   const { className: commandClassName, ...restCommand } = commandProps ?? {}
   return (
     <Dialog {...props}>
-      <DialogContent className='overflow-hidden p-0' hideClose={hideClose}>
+      <DialogContent className='overflow-hidden p-0' showCloseButton={!hideClose}>
         <DialogTitle className='sr-only'>{contentTitle}</DialogTitle>
         <CommandPrimitive
           className={cn(

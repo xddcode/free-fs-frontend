@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { shareFiles } from '@/api'
 import type { FileItem } from '@/types/file'
 import { Copy, Check } from 'lucide-react'
@@ -20,6 +21,11 @@ import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Separator } from '@/components/ui/separator'
 import { FileIcon } from '@/components/file-icon'
+import {
+  FormFieldStack,
+  FormInlineOption,
+  FormInlineOptions,
+} from '@/components/field-layout'
 
 interface ShareModalProps {
   open: boolean
@@ -36,6 +42,7 @@ export function ShareModal({
   files,
   onSuccess,
 }: ShareModalProps) {
+  const { t } = useTranslation('files')
   // 表单状态
   const [expireType, setExpireType] = useState<number>(1) // 1-7天 2-30天 3-自定义 4-永久
   const [customExpireTime, setCustomExpireTime] = useState<string>('')
@@ -76,10 +83,10 @@ export function ShareModal({
   const filesCountText = useMemo(() => {
     const total = sharingFiles.length
     if (total > 3) {
-      return `等 ${total} 个文件`
+      return t('shareModal.filesMore', { total })
     }
-    return `共 ${total} 个文件`
-  }, [sharingFiles.length])
+    return t('shareModal.filesTotal', { total })
+  }, [sharingFiles.length, t])
 
   // 重置表单
   const resetForm = () => {
@@ -98,37 +105,35 @@ export function ShareModal({
   }
 
   // 获取过期时间文本
-  const getExpireText = () => {
+  const getExpireText = useCallback(() => {
     if (shareExpireTime) {
       return shareExpireTime
     }
-    if (expireType === 4) return '永久有效'
+    if (expireType === 4) return t('shareModal.permanent')
     if (expireType === 3 && customExpireTime) {
       return customExpireTime
     }
-    const expireMap: Record<number, string> = {
-      1: '7天',
-      2: '30天',
-    }
-    return expireMap[expireType] || ''
-  }
+    if (expireType === 1) return t('shareModal.expire7')
+    if (expireType === 2) return t('shareModal.expire30')
+    return ''
+  }, [shareExpireTime, expireType, customExpireTime, t])
 
   // 生成分享链接
   const handleShare = async () => {
     // 验证自定义时间
     if (expireType === 3 && !customExpireTime) {
-      toast.warning('请选择过期时间')
+      toast.warning(t('shareModal.toastPickExpire'))
       return
     }
 
     // 验证自定义次数
     if (maxViewCountType === 'custom' && !maxViewCount) {
-      toast.warning('请输入最大查看次数')
+      toast.warning(t('shareModal.toastMaxView'))
       return
     }
 
     if (maxDownloadCountType === 'custom' && !maxDownloadCount) {
-      toast.warning('请输入最大下载次数')
+      toast.warning(t('shareModal.toastMaxDown'))
       return
     }
 
@@ -161,8 +166,8 @@ export function ShareModal({
 
         const successMsg =
           fileIds.length === 1
-            ? '分享链接已生成'
-            : `成功分享 ${fileIds.length} 个文件`
+            ? t('shareModal.toastOkOne')
+            : t('shareModal.toastOkMany', { count: fileIds.length })
         toast.success(successMsg)
         onSuccess?.()
       }
@@ -174,9 +179,8 @@ export function ShareModal({
   // 复制链接
   const handleCopyLink = async () => {
     try {
-      // 如果有提取码，格式为：链接\n提取码：xxxx
       const textToCopy = shareCode
-        ? `${shareLink}\n提取码：${shareCode}`
+        ? t('shareModal.copyWithCode', { link: shareLink, code: shareCode })
         : shareLink
 
       await navigator.clipboard.writeText(textToCopy)
@@ -184,9 +188,9 @@ export function ShareModal({
       setTimeout(() => {
         setCopiedLink(false)
       }, 2000)
-      toast.success('已复制')
+      toast.success(t('common.copied'))
     } catch (error) {
-      toast.error('复制失败')
+      toast.error(t('common.copyFailed'))
     }
   }
 
@@ -198,9 +202,9 @@ export function ShareModal({
       setTimeout(() => {
         setCopiedCode(false)
       }, 2000)
-      toast.success('已复制')
+      toast.success(t('common.copied'))
     } catch (error) {
-      toast.error('复制失败')
+      toast.error(t('common.copyFailed'))
     }
   }
 
@@ -233,12 +237,12 @@ export function ShareModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className='max-h-[85vh] max-w-xl overflow-y-auto'>
+      <DialogContent className='max-h-[85vh] sm:max-w-xl overflow-y-auto'>
         <DialogHeader>
-          <DialogTitle>分享文件</DialogTitle>
+          <DialogTitle>{t('shareModal.title')}</DialogTitle>
         </DialogHeader>
 
-        <div className='space-y-6 px-6 pb-4'>
+        <div className='space-y-6'>
           {/* 文件信息预览 */}
           {!isBatchShare && file ? (
             <div className='flex items-center gap-4 rounded-lg bg-muted/50 p-4'>
@@ -286,50 +290,50 @@ export function ShareModal({
           {!shareLink ? (
             <>
               {/* 有效期 */}
-              <div className='space-y-3'>
-                <Label>有效期</Label>
+              <FormFieldStack>
+                <Label>{t('shareModal.labelExpire')}</Label>
                 <RadioGroup
                   value={String(expireType)}
                   onValueChange={(value) => setExpireType(Number(value))}
                   disabled={!!shareLink}
-                  className='flex flex-wrap gap-4'
+                  className='flex flex-wrap gap-x-6 gap-y-2'
                 >
-                  <div className='flex items-center space-x-2'>
+                  <FormInlineOption>
                     <RadioGroupItem value='1' id='expire-7d' />
                     <Label
                       htmlFor='expire-7d'
                       className='cursor-pointer font-normal'
                     >
-                      7天
+                      {t('shareModal.expire7')}
                     </Label>
-                  </div>
-                  <div className='flex items-center space-x-2'>
+                  </FormInlineOption>
+                  <FormInlineOption>
                     <RadioGroupItem value='2' id='expire-30d' />
                     <Label
                       htmlFor='expire-30d'
                       className='cursor-pointer font-normal'
                     >
-                      30天
+                      {t('shareModal.expire30')}
                     </Label>
-                  </div>
-                  <div className='flex items-center space-x-2'>
+                  </FormInlineOption>
+                  <FormInlineOption>
                     <RadioGroupItem value='3' id='expire-custom' />
                     <Label
                       htmlFor='expire-custom'
                       className='cursor-pointer font-normal'
                     >
-                      自定义
+                      {t('shareModal.expireCustom')}
                     </Label>
-                  </div>
-                  <div className='flex items-center space-x-2'>
+                  </FormInlineOption>
+                  <FormInlineOption>
                     <RadioGroupItem value='4' id='expire-permanent' />
                     <Label
                       htmlFor='expire-permanent'
                       className='cursor-pointer font-normal'
                     >
-                      永久有效
+                      {t('shareModal.permanent')}
                     </Label>
-                  </div>
+                  </FormInlineOption>
                 </RadioGroup>
                 {expireType === 3 && (
                   <Input
@@ -340,45 +344,45 @@ export function ShareModal({
                     min={new Date().toISOString().slice(0, 16)}
                   />
                 )}
-              </div>
+              </FormFieldStack>
 
               {/* 分享类型 */}
-              <div className='space-y-3'>
-                <Label>分享类型</Label>
+              <FormFieldStack>
+                <Label>{t('shareModal.labelShareType')}</Label>
                 <RadioGroup
                   value={needShareCode ? 'private' : 'public'}
                   onValueChange={(value) =>
                     setNeedShareCode(value === 'private')
                   }
                   disabled={!!shareLink}
-                  className='flex gap-4'
+                  className='flex flex-wrap gap-x-6 gap-y-2'
                 >
-                  <div className='flex items-center space-x-2'>
+                  <FormInlineOption>
                     <RadioGroupItem value='public' id='share-public' />
                     <Label
                       htmlFor='share-public'
                       className='cursor-pointer font-normal'
                     >
-                      公开分享
+                      {t('shareModal.sharePublic')}
                     </Label>
-                  </div>
-                  <div className='flex items-center space-x-2'>
+                  </FormInlineOption>
+                  <FormInlineOption>
                     <RadioGroupItem value='private' id='share-private' />
                     <Label
                       htmlFor='share-private'
                       className='cursor-pointer font-normal'
                     >
-                      私密分享
+                      {t('shareModal.sharePrivate')}
                     </Label>
-                  </div>
+                  </FormInlineOption>
                 </RadioGroup>
-              </div>
+              </FormFieldStack>
 
               {/* 分享权限 */}
-              <div className='space-y-3'>
-                <Label>分享权限</Label>
-                <div className='flex gap-4'>
-                  <div className='flex items-center space-x-2'>
+              <FormFieldStack>
+                <Label>{t('shareModal.labelScope')}</Label>
+                <FormInlineOptions>
+                  <FormInlineOption>
                     <Checkbox
                       id='scope-preview'
                       checked={scopeList.includes('preview')}
@@ -389,10 +393,10 @@ export function ShareModal({
                       htmlFor='scope-preview'
                       className='cursor-pointer font-normal'
                     >
-                      预览
+                      {t('shareModal.scopePreview')}
                     </Label>
-                  </div>
-                  <div className='flex items-center space-x-2'>
+                  </FormInlineOption>
+                  <FormInlineOption>
                     <Checkbox
                       id='scope-download'
                       checked={scopeList.includes('download')}
@@ -403,48 +407,48 @@ export function ShareModal({
                       htmlFor='scope-download'
                       className='cursor-pointer font-normal'
                     >
-                      下载
+                      {t('shareModal.scopeDownload')}
                     </Label>
-                  </div>
-                </div>
-              </div>
+                  </FormInlineOption>
+                </FormInlineOptions>
+              </FormFieldStack>
 
               {/* 最大查看次数 */}
-              <div className='space-y-3'>
-                <Label>最大查看次数</Label>
-                <div className='flex items-center gap-2'>
+              <FormFieldStack>
+                <Label>{t('shareModal.labelMaxView')}</Label>
+                <div className='flex flex-wrap items-center gap-2'>
                   <RadioGroup
                     value={maxViewCountType}
                     onValueChange={(value) =>
                       setMaxViewCountType(value as 'unlimited' | 'custom')
                     }
                     disabled={!!shareLink}
-                    className='flex gap-4'
+                    className='flex flex-wrap gap-x-6 gap-y-2'
                   >
-                    <div className='flex items-center space-x-2'>
+                    <FormInlineOption>
                       <RadioGroupItem value='unlimited' id='view-unlimited' />
                       <Label
                         htmlFor='view-unlimited'
                         className='cursor-pointer font-normal'
                       >
-                        不限制
+                        {t('shareModal.unlimited')}
                       </Label>
-                    </div>
-                    <div className='flex items-center space-x-2'>
+                    </FormInlineOption>
+                    <FormInlineOption>
                       <RadioGroupItem value='custom' id='view-custom' />
                       <Label
                         htmlFor='view-custom'
                         className='cursor-pointer font-normal'
                       >
-                        自定义
+                        {t('shareModal.custom')}
                       </Label>
-                    </div>
+                    </FormInlineOption>
                   </RadioGroup>
                   {maxViewCountType === 'custom' && (
                     <Input
                       type='number'
                       min='1'
-                      placeholder='请输入次数'
+                      placeholder={t('shareModal.placeholderCount')}
                       value={maxViewCount}
                       onChange={(e) => setMaxViewCount(e.target.value)}
                       disabled={!!shareLink}
@@ -452,21 +456,21 @@ export function ShareModal({
                     />
                   )}
                 </div>
-              </div>
+              </FormFieldStack>
 
               {/* 最大下载次数 */}
-              <div className='space-y-3'>
-                <Label>最大下载次数</Label>
-                <div className='flex items-center gap-2'>
+              <FormFieldStack>
+                <Label>{t('shareModal.labelMaxDown')}</Label>
+                <div className='flex flex-wrap items-center gap-2'>
                   <RadioGroup
                     value={maxDownloadCountType}
                     onValueChange={(value) =>
                       setMaxDownloadCountType(value as 'unlimited' | 'custom')
                     }
                     disabled={!!shareLink}
-                    className='flex gap-4'
+                    className='flex flex-wrap gap-x-6 gap-y-2'
                   >
-                    <div className='flex items-center space-x-2'>
+                    <FormInlineOption>
                       <RadioGroupItem
                         value='unlimited'
                         id='download-unlimited'
@@ -475,24 +479,24 @@ export function ShareModal({
                         htmlFor='download-unlimited'
                         className='cursor-pointer font-normal'
                       >
-                        不限制
+                        {t('shareModal.unlimited')}
                       </Label>
-                    </div>
-                    <div className='flex items-center space-x-2'>
+                    </FormInlineOption>
+                    <FormInlineOption>
                       <RadioGroupItem value='custom' id='download-custom' />
                       <Label
                         htmlFor='download-custom'
                         className='cursor-pointer font-normal'
                       >
-                        自定义
+                        {t('shareModal.custom')}
                       </Label>
-                    </div>
+                    </FormInlineOption>
                   </RadioGroup>
                   {maxDownloadCountType === 'custom' && (
                     <Input
                       type='number'
                       min='1'
-                      placeholder='请输入次数'
+                      placeholder={t('shareModal.placeholderCount')}
                       value={maxDownloadCount}
                       onChange={(e) => setMaxDownloadCount(e.target.value)}
                       disabled={!!shareLink}
@@ -500,7 +504,7 @@ export function ShareModal({
                     />
                   )}
                 </div>
-              </div>
+              </FormFieldStack>
             </>
           ) : (
             <>
@@ -508,7 +512,7 @@ export function ShareModal({
               <Alert className='border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950'>
                 <Check className='h-4 w-4 text-green-600 dark:text-green-400' />
                 <AlertDescription className='text-green-600 dark:text-green-400'>
-                  分享链接已生成
+                  {t('shareModal.alertGenerated')}
                 </AlertDescription>
               </Alert>
 
@@ -518,7 +522,7 @@ export function ShareModal({
                   <div className='text-sm break-all'>{shareLink}</div>
                   {shareCode && (
                     <div className='text-sm'>
-                      <span>提取码：</span>
+                      <span>{t('shareModal.codeInline')}</span>
                       <span>{shareCode}</span>
                     </div>
                   )}
@@ -527,8 +531,8 @@ export function ShareModal({
 
               <div className='text-center text-sm text-muted-foreground'>
                 {isPermanentShare()
-                  ? '分享链接永久有效'
-                  : `分享链接将在 ${getExpireText()} 后失效`}
+                  ? t('shareModal.hintPermanent')
+                  : t('shareModal.hintExpire', { time: getExpireText() })}
               </div>
             </>
           )}
@@ -539,28 +543,30 @@ export function ShareModal({
             <>
               <DialogClose asChild>
                 <Button variant='outline' disabled={isSubmitting}>
-                  取消
+                  {t('common.cancel')}
                 </Button>
               </DialogClose>
               <Button onClick={handleOk} disabled={isSubmitting}>
-                {isSubmitting ? '生成中...' : '生成分享链接'}
+                {isSubmitting
+                  ? t('shareModal.generating')
+                  : t('shareModal.generate')}
               </Button>
             </>
           ) : (
             <>
               <DialogClose asChild>
-                <Button variant='outline'>取消</Button>
+                <Button variant='outline'>{t('common.cancel')}</Button>
               </DialogClose>
               <Button onClick={handleCopyLink}>
                 {copiedLink ? (
                   <>
                     <Check className='mr-2 h-4 w-4' />
-                    已复制
+                    {t('shareModal.btnCopied')}
                   </>
                 ) : (
                   <>
                     <Copy className='mr-2 h-4 w-4' />
-                    复制链接
+                    {t('shareModal.btnCopyLink')}
                   </>
                 )}
               </Button>

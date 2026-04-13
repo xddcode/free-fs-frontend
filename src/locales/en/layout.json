@@ -1,0 +1,48 @@
+{
+  "sidebar": {
+    "userPlaceholder": "User",
+    "groups": {
+      "main": "Main",
+      "common": "Common"
+    },
+    "nav": {
+      "home": "Home",
+      "allFiles": "All files",
+      "transfer": "Transfer",
+      "storage": "Storage",
+      "favorites": "Favorites",
+      "recents": "Recent",
+      "shares": "Shares",
+      "recycle": "Trash"
+    },
+    "settings": "Settings"
+  },
+  "workspaceSwitcher": {
+    "switchToast": "Switched to \"{{name}}\"",
+    "switchFailed": "Failed to switch workspace",
+    "selectWorkspace": "Select workspace",
+    "memberCount": "{{count}} members",
+    "settings": "Settings",
+    "inviteMembers": "Invite members",
+    "sectionTitle": "Workspaces",
+    "current": "Current",
+    "createWorkspace": "Create workspace"
+  },
+  "navUser": {
+    "accountSettings": "Account settings",
+    "logout": "Log out"
+  },
+  "breadcrumb": {
+    "home": "Home",
+    "allFiles": "All files",
+    "transfer": "Transfer",
+    "storage": "Storage",
+    "settings": "Settings",
+    "appearance": "Appearance",
+    "transferSettings": "Transfer settings"
+  },
+  "header": {
+    "lightMode": "Light mode",
+    "darkMode": "Dark mode"
+  }
+}

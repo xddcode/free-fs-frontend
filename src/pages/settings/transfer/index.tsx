@@ -1,19 +1,22 @@
+import { useTranslation } from 'react-i18next'
+import {
+  SettingsPageDescription,
+  SettingsPageTitle,
+} from '../components/settings-page-header'
 import { TransferForm } from './transfer-form'
 
 export function SettingsTransfer() {
+  const { t } = useTranslation('settings')
   return (
     <div className='flex flex-1 flex-col'>
-      <div className='flex-none'>
-        <h3 className='text-lg font-medium'>传输设置</h3>
-        <p className='text-sm text-muted-foreground'>
-          配置文件上传和下载的相关设置
-        </p>
-      </div>
-      <div className='my-4 border-t' />
-      <div className='flex-1'>
-        <div className='max-w-2xl'>
-          <TransferForm />
-        </div>
+      <header className='flex-none'>
+        <SettingsPageTitle>{t('transfer.pageTitle')}</SettingsPageTitle>
+        <SettingsPageDescription>
+          {t('transfer.pageDescription')}
+        </SettingsPageDescription>
+      </header>
+      <div className='mt-8 flex-1'>
+        <TransferForm />
       </div>
     </div>
   )

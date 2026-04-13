@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { FileItem } from '@/types/file'
 import type { ShareThin } from '@/types/share'
 import {
@@ -43,6 +44,7 @@ interface BreadcrumbItem {
 }
 
 export default function SharePage() {
+  const { t } = useTranslation('share')
   const { shareToken } = useParams<{ shareToken: string }>()
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
@@ -72,7 +74,7 @@ export default function SharePage() {
   // 验证提取码
   const handleVerify = async () => {
     if (!accessCode.trim()) {
-      toast.warning('请输入提取码')
+      toast.warning(t('toast.enterCode'))
       return
     }
     setVerifying(true)
@@ -87,7 +89,7 @@ export default function SharePage() {
         params.set('shareCode', accessCode)
         navigate(`/s/${shareToken}?${params.toString()}`, { replace: true })
       } else {
-        toast.error('提取码错误')
+        toast.error(t('toast.codeWrong'))
       }
     } finally {
       setVerifying(false)
@@ -124,13 +126,13 @@ export default function SharePage() {
         error.message?.includes('Network Error') ||
         error.code === 'ERR_NETWORK'
       ) {
-        setErrorMessage('网络连接失败，请检查网络')
+        setErrorMessage(t('errors.network'))
       } else if (error.response?.status === 404) {
-        setErrorMessage('分享不存在或已被删除')
+        setErrorMessage(t('errors.notFound'))
       } else if (error.response?.status >= 500) {
-        setErrorMessage('服务器错误，请稍后重试')
+        setErrorMessage(t('errors.server'))
       } else {
-        setErrorMessage(error.message || '获取分享信息失败')
+        setErrorMessage(error.message || t('errors.generic'))
       }
     } finally {
       setIsLoading(false)
@@ -175,24 +177,27 @@ export default function SharePage() {
   }
 
   // 格式化到期时间
-  const formatExpireTime = (expireTime: string | null) => {
-    if (!expireTime) return '永久有效'
+  const formatExpireTime = useCallback(
+    (expireTime: string | null) => {
+      if (!expireTime) return t('expire.permanent')
 
-    const expireDate = new Date(expireTime)
-    const now = new Date()
-    const diffTime = expireDate.getTime() - now.getTime()
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+      const expireDate = new Date(expireTime)
+      const now = new Date()
+      const diffTime = expireDate.getTime() - now.getTime()
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
 
-    if (diffDays < 0) return '已过期'
-    if (diffDays === 0) return '今天到期'
-    if (diffDays === 1) return '明天到期'
-    if (diffDays <= 7) return `${diffDays}天后到期`
+      if (diffDays < 0) return t('expire.expired')
+      if (diffDays === 0) return t('expire.today')
+      if (diffDays === 1) return t('expire.tomorrow')
+      if (diffDays <= 7) return t('expire.inDays', { days: diffDays })
 
-    const year = expireDate.getFullYear()
-    const month = String(expireDate.getMonth() + 1).padStart(2, '0')
-    const day = String(expireDate.getDate()).padStart(2, '0')
-    return `${year}/${month}/${day} 到期`
-  }
+      const year = expireDate.getFullYear()
+      const month = String(expireDate.getMonth() + 1).padStart(2, '0')
+      const day = String(expireDate.getDate()).padStart(2, '0')
+      return t('expire.onDate', { date: `${year}/${month}/${day}` })
+    },
+    [t]
+  )
 
   // 处理预览
   const handlePreview = async (file: FileItem) => {
@@ -213,9 +218,9 @@ export default function SharePage() {
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
-      toast.success('开始下载文件')
+      toast.success(t('toast.downloadStart'))
     } catch (error) {
-      toast.error('下载失败，请稍后重试')
+      toast.error(t('toast.downloadFail'))
     }
   }
 
@@ -240,7 +245,7 @@ export default function SharePage() {
       <div className='flex min-h-screen items-center justify-center bg-gradient-to-b from-blue-50 to-gray-50'>
         <div className='text-center'>
           <div className='mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-primary'></div>
-          <p className='text-muted-foreground'>正在获取分享信息...</p>
+          <p className='text-muted-foreground'>{t('loading.fetching')}</p>
         </div>
       </div>
     )
@@ -253,12 +258,10 @@ export default function SharePage() {
         <div className='w-full max-w-md rounded-2xl bg-white p-12 text-center shadow-lg'>
           <XCircle className='mx-auto mb-6 h-20 w-20 text-destructive opacity-80' />
           <h2 className='mb-3 text-2xl font-semibold'>{errorMessage}</h2>
-          <p className='mb-6 text-muted-foreground'>
-            无法获取分享信息，请稍后重试
-          </p>
+          <p className='mb-6 text-muted-foreground'>{t('errorState.hint')}</p>
           <Button onClick={fetchShare}>
             <RefreshCw className='mr-2 h-4 w-4' />
-            重新加载
+            {t('errorState.reload')}
           </Button>
         </div>
       </div>
@@ -271,10 +274,8 @@ export default function SharePage() {
       <div className='flex min-h-screen items-center justify-center bg-gradient-to-b from-blue-50 to-gray-50 p-4'>
         <div className='w-full max-w-md rounded-2xl bg-white p-12 text-center shadow-lg'>
           <Clock className='mx-auto mb-6 h-20 w-20 text-muted-foreground opacity-60' />
-          <h2 className='mb-3 text-2xl font-semibold'>分享已过期</h2>
-          <p className='mb-6 text-muted-foreground'>
-            该分享链接已过期，无法访问
-          </p>
+          <h2 className='mb-3 text-2xl font-semibold'>{t('expired.title')}</h2>
+          <p className='mb-6 text-muted-foreground'>{t('expired.desc')}</p>
           <div className='space-y-3 rounded-lg bg-muted p-5'>
             <div className='flex items-center justify-center gap-2 text-sm'>
               <Share2 className='h-4 w-4' />
@@ -283,7 +284,9 @@ export default function SharePage() {
             {shareData.expireTime && (
               <div className='flex items-center justify-center gap-2 text-sm text-muted-foreground'>
                 <Clock className='h-4 w-4' />
-                <span>过期时间：{shareData.expireTime}</span>
+                <span>
+                  {t('expired.at', { time: shareData.expireTime })}
+                </span>
               </div>
             )}
           </div>
@@ -294,7 +297,9 @@ export default function SharePage() {
 
   // 需要验证码状态
   if (!isVerified) {
-    const avatarFallback = getAvatarFallback(shareData.shareName || 'Free-fs')
+    const avatarFallback = getAvatarFallback(
+      shareData.shareName || t('verify.defaultBrand')
+    )
 
     return (
       <div className='flex min-h-screen items-center justify-center bg-gradient-to-b from-blue-50 to-gray-50 p-4'>
@@ -306,16 +311,18 @@ export default function SharePage() {
               </AvatarFallback>
             </Avatar>
             <h2 className='mb-2 text-xl font-semibold'>
-              {shareData.shareName || 'Free-fs'} 的文件分享
+              {t('verify.title', {
+                name: shareData.shareName || t('verify.defaultBrand'),
+              })}
             </h2>
-            <p className='text-muted-foreground'>需要提取码才能访问</p>
+            <p className='text-muted-foreground'>{t('verify.needCode')}</p>
           </div>
           <div className='space-y-4'>
             <div className='relative'>
               <Lock className='absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
               <Input
                 type='text'
-                placeholder='请输入提取码'
+                placeholder={t('verify.placeholder')}
                 value={accessCode}
                 onChange={(e) => setAccessCode(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleVerify()}
@@ -327,7 +334,7 @@ export default function SharePage() {
               onClick={handleVerify}
               disabled={verifying}
             >
-              {verifying ? '验证中...' : '查看文件'}
+              {verifying ? t('verify.verifying') : t('verify.submit')}
             </Button>
           </div>
         </div>
@@ -351,7 +358,9 @@ export default function SharePage() {
             <div>
               <div className='text-lg font-semibold'>{shareData.shareName}</div>
               <div className='flex items-center gap-4 text-sm text-muted-foreground'>
-                <span>{shareData.fileCount ?? 1} 个文件</span>
+                <span>
+                  {t('browse.fileCount', { count: shareData.fileCount ?? 1 })}
+                </span>
                 {shareData.expireTime && (
                   <span className='flex items-center gap-1 rounded bg-muted px-2 py-0.5'>
                     <Clock className='h-3.5 w-3.5' />
@@ -373,7 +382,7 @@ export default function SharePage() {
                   className='flex cursor-pointer items-center gap-1.5'
                 >
                   <FileIcon type='folder' size={16} />
-                  根目录
+                  {t('browse.root')}
                 </BreadcrumbLink>
               </BreadcrumbItem>
               {breadcrumbs.map((item, index) => (
@@ -396,7 +405,7 @@ export default function SharePage() {
         {/* 工具栏 */}
         <div className='flex items-center justify-between border-b px-8 py-3'>
           <span className='text-sm text-muted-foreground'>
-            共 {fileList.length} 个文件
+            {t('browse.totalFiles', { count: fileList.length })}
           </span>
           <div className='flex items-center gap-2'>
             <ToggleGroup
@@ -404,10 +413,10 @@ export default function SharePage() {
               value={viewMode}
               onValueChange={(value) => value && setViewMode(value as ViewMode)}
             >
-              <ToggleGroupItem value='list' aria-label='列表视图' size='sm'>
+              <ToggleGroupItem value='list' aria-label={t('browse.listView')} size='sm'>
                 <List className='h-4 w-4' />
               </ToggleGroupItem>
-              <ToggleGroupItem value='grid' aria-label='网格视图' size='sm'>
+              <ToggleGroupItem value='grid' aria-label={t('browse.gridView')} size='sm'>
                 <LayoutGrid className='h-4 w-4' />
               </ToggleGroupItem>
             </ToggleGroup>
@@ -423,14 +432,14 @@ export default function SharePage() {
             <div className='flex h-full items-center justify-center'>
               <div className='text-center'>
                 <div className='mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-primary'></div>
-                <p className='text-muted-foreground'>加载中...</p>
+                <p className='text-muted-foreground'>{t('loading.list')}</p>
               </div>
             </div>
           ) : fileList.length === 0 ? (
             <div className='flex h-full items-center justify-center'>
               <div className='text-center'>
                 <FileText className='mx-auto mb-4 h-16 w-16 text-muted-foreground opacity-50' />
-                <p className='text-muted-foreground'>暂无文件</p>
+                <p className='text-muted-foreground'>{t('browse.empty')}</p>
               </div>
             </div>
           ) : viewMode === 'list' ? (
@@ -454,7 +463,7 @@ export default function SharePage() {
 
         {/* 底部 */}
         <div className='border-t bg-muted/20 px-8 py-3 text-center text-xs text-muted-foreground'>
-          已加载全部内容
+          {t('browse.footer')}
         </div>
       </div>
     </div>

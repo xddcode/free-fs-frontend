@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { userApi } from '@/api'
 import { ForgotPasswordParams } from '@/types/user'
 import { Mail, Lock, Shield } from 'lucide-react'
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export default function ForgotPasswordContent({ onSwitchForm }: Props) {
+  const { t } = useTranslation('login')
   const [loading, setLoading] = useState(false)
   const [codeLoading, setCodeLoading] = useState(false)
   const [countdown, setCountdown] = useState(0)
@@ -30,14 +32,14 @@ export default function ForgotPasswordContent({ onSwitchForm }: Props) {
 
   const handleSendCode = async () => {
     if (!formData.mail) {
-      toast.warning('请输入邮箱')
+      toast.warning(t('toast.enterEmailWarning'))
       return
     }
 
     setCodeLoading(true)
     try {
       await userApi.sendForgetPasswordCode(formData.mail)
-      toast.success('验证码已发送到您的邮箱')
+      toast.success(t('toast.codeSentToMailbox'))
       setCountdown(60)
     } catch (error) {
       // Error handled by interceptor
@@ -51,14 +53,14 @@ export default function ForgotPasswordContent({ onSwitchForm }: Props) {
 
     // 只验证密码一致性
     if (formData.newPassword !== formData.confirmPassword) {
-      toast.error('两次密码输入不一致')
+      toast.error(t('toast.passwordMismatch'))
       return
     }
 
     setLoading(true)
     try {
       await userApi.updateForgetPassword(formData)
-      toast.success('操作成功')
+      toast.success(t('toast.resetSuccess'))
       setFormData({
         mail: '',
         code: '',
@@ -76,8 +78,8 @@ export default function ForgotPasswordContent({ onSwitchForm }: Props) {
   return (
     <form onSubmit={handleSubmit} className='space-y-6'>
       <div className='space-y-2 text-center'>
-        <h3 className='text-2xl font-bold tracking-tight'>找回密码</h3>
-        <p className='text-sm text-muted-foreground'>通过邮箱验证码重置密码</p>
+        <h3 className='text-2xl font-bold tracking-tight'>{t('recoverPassword')}</h3>
+        <p className='text-sm text-muted-foreground'>{t('recoverSubtitle')}</p>
       </div>
 
       <div className='space-y-3'>
@@ -86,7 +88,7 @@ export default function ForgotPasswordContent({ onSwitchForm }: Props) {
           <Input
             id='forgot-mail'
             type='email'
-            placeholder='请输入邮箱'
+            placeholder={t('placeholderEmail')}
             value={formData.mail}
             onChange={(e) => setFormData({ ...formData, mail: e.target.value })}
             className='h-11 pl-10'
@@ -101,7 +103,7 @@ export default function ForgotPasswordContent({ onSwitchForm }: Props) {
           <Input
             id='forgot-code'
             type='text'
-            placeholder='请输入验证码'
+            placeholder={t('placeholderVerificationCode')}
             value={formData.code}
             onChange={(e) => setFormData({ ...formData, code: e.target.value })}
             maxLength={6}
@@ -116,7 +118,9 @@ export default function ForgotPasswordContent({ onSwitchForm }: Props) {
             onClick={handleSendCode}
             disabled={countdown > 0 || codeLoading}
           >
-            {countdown > 0 ? `${countdown}秒后重试` : '发送验证码'}
+            {countdown > 0
+              ? t('retryAfter', { countdown })
+              : t('sendVerificationCode')}
           </Button>
         </div>
       </div>
@@ -127,7 +131,7 @@ export default function ForgotPasswordContent({ onSwitchForm }: Props) {
           <Input
             id='forgot-new-password'
             type='password'
-            placeholder='请输入新密码'
+            placeholder={t('placeholderNewPassword')}
             value={formData.newPassword}
             onChange={(e) =>
               setFormData({ ...formData, newPassword: e.target.value })
@@ -145,7 +149,7 @@ export default function ForgotPasswordContent({ onSwitchForm }: Props) {
           <Input
             id='forgot-confirm-password'
             type='password'
-            placeholder='请再次输入新密码'
+            placeholder={t('placeholderConfirmNewPassword')}
             value={formData.confirmPassword}
             onChange={(e) =>
               setFormData({ ...formData, confirmPassword: e.target.value })
@@ -158,17 +162,17 @@ export default function ForgotPasswordContent({ onSwitchForm }: Props) {
       </div>
 
       <Button type='submit' className='h-11 w-full' disabled={loading}>
-        {loading ? '重置中...' : '重置密码'}
+        {loading ? t('resetting') : t('resetPassword')}
       </Button>
 
       <p className='text-center text-sm text-muted-foreground'>
-        想起密码了？{' '}
+        {t('rememberedPassword')}{' '}
         <button
           type='button'
           className='underline underline-offset-2 hover:text-foreground'
           onClick={() => onSwitchForm('login')}
         >
-          返回登录
+          {t('backToLogin')}
         </button>
       </p>
     </form>

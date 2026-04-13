@@ -1,5 +1,7 @@
 import SparkMD5 from 'spark-md5'
 
+import i18n from '@/i18n'
+
 /**
  * 快速指纹阈值：大于此大小的文件使用快速指纹（100MB）
  */
@@ -66,7 +68,7 @@ export function calculateFastFingerprint(file: File): Promise<string> {
     }
 
     fileReader.onerror = () => {
-      reject(new Error('文件读取失败'))
+      reject(new Error(i18n.t('common:fileErrors.readFailed')))
     }
 
     loadNext()
@@ -107,7 +109,7 @@ export function calculateFullFileMD5(file: File): Promise<string> {
     }
 
     fileReader.onerror = () => {
-      reject(new Error('文件读取失败'))
+      reject(new Error(i18n.t('common:fileErrors.readFailed')))
     }
 
     loadNext()
@@ -144,7 +146,7 @@ export function calculateBlobMD5(blob: Blob): Promise<string> {
     }
 
     fileReader.onerror = () => {
-      reject(new Error('分片读取失败'))
+      reject(new Error(i18n.t('common:fileErrors.chunkReadFailed')))
     }
 
     fileReader.readAsArrayBuffer(blob)

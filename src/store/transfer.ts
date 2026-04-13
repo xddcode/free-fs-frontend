@@ -21,6 +21,7 @@ import { createFolder } from '@/api/file'
 import { UPLOAD_LIMITS, formatFileSize, shouldFilterFile } from '@/config/upload-limits'
 import { progressCalculator } from '@/utils/progress-calculator'
 import { stateMachine } from '@/utils/transfer-state-machine'
+import i18n from '@/i18n'
 import { useUserStore } from './user'
 
 interface TransferStore {
@@ -186,7 +187,9 @@ export const useTransferStore = create<TransferStore>((set, get) => ({
     const { completedActionsTriggered, fileCache } = get()
     completedActionsTriggered.add(task.taskId)
 
-    toast.success(`文件 "${task.fileName}" 上传完成`)
+    toast.success(
+      i18n.t('files:uploadPanel.toastFileComplete', { name: task.fileName })
+    )
 
     window.dispatchEvent(
       new CustomEvent('file-upload-complete', {
@@ -216,7 +219,12 @@ export const useTransferStore = create<TransferStore>((set, get) => ({
 
       if (!errorNotificationTriggered.has(taskId)) {
         errorNotificationTriggered.add(taskId)
-        toast.error(`文件 "${task.fileName}" 上传失败: ${errorMessage}`)
+        toast.error(
+          i18n.t('files:uploadPanel.toastFileFailed', {
+            name: task.fileName,
+            message: errorMessage,
+          })
+        )
       }
     }
   },

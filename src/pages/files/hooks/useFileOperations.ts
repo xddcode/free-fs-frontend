@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { FileItem } from '@/types/file'
 import { toast } from 'sonner'
 import {
@@ -16,6 +17,7 @@ export function useFileOperations(
   clearSelectionCallback?: () => void,
   onCreateFolderSuccess?: () => void
 ) {
+  const { t } = useTranslation('files')
   // 模态框状态
   const [createFolderModalVisible, setCreateFolderModalVisible] =
     useState(false)
@@ -48,15 +50,15 @@ export function useFileOperations(
     async (folderName: string, parentId?: string) => {
       try {
         await createFolder({ folderName: folderName.trim(), parentId })
-        toast.success('文件夹创建成功')
+        toast.success(t('operations.mkdirOk'))
         setCreateFolderModalVisible(false)
         onCreateFolderSuccess?.()
         refreshCallback()
       } catch (error) {
-        toast.error('创建文件夹失败')
+        toast.error(t('operations.mkdirFail'))
       }
     },
-    [refreshCallback, onCreateFolderSuccess]
+    [refreshCallback, onCreateFolderSuccess, t]
   )
 
   /**
@@ -74,16 +76,16 @@ export function useFileOperations(
     async (fileId: string, newName: string) => {
       try {
         await renameFile(fileId, newName.trim())
-        toast.success('重命名成功')
+        toast.success(t('operations.renameOk'))
         setRenameModalVisible(false)
         setRenamingFile(null)
         clearSelectionCallback?.()
         refreshCallback()
       } catch (error) {
-        toast.error('重命名失败')
+        toast.error(t('operations.renameFail'))
       }
     },
-    [refreshCallback, clearSelectionCallback]
+    [refreshCallback, clearSelectionCallback, t]
   )
 
   /**
@@ -111,17 +113,17 @@ export function useFileOperations(
     async (fileIds: string[], targetDirId: string) => {
       try {
         await moveFiles(targetDirId, fileIds)
-        toast.success('移动成功')
+        toast.success(t('operations.moveOk'))
         setMoveModalVisible(false)
         setMovingFile(null)
         setMovingFiles([])
         clearSelectionCallback?.()
         refreshCallback()
       } catch (error) {
-        toast.error('移动失败')
+        toast.error(t('operations.moveFail'))
       }
     },
-    [refreshCallback, clearSelectionCallback]
+    [refreshCallback, clearSelectionCallback, t]
   )
 
   /**
@@ -151,17 +153,17 @@ export function useFileOperations(
       await deleteFiles(fileIds)
       const successMsg =
         fileIds.length === 1
-          ? '已移到回收站'
-          : `已将 ${fileIds.length} 个文件移到回收站`
+          ? t('operations.trashOne')
+          : t('operations.trashMany', { count: fileIds.length })
       toast.success(successMsg)
       setDeleteDialogVisible(false)
       setDeletingFiles([])
       clearSelectionCallback?.()
       refreshCallback()
     } catch (error) {
-      toast.error('删除失败')
+      toast.error(t('operations.trashFail'))
     }
-  }, [deletingFiles, refreshCallback, clearSelectionCallback])
+  }, [deletingFiles, refreshCallback, clearSelectionCallback, t])
 
   /**
    * 打开删除确认对话框
@@ -206,10 +208,10 @@ export function useFileOperations(
 
     const successMsg =
       fileArray.length === 1
-        ? '开始下载文件'
-        : `开始下载 ${fileArray.length} 个文件`
+        ? t('operations.downloadOne')
+        : t('operations.downloadMany', { count: fileArray.length })
     toast.success(successMsg)
-  }, [])
+  }, [t])
 
   /**
    * 收藏/取消收藏
@@ -225,18 +227,18 @@ export function useFileOperations(
       try {
         if (hasUnfavorited) {
           await favoriteFile(fileIds)
-          toast.success('收藏成功')
+          toast.success(t('operations.favOk'))
         } else {
           await unfavoriteFile(fileIds)
-          toast.success('取消收藏成功')
+          toast.success(t('operations.unfavOk'))
         }
         clearSelectionCallback?.()
         refreshCallback()
       } catch (error) {
-        toast.error(hasUnfavorited ? '收藏失败' : '取消收藏失败')
+        toast.error(hasUnfavorited ? t('operations.favFail') : t('operations.unfavFail'))
       }
     },
-    [refreshCallback, clearSelectionCallback]
+    [refreshCallback, clearSelectionCallback, t]
   )
 
   /**

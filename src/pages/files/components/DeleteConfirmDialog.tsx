@@ -1,3 +1,5 @@
+import { useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { FileItem } from '@/types/file'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 
@@ -16,14 +18,18 @@ export function DeleteConfirmDialog({
   onConfirm,
   isLoading = false,
 }: DeleteConfirmDialogProps) {
+  const { t } = useTranslation('files')
   const fileCount = files.length
   const firstName = files[0]?.displayName ?? ''
-  const desc =
-    fileCount === 0
-      ? '确定要将选中的文件放入回收站吗？可在回收站还原。'
-      : fileCount === 1
-        ? `确定要将「${firstName}」放入回收站吗？可在回收站还原。`
-        : `确定要将选中的 ${fileCount} 个文件放入回收站吗？可在回收站还原。`
+  const desc = useMemo(
+    () =>
+      fileCount === 0
+        ? t('deleteDialog.batch')
+        : fileCount === 1
+          ? t('deleteDialog.single', { name: firstName })
+          : t('deleteDialog.multi', { count: fileCount }),
+    [fileCount, firstName, t]
+  )
 
   return (
     <ConfirmDialog
@@ -32,10 +38,10 @@ export function DeleteConfirmDialog({
       onOpenChange={onOpenChange}
       handleConfirm={onConfirm}
       isLoading={isLoading}
-      title='放入回收站'
+      title={t('deleteDialog.title')}
       desc={desc}
-      confirmText='放入回收站'
-      cancelBtnText='取消'
+      confirmText={t('deleteDialog.confirm')}
+      cancelBtnText={t('common.cancel')}
     />
   )
 }

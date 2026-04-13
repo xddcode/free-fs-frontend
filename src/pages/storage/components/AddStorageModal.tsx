@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import type { ConfigScheme } from '@/types/storage'
 import { Info, AlertCircle, Tag } from 'lucide-react'
@@ -14,7 +15,6 @@ import {
   Dialog,
   DialogClose,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -40,6 +40,7 @@ export function AddStorageModal({
   onOpenChange,
   onSuccess,
 }: AddStorageModalProps) {
+  const { t } = useTranslation('storage')
   const [selectedPlatformId, setSelectedPlatformId] = useState<string>('')
   const [formData, setFormData] = useState<Record<string, string>>({})
   const [remark, setRemark] = useState('')
@@ -47,17 +48,17 @@ export function AddStorageModal({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
 
-  // 获取平台列表
   const { data: platforms = [], isLoading: platformsLoading } = useQuery({
     queryKey: ['storagePlatforms'],
     queryFn: getStoragePlatforms,
+    staleTime: 60_000,
     enabled: open,
   })
 
-  // 获取用户已配置的平台
   const { data: userSettings = [] } = useQuery({
     queryKey: ['userStorageSettings'],
     queryFn: getUserStorageSettings,
+    staleTime: 30_000,
     enabled: open,
   })
 
@@ -87,7 +88,7 @@ export function AddStorageModal({
         setFormData(initialData)
         setErrors({})
       } catch (error) {
-        toast.error('配置方案格式错误')
+        toast.error(t('addModal.toastSchemeError'))
         setSchemes([])
       }
     } else {
@@ -118,12 +119,14 @@ export function AddStorageModal({
     const newErrors: Record<string, string> = {}
 
     if (!selectedPlatformId) {
-      newErrors.platform = '请选择存储平台'
+      newErrors.platform = t('addModal.toastSelectPlatform')
     }
 
     schemes.forEach((field) => {
       if (field.validation.required && !formData[field.identifier]?.trim()) {
-        newErrors[field.identifier] = `请输入${field.label}`
+        newErrors[field.identifier] = t('addModal.toastEnterField', {
+          label: field.label,
+        })
       }
     })
 
@@ -154,7 +157,7 @@ export function AddStorageModal({
         configData: JSON.stringify(formData),
         remark: remark.trim(),
       })
-      toast.success('配置添加成功')
+      toast.success(t('addModal.toastSuccess'))
       onSuccess()
       onOpenChange(false)
     } finally {
@@ -164,19 +167,17 @@ export function AddStorageModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className='max-h-[85vh] max-w-2xl overflow-y-auto'>
+      <DialogContent className='max-h-[85vh] sm:max-w-2xl overflow-y-auto'>
         <DialogHeader>
-          <DialogTitle>添加存储平台配置</DialogTitle>
-          <DialogDescription>
-            配置您的对象存储平台，支持 MinIO、阿里云 OSS、腾讯云 COS 等
-          </DialogDescription>
+          <DialogTitle>{t('addModal.title')}</DialogTitle>
         </DialogHeader>
 
-        <div className='space-y-6 px-6 pb-4'>
+        <div className='space-y-6'>
           {/* 选择平台 */}
           <div className='space-y-3'>
             <Label htmlFor='platform'>
-              选择存储平台 <span className='align-middle text-red-500'>*</span>
+              <span className='relative top-0.5 text-red-500'>* </span>
+              {t('addModal.selectPlatform')}
             </Label>
             <Select
               value={selectedPlatformId}
@@ -188,12 +189,12 @@ export function AddStorageModal({
               <SelectTrigger
                 className={`w-full ${errors.platform ? 'border-red-500' : ''}`}
               >
-                <SelectValue placeholder='请选择存储平台' />
+                <SelectValue placeholder={t('addModal.selectPlatformPh')} />
               </SelectTrigger>
               <SelectContent>
                 {platformsLoading ? (
                   <div className='p-2 text-sm text-muted-foreground'>
-                    加载中...
+                    {t('addModal.loading')}
                   </div>
                 ) : (
                   platforms.map((platform) => (
@@ -221,10 +222,10 @@ export function AddStorageModal({
               {schemes.map((field) => (
                 <div key={field.identifier} className='space-y-3'>
                   <Label htmlFor={field.identifier}>
-                    {field.label}{' '}
                     {field.validation.required && (
-                      <span className='align-middle text-red-500'>*</span>
+                      <span className='relative top-0.5 text-red-500'>* </span>
                     )}
+                    {field.label}
                   </Label>
                   <Input
                     id={field.identifier}
@@ -236,7 +237,7 @@ export function AddStorageModal({
                       })
                       clearFieldError(field.identifier)
                     }}
-                    placeholder={`请输入${field.label}`}
+                    placeholder={t('addModal.fieldPh', { label: field.label })}
                     className={errors[field.identifier] ? 'border-red-500' : ''}
                   />
                   {errors[field.identifier] && (
@@ -250,22 +251,20 @@ export function AddStorageModal({
 
               {/* 备注 */}
               <div className='space-y-3'>
-                <Label htmlFor='remark'>配置备注</Label>
+                <Label htmlFor='remark'>{t('addModal.remarkLabel')}</Label>
                 <div className='relative'>
                   <Tag className='absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
                   <Input
                     id='remark'
                     value={remark}
                     onChange={(e) => setRemark(e.target.value)}
-                    placeholder='例如：生产环境、测试环境、备份存储等'
+                    placeholder={t('addModal.remarkPh')}
                     className='pl-10'
                   />
                 </div>
                 <div className='flex items-start gap-2 text-xs text-primary'>
                   <Info className='mt-0.5 h-3 w-3 flex-shrink-0' />
-                  <span>
-                    强烈建议添加备注（如"生产环境"、"测试环境"），便于在切换时快速识别
-                  </span>
+                  <span>{t('addModal.remarkHint')}</span>
                 </div>
               </div>
 
@@ -274,8 +273,9 @@ export function AddStorageModal({
                 <Alert>
                   <AlertCircle className='h-4 w-4' />
                   <AlertDescription>
-                    您已配置过 <strong>{selectedPlatform?.name}</strong>
-                    ，强烈建议填写备注以便区分！
+                    {t('addModal.duplicateWarn', {
+                      name: selectedPlatform?.name ?? '',
+                    })}
                   </AlertDescription>
                 </Alert>
               )}
@@ -286,7 +286,7 @@ export function AddStorageModal({
           {!selectedPlatformId && (
             <div className='flex flex-col items-center justify-center py-12 text-muted-foreground'>
               <AlertCircle className='mb-4 h-12 w-12' />
-              <p className='text-sm'>请先选择存储平台</p>
+              <p className='text-sm'>{t('addModal.emptyHint')}</p>
             </div>
           )}
         </div>
@@ -294,14 +294,22 @@ export function AddStorageModal({
         <DialogFooter>
           <DialogClose asChild>
             <Button variant='outline' disabled={isSubmitting}>
-              取消
+              {t('addModal.cancel')}
             </Button>
           </DialogClose>
           <Button
             onClick={handleSubmit}
-            disabled={!selectedPlatformId || isSubmitting}
+            disabled={
+              !selectedPlatformId ||
+              isSubmitting ||
+              !schemes.every((field) =>
+                field.validation.required
+                  ? formData[field.identifier]?.trim()
+                  : true
+              )
+            }
           >
-            {isSubmitting ? '保存中...' : '保存配置'}
+            {isSubmitting ? t('addModal.saving') : t('addModal.save')}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -1,6 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import '@/i18n'
 import App from './app'
 import { ThemeProvider } from './components/theme-provider'
 import './styles/index.css'

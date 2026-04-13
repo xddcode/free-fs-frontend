@@ -1,0 +1,60 @@
+{
+  "toast": {
+    "enterCode": "Enter the access code",
+    "codeWrong": "Invalid access code",
+    "downloadStart": "Download started",
+    "downloadFail": "Download failed. Try again later."
+  },
+  "errors": {
+    "network": "Network error. Check your connection.",
+    "notFound": "Share not found or removed",
+    "server": "Server error. Try again later.",
+    "generic": "Failed to load share"
+  },
+  "loading": {
+    "fetching": "Loading share…",
+    "list": "Loading…"
+  },
+  "errorState": {
+    "hint": "Could not load the share. Try again later.",
+    "reload": "Reload"
+  },
+  "expired": {
+    "title": "Share expired",
+    "desc": "This link has expired.",
+    "at": "Expired: {{time}}"
+  },
+  "verify": {
+    "defaultBrand": "Free-fs",
+    "title": "{{name}} shared files",
+    "needCode": "Access code required",
+    "placeholder": "Access code",
+    "submit": "View files",
+    "verifying": "Verifying…"
+  },
+  "browse": {
+    "fileCount": "{{count}} file(s)",
+    "root": "Root",
+    "totalFiles": "{{count}} file(s)",
+    "listView": "List view",
+    "gridView": "Grid view",
+    "empty": "No files",
+    "footer": "End of list"
+  },
+  "expire": {
+    "permanent": "Never expires",
+    "expired": "Expired",
+    "today": "Expires today",
+    "tomorrow": "Expires tomorrow",
+    "inDays": "Expires in {{days}} days",
+    "onDate": "Expires {{date}}"
+  },
+  "fileList": {
+    "name": "Name",
+    "size": "Size",
+    "modified": "Modified",
+    "actions": "Actions",
+    "preview": "Preview",
+    "download": "Download"
+  }
+}
