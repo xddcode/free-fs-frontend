@@ -1,0 +1,19 @@
+{
+  "loading": "加载中...",
+  "invalidLink": "邀请链接无效",
+  "verifyFailed": "邀请验证失败",
+  "invalidInvite": "邀请无效",
+  "backToHome": "返回首页",
+  "workspaceInvitation": "工作空间邀请",
+  "invitedBy": "邀请人",
+  "joinWorkspace": "加入工作空间",
+  "yourRole": "您的角色",
+  "inviteEmail": "邀请邮箱",
+  "expiresAt": "有效期至",
+  "acceptInvite": "接受邀请",
+  "cancel": "取消",
+  "processing": "处理中...",
+  "acceptSuccess": "接受邀请成功！",
+  "acceptFailed": "接受邀请失败",
+  "emailMismatch": "当前登录账号 ({{currentEmail}}) 与邀请邮箱 ({{inviteEmail}}) 不匹配，请使用正确的账号登录"
+}

@@ -1,0 +1,19 @@
+{
+  "loading": "Loading...",
+  "invalidLink": "Invalid invitation link",
+  "verifyFailed": "Invitation verification failed",
+  "invalidInvite": "Invalid invitation",
+  "backToHome": "Back to home",
+  "workspaceInvitation": "Workspace Invitation",
+  "invitedBy": "Invited by",
+  "joinWorkspace": "Join workspace",
+  "yourRole": "Your role",
+  "inviteEmail": "Invitation email",
+  "expiresAt": "Expires at",
+  "acceptInvite": "Accept invitation",
+  "cancel": "Cancel",
+  "processing": "Processing...",
+  "acceptSuccess": "Invitation accepted successfully!",
+  "acceptFailed": "Failed to accept invitation",
+  "emailMismatch": "Current account ({{currentEmail}}) does not match the invitation email ({{inviteEmail}}). Please sign in with the correct account"
+}

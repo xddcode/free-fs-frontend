@@ -62,8 +62,14 @@
     "socialLoginPending": "Signing in with {{platform}}...",
     "passwordMismatch": "Passwords do not match",
     "registerSuccess": "Account created",
+    "registerAndJoinSuccess": "Account created! You've automatically joined the workspace",
     "codeSentToMailbox": "Verification code sent to your email",
     "enterEmailWarning": "Enter your email",
     "resetSuccess": "Done"
-  }
+  },
+  "inviteEmailNotice": "Please sign in with the invited email",
+  "useEmail": "Email",
+  "invitationRegisterNotice": "You're registering via invitation",
+  "autoJoinWorkspace": "You'll automatically join the workspace after registration",
+  "emailFixedByInvite": "Email is specified by the invitation and cannot be modified"
 }

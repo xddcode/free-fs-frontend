@@ -62,8 +62,14 @@
     "socialLoginPending": "{{platform}} 登录...",
     "passwordMismatch": "两次密码输入不一致",
     "registerSuccess": "注册成功",
+    "registerAndJoinSuccess": "注册成功！您已自动加入工作空间",
     "codeSentToMailbox": "验证码已发送到您的邮箱",
     "enterEmailWarning": "请输入邮箱",
     "resetSuccess": "操作成功"
-  }
+  },
+  "inviteEmailNotice": "请使用邀请邮箱登录",
+  "useEmail": "邮箱",
+  "invitationRegisterNotice": "您正在通过邀请注册",
+  "autoJoinWorkspace": "注册成功后将自动加入工作空间",
+  "emailFixedByInvite": "邮箱由邀请指定，不可修改"
 }

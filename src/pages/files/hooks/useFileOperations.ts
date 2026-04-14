@@ -11,6 +11,7 @@ import {
   unfavoriteFile,
 } from '@/api/file'
 import { openFilePreviewWithToken } from '@/utils/preview'
+import { getCurrentWorkspaceId } from '@/store/workspace'
 
 export function useFileOperations(
   refreshCallback: () => void,
@@ -189,12 +190,19 @@ export function useFileOperations(
     const token =
       localStorage.getItem('accessToken') ||
       sessionStorage.getItem('accessToken')
+    const workspaceId = getCurrentWorkspaceId()
 
     // 使用延迟下载避免浏览器阻止多个下载
     fileArray.forEach((file, index) => {
       setTimeout(() => {
-        // 构建下载链接，将 token 放到 URL 参数中（需要包含 Bearer 前缀）
-        const downloadUrl = `${import.meta.env.VITE_API_BASE_URL}/apis/transfer/download/${file.id}?Authorization=Bearer ${token}`
+        // 构建下载链接，将 token 和 workspaceId 放到 URL 参数中
+        const params = new URLSearchParams()
+        params.set('Authorization', `Bearer ${token}`)
+        if (workspaceId) {
+          params.set('X-Workspace-Id', workspaceId)
+        }
+        
+        const downloadUrl = `${import.meta.env.VITE_API_BASE_URL}/apis/transfer/download/${file.id}?${params.toString()}`
 
         const link = document.createElement('a')
         link.href = downloadUrl

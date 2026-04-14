@@ -7,6 +7,7 @@ import type { PermissionCodeType } from '@/types/permission'
 import FileManagerPage from '@/pages/files'
 import HomePage from '@/pages/home'
 import LoginPage from '@/pages/login'
+import InvitePage from '@/pages/invite'
 import NewWorkspacePage from '@/pages/workspace/new'
 import SharePage from '@/pages/share'
 import StoragePage from '@/pages/storage'
@@ -221,6 +222,10 @@ export const router = createBrowserRouter([
   {
     path: '/login',
     element: <LoginPage />,
+  },
+  {
+    path: '/invite',
+    element: <InvitePage />,
   },
   {
     path: '/s/:shareToken',

@@ -94,6 +94,23 @@ service.interceptors.request.use(
       config.headers['X-Workspace-Id'] = workspaceId
     }
 
+    // 如果 URL 中包含了 X-Workspace-Id 参数，也添加到请求头中（用于下载等场景）
+    if (config.url?.includes('X-Workspace-Id')) {
+      try {
+        const url = new URL(config.url, config.baseURL)
+        const urlWorkspaceId = url.searchParams.get('X-Workspace-Id')
+        if (urlWorkspaceId) {
+          config.headers = config.headers || {}
+          config.headers['X-Workspace-Id'] = urlWorkspaceId
+          // 从 URL 中移除该参数，避免重复
+          url.searchParams.delete('X-Workspace-Id')
+          config.url = url.toString().replace(url.origin, '')
+        }
+      } catch {
+        // URL 解析失败，忽略
+      }
+    }
+
     config.headers = config.headers || {}
     config.headers.lang = getRequestLangHeader()
 

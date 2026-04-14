@@ -22,7 +22,9 @@ export const userApi = {
 
   /** 登录-邮箱验证码：向 account 对应邮箱发送验证码（与后端路径对齐） */
   sendLoginEmailCode: (account: string) => {
-    return request.post<unknown>('/apis/auth/login/email-code', { account })
+    return request.post<unknown>('/apis/auth/login/email-code', null, {
+      params: { account },
+    })
   },
 
   // 注册

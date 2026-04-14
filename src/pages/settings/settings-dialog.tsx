@@ -79,6 +79,7 @@ function buildNavConfig(
           title: t('nav.workspace'),
           tab: 'workspace',
           icon: { line: RiBuildingLine, fill: RiBuildingFill },
+          permission: 'member:manage',
         },
         {
           title: t('nav.members'),
@@ -126,7 +127,11 @@ function SettingsPanel({ tab }: { tab: SettingsTab }) {
     case 'transfer':
       return <SettingsTransfer />
     case 'workspace':
-      return <SettingsWorkspace />
+      return hasPermission('member:manage') ? (
+        <SettingsWorkspace />
+      ) : (
+        <NoPermission />
+      )
     case 'members':
       return hasPermission('member:manage') ? (
         <SettingsMembers />

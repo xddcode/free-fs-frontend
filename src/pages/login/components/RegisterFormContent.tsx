@@ -1,10 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { userApi } from '@/api'
 import { useAuth } from '@/contexts/auth-context'
 import { UserRegisterParams } from '@/types/user'
-import { User, Lock, Mail, Pen } from 'lucide-react'
+import { User, Lock, Mail, Pen, Info } from 'lucide-react'
 import { toast } from 'sonner'
 import { setToken } from '@/utils/auth'
 import { Button } from '@/components/ui/button'
@@ -18,15 +18,23 @@ interface Props {
 export default function RegisterFormContent({ onSwitchForm, inviteToken }: Props) {
   const { t } = useTranslation('login')
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { login } = useAuth()
   const [loading, setLoading] = useState(false)
+  
+  // 从 URL 获取邀请邮箱参数
+  const inviteEmail = searchParams.get('email')
+  
   const [formData, setFormData] = useState<UserRegisterParams>({
     username: '',
     password: '',
     confirmPassword: '',
-    email: '',
+    email: inviteEmail || '',
     nickname: '',
+    inviteToken: inviteToken || undefined,
   })
+
+  const hasInvitation = !!(inviteToken || formData.inviteToken)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -36,8 +44,8 @@ export default function RegisterFormContent({ onSwitchForm, inviteToken }: Props
       return
     }
 
-    const submitData = inviteToken
-      ? { ...formData, inviteToken }
+    const submitData = formData.inviteToken
+      ? { ...formData, inviteToken: formData.inviteToken }
       : formData
 
     setLoading(true)
@@ -45,7 +53,7 @@ export default function RegisterFormContent({ onSwitchForm, inviteToken }: Props
       await userApi.register(submitData)
       toast.success(t('toast.registerSuccess'))
 
-      if (inviteToken) {
+      if (formData.inviteToken) {
         // 有邀请 token：自动登录并进入邀请的工作空间
         try {
           const res = await userApi.login({
@@ -57,6 +65,7 @@ export default function RegisterFormContent({ onSwitchForm, inviteToken }: Props
           setToken(res.accessToken, true)
           const userInfo = await userApi.getUserInfo()
           await login(res.accessToken, userInfo, true)
+          toast.success(t('toast.registerAndJoinSuccess'))
           navigate('/')
         } catch {
           onSwitchForm('login')
@@ -77,9 +86,24 @@ export default function RegisterFormContent({ onSwitchForm, inviteToken }: Props
       <div className='space-y-2 text-center'>
         <h3 className='text-2xl font-bold tracking-tight'>{t('createAccount')}</h3>
         <p className='text-sm text-muted-foreground'>
-          {inviteToken ? t('registerSubtitleInvite') : t('registerSubtitle')}
+          {hasInvitation ? t('registerSubtitleInvite') : t('registerSubtitle')}
         </p>
       </div>
+
+      {/* 邀请注册提示 */}
+      {hasInvitation && (
+        <div className='rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800'>
+          <div className='flex items-start gap-2'>
+            <Info className='mt-0.5 h-4 w-4 shrink-0' />
+            <div>
+              <p className='font-medium'>{t('invitationRegisterNotice')}</p>
+              <p className='mt-1 text-xs text-blue-600'>
+                {t('autoJoinWorkspace')}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className='space-y-3'>
         <div className='relative'>
@@ -147,10 +171,13 @@ export default function RegisterFormContent({ onSwitchForm, inviteToken }: Props
             value={formData.email}
             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
             className='h-11 pl-10'
-            disabled={loading}
+            disabled={loading || hasInvitation}
             required
           />
         </div>
+        {hasInvitation && (
+          <p className='text-xs text-muted-foreground'>{t('emailFixedByInvite')}</p>
+        )}
       </div>
 
       <div className='space-y-3'>

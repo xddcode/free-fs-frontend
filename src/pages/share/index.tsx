@@ -22,6 +22,7 @@ import {
 import { getToken } from '@/utils/auth'
 import { getAvatarFallback } from '@/utils/avatar'
 import { openFilePreviewWithToken } from '@/utils/preview'
+import { getCurrentWorkspaceId } from '@/store/workspace'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
   Breadcrumb,
@@ -208,8 +209,16 @@ export default function SharePage() {
   const handleDownload = (file: FileItem) => {
     try {
       const token = getToken()
-      // 构建下载链接，将 token 放到 URL 参数中（需要包含 Bearer 前缀）
-      const downloadUrl = `${import.meta.env.VITE_API_BASE_URL}/apis/share/${shareToken}/download/${file.id}?Authorization=Bearer ${token}`
+      const workspaceId = getCurrentWorkspaceId()
+      
+      // 构建下载链接，将 token 和 workspaceId 放到 URL 参数中
+      const params = new URLSearchParams()
+      params.set('Authorization', `Bearer ${token}`)
+      if (workspaceId) {
+        params.set('X-Workspace-Id', workspaceId)
+      }
+      
+      const downloadUrl = `${import.meta.env.VITE_API_BASE_URL}/apis/share/${shareToken}/download/${file.id}?${params.toString()}`
 
       const link = document.createElement('a')
       link.href = downloadUrl

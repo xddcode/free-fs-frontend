@@ -45,6 +45,9 @@ export default function LoginFormContent({ onSwitchForm }: Props) {
   const [codeSending, setCodeSending] = useState(false)
   const [countdown, setCountdown] = useState(0)
 
+  // 获取URL中的邮箱参数（来自邀请流程）
+  const suggestedEmail = searchParams.get('email')
+
   useEffect(() => {
     if (countdown <= 0) return
     const t = window.setInterval(() => {
@@ -144,6 +147,16 @@ export default function LoginFormContent({ onSwitchForm }: Props) {
         <h3 className='text-2xl font-bold tracking-tight'>{t('welcomeBack')}</h3>
         <p className='text-sm text-muted-foreground'>{t('loginAccount')}</p>
       </div>
+
+      {/* 邀请邮箱提示 */}
+      {suggestedEmail && (
+        <div className='rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800'>
+          <p className='font-medium'>{t('inviteEmailNotice')}</p>
+          <p className='mt-1 text-xs text-blue-600'>
+            {t('useEmail')}: <strong>{suggestedEmail}</strong>
+          </p>
+        </div>
+      )}
 
       <div className='space-y-3'>
         <div className='relative'>
