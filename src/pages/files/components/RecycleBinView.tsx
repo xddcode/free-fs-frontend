@@ -574,62 +574,68 @@ export default function RecycleBinView() {
       )}
 
       <AlertDialog open={restoreDialogOpen} onOpenChange={setRestoreDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>确认还原</AlertDialogTitle>
-            <AlertDialogDescription>
-              {operatingItem
-                ? `确定要还原文件 "${operatingItem.name}" 吗？`
-                : `确定要还原选中的 ${selectedIds.length} 个文件吗？`}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmRestore}>还原</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
+        {restoreDialogOpen && (
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>确认还原</AlertDialogTitle>
+              <AlertDialogDescription>
+                {operatingItem
+                  ? `确定要还原文件 "${operatingItem.name}" 吗？`
+                  : `确定要还原选中的 ${selectedIds.length} 个文件吗？`}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>取消</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmRestore}>还原</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        )}
       </AlertDialog>
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>确认彻底删除</AlertDialogTitle>
-            <AlertDialogDescription>
-              {operatingItem
-                ? `确定要彻底删除文件 "${operatingItem.name}" 吗？删除后将无法恢复！`
-                : `确定要彻底删除选中的 ${selectedIds.length} 个文件吗？删除后将无法恢复！`}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmDelete}
-              className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
-            >
-              删除
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
+        {deleteDialogOpen && (
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>确认彻底删除</AlertDialogTitle>
+              <AlertDialogDescription>
+                {operatingItem
+                  ? `确定要彻底删除文件 "${operatingItem.name}" 吗？删除后将无法恢复！`
+                  : `确定要彻底删除选中的 ${selectedIds.length} 个文件吗？删除后将无法恢复！`}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>取消</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={confirmDelete}
+                className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
+              >
+                删除
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        )}
       </AlertDialog>
 
       <AlertDialog open={clearDialogOpen} onOpenChange={setClearDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>确认清空回收站</AlertDialogTitle>
-            <AlertDialogDescription>
-              确定要清空回收站吗？所有文件将被彻底删除且无法恢复！
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmClearRecycle}
-              className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
-            >
-              清空
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
+        {clearDialogOpen && (
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>确认清空回收站</AlertDialogTitle>
+              <AlertDialogDescription>
+                确定要清空回收站吗？所有文件将被彻底删除且无法恢复！
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>取消</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={confirmClearRecycle}
+                className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
+              >
+                清空
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        )}
       </AlertDialog>
     </div>
   )
