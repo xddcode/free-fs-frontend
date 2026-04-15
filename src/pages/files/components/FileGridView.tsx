@@ -86,6 +86,12 @@ export function FileGridView({
 }: FileGridViewProps) {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
 
+  // 提到 map 外部，避免每个 item 重复计算
+  const selectedSet = new Set(selectedKeys)
+  const selectedFiles = fileList.filter((f) => selectedSet.has(f.id))
+  const hasUnfavorited = selectedFiles.some((f) => !f.isFavorite)
+  const downloadableFiles = selectedFiles.filter((f) => !f.isDir)
+
   // 拖拽功能
   const {
     dragState,
@@ -102,11 +108,9 @@ export function FileGridView({
     if (onDragStateChange) {
       onDragStateChange(dragState.dropTargetName, dragState.draggedItems.length)
     }
-  }, [
-    dragState.dropTargetName,
-    dragState.draggedItems.length,
-    onDragStateChange,
-  ])
+    // onDragStateChange 是父组件传入的稳定引用，不加入依赖以避免无效重跑
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dragState.dropTargetName, dragState.draggedItems.length])
 
   const handleItemClick = (file: FileItem, event: React.MouseEvent) => {
     const isMultiSelect = event.ctrlKey || event.metaKey
@@ -146,17 +150,12 @@ export function FileGridView({
       <div className='relative'>
         <div className='grid grid-cols-[repeat(auto-fill,minmax(130px,1fr))] gap-4'>
         {fileList.map((file) => {
-          const isSelected = selectedKeys.includes(file.id)
+          const isSelected = selectedSet.has(file.id)
           const isDragging = dragState.draggedItems.some(
             (f) => f.id === file.id
           )
           const isDropTarget = file.isDir && dragState.dropTargetId === file.id
           const isMultiSelected = selectedKeys.length > 1 && isSelected
-          const selectedFiles = fileList.filter((f) =>
-            selectedKeys.includes(f.id)
-          )
-          const hasUnfavorited = selectedFiles.some((f) => !f.isFavorite)
-          const downloadableFiles = selectedFiles.filter((f) => !f.isDir)
 
           return (
             <ContextMenu key={file.id}>
