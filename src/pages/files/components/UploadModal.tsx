@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, memo } from 'react'
 import { useTransferStore } from '@/store/transfer'
 import { Upload, X, FileIcon, FolderUp } from 'lucide-react'
 import { toast } from 'sonner'
@@ -27,6 +27,43 @@ interface UploadModalProps {
 interface FileWithPath extends File {
   webkitRelativePath: string
 }
+
+// 单个文件 item，memo 避免无关重渲染
+const FileItem = memo(
+  ({
+    index,
+    displayName,
+    onRemove,
+  }: {
+    file: FileWithPath
+    index: number
+    displayName: string
+    onRemove: (index: number) => void
+  }) => (
+    <div className='flex animate-in items-center justify-between rounded-lg bg-accent p-3 fade-in slide-in-from-top-1'>
+      <div className='flex min-w-0 flex-1 items-center gap-2'>
+        <FileIcon className='h-4 w-4 flex-shrink-0' />
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span
+              className='text-sm break-words whitespace-normal'
+              style={{ wordBreak: 'break-all' }}
+            >
+              {displayName}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>{displayName}</p>
+          </TooltipContent>
+        </Tooltip>
+      </div>
+      <X
+        className='h-4 w-4 flex-shrink-0 cursor-pointer text-muted-foreground hover:text-destructive'
+        onClick={() => onRemove(index)}
+      />
+    </div>
+  )
+)
 
 export default function UploadModal({
   open,
@@ -62,35 +99,39 @@ export default function UploadModal({
     }
   }
 
-  const handleRemoveFile = (index: number) => {
-    setFileList(fileList.filter((_, i) => i !== index))
-  }
+  const handleRemoveFile = useCallback((index: number) => {
+    setFileList((prev) => prev.filter((_, i) => i !== index))
+  }, [])
 
-  const handleDragOver = (e: React.DragEvent) => {
+  const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
     setIsDragging(true)
-  }
+  }, [])
 
-  const handleDragLeave = (e: React.DragEvent) => {
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault()
     setIsDragging(false)
-  }
+  }, [])
 
-  const handleDrop = async (e: React.DragEvent) => {
+  const handleDrop = useCallback(async (e: React.DragEvent) => {
     e.preventDefault()
     setIsDragging(false)
 
     const items = Array.from(e.dataTransfer.items)
     const files: FileWithPath[] = []
 
-    // 递归读取文件夹
-    const readEntry = async (entry: any, path = ''): Promise<void> => {
+    // 递归读取文件夹，并行处理同级 entries
+    const readEntry = (entry: any, path = ''): Promise<void> => {
       if (entry.isFile) {
         return new Promise((resolve) => {
           entry.file((file: File) => {
-            const fileWithPath = file as FileWithPath
-            fileWithPath.webkitRelativePath = path + file.name
-            files.push(fileWithPath)
+            // 直接复用原始 File 对象，避免重新构造 blob
+            Object.defineProperty(file, 'webkitRelativePath', {
+              value: path + file.name,
+              writable: false,
+              configurable: true,
+            })
+            files.push(file as FileWithPath)
             resolve()
           })
         })
@@ -98,35 +139,44 @@ export default function UploadModal({
         const dirReader = entry.createReader()
         return new Promise((resolve) => {
           dirReader.readEntries(async (entries: any[]) => {
-            for (const childEntry of entries) {
-              await readEntry(childEntry, path + entry.name + '/')
-            }
+            // 并行处理同级子项
+            await Promise.all(
+              entries.map((childEntry) =>
+                readEntry(childEntry, path + entry.name + '/')
+              )
+            )
             resolve()
           })
         })
       }
+      return Promise.resolve()
     }
 
-    // 处理拖拽的项目
-    for (const item of items) {
-      const entry = item.webkitGetAsEntry?.()
-      if (entry) {
-        await readEntry(entry)
-      }
-    }
+    // 并行处理所有顶层拖拽项
+    const entries = items
+      .map((item) => item.webkitGetAsEntry?.())
+      .filter(Boolean)
 
-    if (files.length > 0) {
-      setFileList([...fileList, ...files])
-    } else {
-      // 如果没有通过 webkitGetAsEntry 获取到文件，使用传统方式
-      const fallbackFiles = Array.from(e.dataTransfer.files) as FileWithPath[]
-      if (!isDirectoryMode && fallbackFiles.length + fileList.length > 10) {
-        toast.warning('单次最多上传 10 个文件')
+    if (entries.length > 0) {
+      await Promise.all(entries.map((entry) => readEntry(entry)))
+      if (files.length > 0) {
+        setFileList((prev) => [...prev, ...files])
         return
       }
-      setFileList([...fileList, ...fallbackFiles])
     }
-  }
+
+    // fallback：使用传统方式
+    const fallbackFiles = Array.from(e.dataTransfer.files) as FileWithPath[]
+    if (!isDirectoryMode && fallbackFiles.length > 0) {
+      setFileList((prev) => {
+        if (!isDirectoryMode && fallbackFiles.length + prev.length > 10) {
+          toast.warning('单次最多上传 10 个文件')
+          return prev
+        }
+        return [...prev, ...fallbackFiles]
+      })
+    }
+  }, [isDirectoryMode])
 
   const handleSubmit = async () => {
     if (fileList.length === 0) {
@@ -215,37 +265,19 @@ export default function UploadModal({
           </label>
 
           {fileList.length > 0 && (
-            <div className='mt-4 max-h-60 space-y-2 overflow-y-auto'>
-              {fileList.map((file, index) => (
-                <div
-                  key={index}
-                  className='flex animate-in items-center justify-between rounded-lg bg-accent p-3 fade-in slide-in-from-top-1'
-                >
-                  <div className='flex min-w-0 flex-1 items-center gap-2'>
-                    <FileIcon className='h-4 w-4 flex-shrink-0' />
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span
-                            className='text-sm break-words whitespace-normal'
-                            style={{ wordBreak: 'break-all' }}
-                          >
-                            {getDisplayName(file)}
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>{getDisplayName(file)}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                  <X
-                    className='h-4 w-4 flex-shrink-0 cursor-pointer text-muted-foreground hover:text-destructive'
-                    onClick={() => handleRemoveFile(index)}
+            <TooltipProvider>
+              <div className='mt-4 max-h-60 space-y-2 overflow-y-auto'>
+                {fileList.map((file, index) => (
+                  <FileItem
+                    key={index}
+                    file={file}
+                    index={index}
+                    displayName={getDisplayName(file)}
+                    onRemove={handleRemoveFile}
                   />
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            </TooltipProvider>
           )}
         </div>
 
