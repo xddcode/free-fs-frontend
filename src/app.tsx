@@ -47,19 +47,21 @@ function LogoutDialog() {
 
   return (
     <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>登录已过期</AlertDialogTitle>
-          <AlertDialogDescription>
-            您的登录状态已过期，请重新登录以继续使用。
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogAction onClick={handleLogoutConfirm}>
-            返回登录
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
+      {showLogoutDialog && (
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>登录已过期</AlertDialogTitle>
+            <AlertDialogDescription>
+              您的登录状态已过期，请重新登录以继续使用。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={handleLogoutConfirm}>
+              返回登录
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      )}
     </AlertDialog>
   )
 }

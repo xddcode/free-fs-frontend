@@ -14,7 +14,8 @@ import { openFilePreviewWithToken } from '@/utils/preview'
 export function useFileOperations(
   refreshCallback: () => void,
   clearSelectionCallback?: () => void,
-  onCreateFolderSuccess?: () => void
+  onCreateFolderSuccess?: () => void,
+  updateFileItemsCallback?: (ids: string[], patch: Partial<FileItem>) => void
 ) {
   // 模态框状态
   const [createFolderModalVisible, setCreateFolderModalVisible] =
@@ -213,6 +214,7 @@ export function useFileOperations(
 
   /**
    * 收藏/取消收藏
+   * 使用乐观更新：直接修改本地状态，失败时回滚刷新列表
    */
   const handleFavorite = useCallback(
     async (files: FileItem | FileItem[]) => {
@@ -221,6 +223,11 @@ export function useFileOperations(
 
       // 判断是收藏还是取消收藏（如果有任何一个未收藏，就执行收藏操作）
       const hasUnfavorited = fileArray.some((f) => !f.isFavorite)
+      const newFavoriteState = hasUnfavorited
+
+      // 乐观更新本地状态
+      updateFileItemsCallback?.(fileIds, { isFavorite: newFavoriteState })
+      clearSelectionCallback?.()
 
       try {
         if (hasUnfavorited) {
@@ -230,13 +237,13 @@ export function useFileOperations(
           await unfavoriteFile(fileIds)
           toast.success('取消收藏成功')
         }
-        clearSelectionCallback?.()
-        refreshCallback()
       } catch (error) {
+        // 失败时回滚：刷新列表恢复真实状态
+        updateFileItemsCallback?.(fileIds, { isFavorite: !newFavoriteState })
         toast.error(hasUnfavorited ? '收藏失败' : '取消收藏失败')
       }
     },
-    [refreshCallback, clearSelectionCallback]
+    [clearSelectionCallback, updateFileItemsCallback]
   )
 
   /**
