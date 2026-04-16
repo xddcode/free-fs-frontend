@@ -209,6 +209,16 @@ export function useFileList() {
     fetchInitial()
   }, [fetchInitial])
 
+  /** 本地更新部分文件字段，避免不必要的列表刷新 */
+  const updateFileItems = useCallback(
+    (ids: string[], patch: Partial<FileItem>) => {
+      setFileList((prev) =>
+        prev.map((f) => (ids.includes(f.id) ? { ...f, ...patch } : f))
+      )
+    },
+    []
+  )
+
   const handleSortChange = useCallback(
     (field: string, direction: SortOrder) => {
       setOrderBy(field)
@@ -263,6 +273,7 @@ export function useFileList() {
     enterFolder,
     navigateToFolder,
     refresh,
+    updateFileItems,
     commitSearch,
     handleSortChange,
   }

@@ -1019,23 +1019,25 @@ export function MySharesView() {
         open={deleteDialogVisible}
         onOpenChange={setDeleteDialogVisible}
       >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>确认取消分享</AlertDialogTitle>
-            <AlertDialogDescription>
-              确定要取消分享 "{deletingShare?.shareName}" 吗？取消后将无法恢复！
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmCancelShare}
-              className='bg-destructive hover:bg-destructive/90'
-            >
-              确认
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
+        {deleteDialogVisible && (
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>确认取消分享</AlertDialogTitle>
+              <AlertDialogDescription>
+                确定要取消分享 "{deletingShare?.shareName}" 吗？取消后将无法恢复！
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>取消</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={confirmCancelShare}
+                className='bg-destructive hover:bg-destructive/90'
+              >
+                确认
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        )}
       </AlertDialog>
 
       {/* 清空所有分享确认 */}
@@ -1043,23 +1045,25 @@ export function MySharesView() {
         open={clearAllDialogVisible}
         onOpenChange={setClearAllDialogVisible}
       >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>确认清空所有分享</AlertDialogTitle>
-            <AlertDialogDescription>
-              确定要清空所有分享吗？所有分享链接将失效且无法恢复！
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmClearAllShares}
-              className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
-            >
-              清空
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
+        {clearAllDialogVisible && (
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>确认清空所有分享</AlertDialogTitle>
+              <AlertDialogDescription>
+                确定要清空所有分享吗？所有分享链接将失效且无法恢复！
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>取消</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={confirmClearAllShares}
+                className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
+              >
+                清空
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        )}
       </AlertDialog>
 
       {/* 批量删除确认弹窗 */}
@@ -1067,24 +1071,26 @@ export function MySharesView() {
         open={batchDeleteDialogVisible}
         onOpenChange={setBatchDeleteDialogVisible}
       >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>确认批量取消</AlertDialogTitle>
-            <AlertDialogDescription>
-              确定要取消选中的 {selectedKeys.length}{' '}
-              个分享吗？取消后将无法恢复！
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmBatchCancel}
-              className='bg-destructive hover:bg-destructive/90'
-            >
-              确认
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
+        {batchDeleteDialogVisible && (
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>确认批量取消</AlertDialogTitle>
+              <AlertDialogDescription>
+                确定要取消选中的 {selectedKeys.length}{' '}
+                个分享吗？取消后将无法恢复！
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>取消</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={confirmBatchCancel}
+                className='bg-destructive hover:bg-destructive/90'
+              >
+                确认
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        )}
       </AlertDialog>
     </div>
   )
