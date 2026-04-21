@@ -70,6 +70,9 @@ export function SettingsMembers() {
   const { t } = useTranslation('settings')
   const { hasPermission } = usePermission()
   const { user: currentUser, activateWorkspace } = useAuth()
+  const workspaces = useWorkspaceStore((s) => s.workspaces)
+  const currentWorkspaceId = useWorkspaceStore((s) => s.currentWorkspaceId)
+  const currentWorkspace = workspaces.find((w) => w.id === currentWorkspaceId)
   const canManageMembers = hasPermission('member:manage')
   const canInvite = canManageMembers
   const canCancelInvitation = canManageMembers
@@ -195,6 +198,7 @@ export function SettingsMembers() {
 
   const totalPages = Math.ceil(members.total / PAGE_SIZE)
   const isSelf = (userId: string) => userId === currentUser?.id
+  const isOwner = (userId: string) => userId === currentWorkspace?.ownerId
 
   return (
     <div className='flex flex-1 flex-col'>
@@ -296,7 +300,7 @@ export function SettingsMembers() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        {canUpdateRole && !isSelf(m.userId) ? (
+                        {canUpdateRole && !isSelf(m.userId) && !isOwner(m.userId) ? (
                           <Select
                             value={String(m.roleId)}
                             onValueChange={(v) =>
@@ -304,9 +308,11 @@ export function SettingsMembers() {
                             }
                           >
                             <SelectTrigger
-                              className='h-auto min-h-10 w-[min(100%,280px)] max-w-full items-start justify-between gap-2 py-1.5 whitespace-normal text-left [&_[data-slot=select-value]]:line-clamp-none [&_[data-slot=select-value]]:w-full [&_[data-slot=select-value]]:items-start'
+                              className='h-9 w-full max-w-[200px]'
                             >
-                              <SelectValue />
+                              <SelectValue>
+                                <span className='truncate text-sm'>{m.roleName}</span>
+                              </SelectValue>
                             </SelectTrigger>
                             <SelectContent className='max-w-[min(100vw-2rem,22rem)]'>
                               {roles.map((r) => (
@@ -321,9 +327,16 @@ export function SettingsMembers() {
                             </SelectContent>
                           </Select>
                         ) : (
-                          <Badge variant='outline'>
-                            {m.roleName}
-                          </Badge>
+                          <div className='flex items-center gap-2'>
+                            <Badge variant='outline' className='font-normal'>
+                              {m.roleName}
+                            </Badge>
+                            {isOwner(m.userId) && (
+                              <Badge variant='secondary' className='text-[10px] px-1.5 py-0'>
+                                所有者
+                              </Badge>
+                            )}
+                          </div>
                         )}
                       </TableCell>
                       <TableCell className='text-xs text-muted-foreground'>
@@ -333,7 +346,7 @@ export function SettingsMembers() {
                       </TableCell>
                       {canShowActions && (
                         <TableCell>
-                          {!isSelf(m.userId) && (
+                          {!isSelf(m.userId) && !isOwner(m.userId) && (
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button variant='ghost' size='icon' className='h-8 w-8'>

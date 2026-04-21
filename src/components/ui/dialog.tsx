@@ -53,6 +53,14 @@ function DialogContent({
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean
 }) {
+  // 检查 children 中是否已经包含 DialogDescription
+  const hasDescription = React.Children.toArray(children).some((child) => {
+    if (React.isValidElement(child)) {
+      return child.type === DialogDescription || child.type === DialogPrimitive.Description
+    }
+    return false
+  })
+
   return (
     <DialogPortal data-slot='dialog-portal'>
       <DialogOverlay />
@@ -65,6 +73,12 @@ function DialogContent({
         {...props}
       >
         {children}
+        {/* 如果没有 DialogDescription，添加一个隐藏的空描述以满足无障碍要求 */}
+        {!hasDescription && (
+          <DialogPrimitive.Description className='sr-only'>
+            Dialog content
+          </DialogPrimitive.Description>
+        )}
         {showCloseButton && (
           <DialogPrimitive.Close
             data-slot='dialog-close'
