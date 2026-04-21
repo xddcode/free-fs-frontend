@@ -33,7 +33,7 @@ type SetPasswordValues = {
 
 type ChangeEmailValues = {
   email: string
-  password: string
+  code: string
 }
 
 const PASSWORD_FORM_ID = 'settings-password-form'
@@ -286,15 +286,16 @@ export function EmailChangeForm({
   onCancel?: () => void
 }) {
   const { t } = useTranslation('settings')
-  const { user, updateUser } = useAuth()
-  const [showEmailPassword, setShowEmailPassword] = useState(false)
+  const { user, logout } = useAuth()
   const [isChangingEmail, setIsChangingEmail] = useState(false)
+  const [isSendingCode, setIsSendingCode] = useState(false)
+  const [countdown, setCountdown] = useState(0)
 
   const changeEmailSchema = useMemo(
     () =>
       z.object({
         email: z.string().email(t('account.validation.emailInvalid')),
-        password: z.string().min(1, t('account.validation.verifyPwd')),
+        code: z.string().min(1, '验证码不能为空'),
       }),
     [t]
   )
@@ -302,8 +303,8 @@ export function EmailChangeForm({
   const emailForm = useForm<ChangeEmailValues>({
     resolver: zodResolver(changeEmailSchema),
     defaultValues: {
-      email: user?.email || '',
-      password: '',
+      email: '',
+      code: '',
     },
     mode: 'onChange',
   })
@@ -312,23 +313,45 @@ export function EmailChangeForm({
   const emailCanSave = changeEmailSchema.safeParse(emailValues).success
 
   useEffect(() => {
-    if (user?.email) {
-      emailForm.setValue('email', user.email)
+    if (countdown > 0) {
+      const timer = setTimeout(() => setCountdown(countdown - 1), 1000)
+      return () => clearTimeout(timer)
     }
-  }, [user?.email, emailForm])
+  }, [countdown])
+
+  async function handleSendCode() {
+    const email = emailForm.getValues('email')
+    if (!email || !z.string().email().safeParse(email).success) {
+      toast.error('请输入有效的邮箱地址')
+      return
+    }
+
+    setIsSendingCode(true)
+    try {
+      await userApi.sendUpdateEmailCode(email)
+      toast.success('验证码已发送')
+      setCountdown(60)
+    } catch {
+      // 拦截器已提示
+    } finally {
+      setIsSendingCode(false)
+    }
+  }
 
   async function onEmailSubmit(data: ChangeEmailValues) {
     if (!user) return
 
     setIsChangingEmail(true)
     try {
-      await userApi.updateUserInfo({ email: data.email })
-      const fresh = await userApi.getUserInfo()
-      updateUser(fresh)
-
-      toast.success(t('account.emailOk'))
-      emailForm.setValue('password', '')
+      await userApi.updateEmail(data.email, data.code)
+      
+      toast.success('邮箱修改成功，请重新登录')
       onSuccess?.()
+      
+      // 延迟退出登录，让用户看到成功提示
+      setTimeout(() => {
+        logout()
+      }, 1500)
     } finally {
       setIsChangingEmail(false)
     }
@@ -368,32 +391,31 @@ export function EmailChangeForm({
         />
         <FormField
           control={emailForm.control}
-          name='password'
+          name='code'
           render={({ field }) => (
             <FormItem>
               <FormLabel>
                 <span className='relative top-0.5 text-red-500'>* </span>
-                {t('account.currentPassword')}
+                验证码
               </FormLabel>
               <FormControl>
-                <div className='relative'>
+                <div className='flex gap-2'>
                   <Input
-                    type={showEmailPassword ? 'text' : 'password'}
-                    placeholder={t('account.verifyPasswordPh')}
+                    type='text'
+                    placeholder='请输入验证码'
                     {...field}
                   />
                   <Button
                     type='button'
-                    variant='ghost'
-                    size='sm'
-                    className='absolute top-0 right-0 h-full px-3 py-2 hover:bg-transparent'
-                    onClick={() => setShowEmailPassword(!showEmailPassword)}
+                    variant='outline'
+                    onClick={handleSendCode}
+                    disabled={isSendingCode || countdown > 0}
+                    className='shrink-0'
                   >
-                    {showEmailPassword ? (
-                      <EyeOff className='h-4 w-4' />
-                    ) : (
-                      <Eye className='h-4 w-4' />
+                    {isSendingCode && (
+                      <Loader2 className='mr-2 h-4 w-4 animate-spin' />
                     )}
+                    {countdown > 0 ? `${countdown}s` : '发送验证码'}
                   </Button>
                 </div>
               </FormControl>

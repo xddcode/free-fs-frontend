@@ -42,6 +42,19 @@ export const userApi = {
     await request.put<unknown>('/apis/user/info', data)
   },
 
+  /** 发送修改邮箱验证码 */
+  sendUpdateEmailCode: (mail: string) => {
+    return request.post<unknown>(`/apis/user/update-mail/code/${mail}`)
+  },
+
+  /** 修改邮箱 */
+  updateEmail: (mail: string, code: string) => {
+    return request.put<unknown>(`/apis/user/update-mail/code/${mail}/${code}`, {
+      email: mail,
+      code: code,
+    })
+  },
+
   /** 上传头像（multipart，字段名 file；成功后请 getUserInfo） */
   uploadAvatar: async (file: File): Promise<void> => {
     const formData = new FormData()
