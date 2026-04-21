@@ -96,7 +96,7 @@ export default function FilesPage() {
     if (isFavoritesView || isRecentsView || isTypeFilter || isDirFilter) {
       navigate(`/w/${slug}/files?viewMode=${viewMode}`)
     }
-  })
+  }, fileList.updateFileItems)
 
   // 计算当前视图类型
   const viewType = searchParams.get('view')

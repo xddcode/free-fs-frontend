@@ -285,55 +285,78 @@ export function StorageSettingCard({
           </p>
         </div>
 
-        <div className='mt-4 flex items-center gap-2'>
-          {canOperateStorage && (
-            <>
-              <Button
-                variant={setting.enabled === 1 ? 'outline' : 'default'}
-                size='sm'
-                onClick={() => setToggleDialogOpen(true)}
-                disabled={isLoading}
-              >
-                {setting.enabled === 1
-                  ? t('card.disable')
-                  : t('card.enable')}
-              </Button>
-              <div className='h-6 w-px bg-border' />
-            </>
-          )}
-          <Button
-            variant='outline'
-            size='sm'
-            className='flex-1'
-            onClick={() => setViewModalOpen(true)}
-          >
-            <Eye className='mr-1.5 h-3 w-3' />
-            {t('card.view')}
-          </Button>
-          {canOperateStorage && (
-            <>
-              <Button
-                variant='outline'
-                size='sm'
-                className='flex-1'
-                onClick={handleOpenEdit}
-              >
-                <Settings className='mr-1.5 h-3 w-3' />
-                {t('card.edit')}
-              </Button>
-            </>
-          )}
-          {canDeleteStorage && (
-            <Button
-              variant='outline'
-              size='sm'
-              className='flex-1 text-red-600 hover:border-red-300 hover:text-red-700'
-              onClick={() => setDeleteDialogOpen(true)}
-            >
-              <Trash2 className='mr-1.5 h-3 w-3' />
-              {t('card.delete')}
-            </Button>
-          )}
+        {/* Actions Menu */}
+        <div className='mt-4 flex items-center gap-1'>
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={setting.enabled === 1 ? 'outline' : 'default'}
+                  size='icon'
+                  onClick={() => setToggleDialogOpen(true)}
+                  disabled={isLoading}
+                  className='h-8 w-8 shrink-0'
+                >
+                  {setting.enabled === 1 ? (
+                    <Settings className='h-4 w-4' />
+                  ) : (
+                    <Check className='h-4 w-4' />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side='top'>
+                <p className='text-xs'>{setting.enabled === 1 ? '禁用' : '启用'}</p>
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant='outline'
+                  size='icon'
+                  className='h-8 w-8 shrink-0'
+                  onClick={() => setViewModalOpen(true)}
+                >
+                  <Eye className='h-4 w-4' />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side='top'>
+                <p className='text-xs'>查看配置</p>
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant='outline'
+                  size='icon'
+                  className='h-8 w-8 shrink-0'
+                  onClick={handleOpenEdit}
+                >
+                  <Settings className='h-4 w-4' />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side='top'>
+                <p className='text-xs'>编辑配置</p>
+              </TooltipContent>
+            </Tooltip>
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant='outline'
+                  size='icon'
+                  className='h-8 w-8 shrink-0 text-red-600 hover:border-red-300 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-950'
+                  onClick={() => setDeleteDialogOpen(true)}
+                >
+                  <Trash2 className='h-4 w-4' />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side='top'>
+                <p className='text-xs'>删除配置</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </li>
 
