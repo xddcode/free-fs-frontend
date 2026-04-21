@@ -1,4 +1,11 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
+import {
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+  useRef,
+} from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   flexRender,
   getCoreRowModel,
@@ -26,6 +33,7 @@ import {
 } from '@/api/share'
 import { cn } from '@/lib/utils'
 import { formatTime, formatFileTime } from '@/utils/format'
+import { usePermission } from '@/hooks/use-permission'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -69,6 +77,13 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import {
+  DescriptionField,
+  DescriptionFieldLabel,
+  DescriptionFieldList,
+  DescriptionFieldValue,
+  DescriptionFieldValueRow,
+} from '@/components/field-layout'
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -93,6 +108,13 @@ const SHARE_TABLE_HEAD: Record<string, string> = {
 }
 
 export function MySharesView() {
+  const { t } = useTranslation('files')
+  const { t: tc } = useTranslation('common')
+  const { hasPermission } = usePermission()
+  const canShare = hasPermission('file:share')
+  const canCancelShare = canShare
+  const canClearShares = canShare
+
   const [loading, setLoading] = useState(false)
   const [shareList, setShareList] = useState<ShareItem[]>([])
   const [total, setTotal] = useState(0)
@@ -151,7 +173,7 @@ export function MySharesView() {
     setLoading(true)
     try {
       await clearAllShares()
-      toast.success('已清空所有分享')
+      toast.success(t('myShares.toastCleared'))
       setClearAllDialogVisible(false)
       setSelectedKeys([])
       setPagination((p) => ({ ...p, pageIndex: 0 }))
@@ -173,22 +195,24 @@ export function MySharesView() {
     return dayjs(expireTime).isBefore(dayjs())
   }
 
-  // 格式化过期时间
-  const formatExpireTime = (expireTime: string | null) => {
-    if (!expireTime) return '-'
+  const formatExpireTime = useCallback(
+    (expireTime: string | null) => {
+      if (!expireTime) return '-'
 
-    const now = dayjs()
-    const expireDate = dayjs(expireTime)
+      const now = dayjs()
+      const expireDate = dayjs(expireTime)
 
-    if (expireDate.isBefore(now)) return '已过期'
+      if (expireDate.isBefore(now)) return t('myShares.expired')
 
-    const hoursLeft = expireDate.diff(now, 'hour')
-    if (hoursLeft < 1) return '即将到期'
-    if (hoursLeft < 24) return `${hoursLeft}小时后到期`
+      const hoursLeft = expireDate.diff(now, 'hour')
+      if (hoursLeft < 1) return t('myShares.soon')
+      if (hoursLeft < 24) return t('myShares.hoursLeft', { hours: hoursLeft })
 
-    const daysLeft = expireDate.diff(now, 'day')
-    return `${daysLeft}天后到期`
-  }
+      const daysLeft = expireDate.diff(now, 'day')
+      return t('myShares.daysLeft', { days: daysLeft })
+    },
+    [t]
+  )
 
   // 获取分享链接
   const getShareUrl = (share: ShareItem) => {
@@ -200,34 +224,37 @@ export function MySharesView() {
     return null
   }
 
-  // 格式化权限文本
-  const formatScopeText = (scope?: string) => {
-    if (!scope) return '预览 + 下载'
-    const permissions: string[] = []
-    if (scope.includes('preview')) permissions.push('预览')
-    if (scope.includes('download')) permissions.push('下载')
-    return permissions.length > 0 ? permissions.join(' + ') : '-'
-  }
+  const formatScopeText = useCallback(
+    (scope?: string) => {
+      if (!scope) return t('myShares.permPreviewDownload')
+      const permissions: string[] = []
+      if (scope.includes('preview')) permissions.push(t('myShares.permPreview'))
+      if (scope.includes('download'))
+        permissions.push(t('myShares.permDownload'))
+      return permissions.length > 0 ? permissions.join(' + ') : '-'
+    },
+    [t]
+  )
 
   // 快捷复制
   const handleQuickCopy = async (share: ShareItem) => {
     const content: string[] = []
-    content.push(`分享名称: ${share.shareName}`)
+    content.push(t('myShares.copyLineName', { name: share.shareName }))
 
     const shareUrl = getShareUrl(share)
     if (shareUrl) {
-      content.push(`分享链接: ${shareUrl}`)
+      content.push(t('myShares.copyLineLink', { url: shareUrl }))
     }
 
     if (share.shareCode) {
-      content.push(`提取码: ${share.shareCode}`)
+      content.push(t('myShares.copyLineCode', { code: share.shareCode }))
     }
 
     try {
       await navigator.clipboard.writeText(content.join('\n'))
-      toast.success('已复制')
+      toast.success(t('common.copied'))
     } catch (error) {
-      toast.error('复制失败')
+      toast.error(t('common.copyFailed'))
     }
   }
 
@@ -237,9 +264,9 @@ export function MySharesView() {
       await navigator.clipboard.writeText(link)
       setCopiedDetailLink(true)
       setTimeout(() => setCopiedDetailLink(false), 2000)
-      toast.success('已复制')
+      toast.success(t('common.copied'))
     } catch (error) {
-      toast.error('复制失败')
+      toast.error(t('common.copyFailed'))
     }
   }
 
@@ -249,9 +276,9 @@ export function MySharesView() {
       await navigator.clipboard.writeText(code)
       setCopiedDetailCode(true)
       setTimeout(() => setCopiedDetailCode(false), 2000)
-      toast.success('已复制')
+      toast.success(t('common.copied'))
     } catch (error) {
-      toast.error('复制失败')
+      toast.error(t('common.copyFailed'))
     }
   }
 
@@ -260,24 +287,26 @@ export function MySharesView() {
     if (!currentShare) return
 
     const detailText: string[] = []
-    detailText.push(`分享名称: ${currentShare.shareName}`)
+    detailText.push(t('myShares.copyLineName', { name: currentShare.shareName }))
 
     const shareUrl = getShareUrl(currentShare)
     if (shareUrl) {
-      detailText.push(`分享链接: ${shareUrl}`)
+      detailText.push(t('myShares.copyLineLink', { url: shareUrl }))
     }
 
     if (currentShare.shareCode) {
-      detailText.push(`提取码: ${currentShare.shareCode}`)
+      detailText.push(
+        t('myShares.copyLineCode', { code: currentShare.shareCode })
+      )
     }
 
     try {
       await navigator.clipboard.writeText(detailText.join('\n'))
       setCopiedShareDetail(true)
       setTimeout(() => setCopiedShareDetail(false), 2000)
-      toast.success('已复制')
+      toast.success(t('common.copied'))
     } catch (error) {
-      toast.error('复制失败')
+      toast.error(t('common.copyFailed'))
     }
   }
 
@@ -315,7 +344,7 @@ export function MySharesView() {
     if (!deletingShare) return
     try {
       await cancelShares([deletingShare.id])
-      toast.success('取消成功')
+      toast.success(t('myShares.toastCancelOk'))
       setDeleteDialogVisible(false)
       setDeletingShare(null)
       void fetchSharePage()
@@ -326,7 +355,7 @@ export function MySharesView() {
 
   const handleBatchCancel = () => {
     if (selectedKeys.length === 0) {
-      toast.warning('请选择要取消的分享')
+      toast.warning(t('myShares.toastSelectFirst'))
       return
     }
     setBatchDeleteDialogVisible(true)
@@ -335,7 +364,7 @@ export function MySharesView() {
   const confirmBatchCancel = async () => {
     try {
       await cancelShares(selectedKeys)
-      toast.success(`成功取消 ${selectedKeys.length} 个分享`)
+      toast.success(t('myShares.toastCancelMany', { count: selectedKeys.length }))
       setBatchDeleteDialogVisible(false)
       setSelectedKeys([])
       void fetchSharePage()
@@ -401,7 +430,7 @@ export function MySharesView() {
                   : false
             }
             onCheckedChange={handleSelectAll}
-            aria-label='全选当前页'
+            aria-label={t('myShares.ariaSelectAll')}
           />
         ),
         cell: ({ row }) => (
@@ -416,7 +445,9 @@ export function MySharesView() {
                 return prev.filter((x) => x !== id)
               })
             }}
-            aria-label={`选择 ${row.original.shareName}`}
+            aria-label={t('myShares.ariaSelectRow', {
+              name: row.original.shareName,
+            })}
           />
         ),
         enableSorting: false,
@@ -424,7 +455,7 @@ export function MySharesView() {
       },
       {
         accessorKey: 'shareName',
-        header: '名称',
+        header: t('myShares.colName'),
         cell: ({ row }) => (
           <div className='flex items-center gap-3'>
             <LinkIcon className='h-4 w-4 shrink-0 text-primary' />
@@ -435,7 +466,7 @@ export function MySharesView() {
       {
         id: 'expireTime',
         accessorFn: (row) => row.expireTime,
-        header: '有效期',
+        header: t('myShares.colExpire'),
         cell: ({ row }) => {
           const share = row.original
           return share.isPermanent ? (
@@ -443,7 +474,7 @@ export function MySharesView() {
               variant='outline'
               className='border-green-600 text-green-600'
             >
-              永久有效
+              {t('myShares.permanent')}
             </Badge>
           ) : (
             <span
@@ -461,7 +492,7 @@ export function MySharesView() {
       },
       {
         accessorKey: 'viewCount',
-        header: '查看次数',
+        header: t('myShares.colViews'),
         cell: ({ row }) => (
           <div className='text-center text-sm'>
             {row.original.viewCount}
@@ -476,7 +507,7 @@ export function MySharesView() {
       },
       {
         accessorKey: 'downloadCount',
-        header: '下载次数',
+        header: t('myShares.colDownloads'),
         cell: ({ row }) => (
           <div className='text-center text-sm'>
             {row.original.downloadCount}
@@ -492,14 +523,14 @@ export function MySharesView() {
       {
         id: 'scope',
         accessorFn: (row) => row.scope,
-        header: '分享权限',
+        header: t('myShares.colScope'),
         cell: ({ row }) => {
           const share = row.original
           return (
             <div className='flex items-center justify-center gap-1'>
               {(!share.scope || share.scope.includes('preview')) && (
                 <Badge variant='secondary' className='text-xs'>
-                  预览
+                  {t('myShares.permPreview')}
                 </Badge>
               )}
               {(!share.scope || share.scope.includes('download')) && (
@@ -507,7 +538,7 @@ export function MySharesView() {
                   variant='secondary'
                   className='bg-green-100 text-xs text-green-700'
                 >
-                  下载
+                  {t('myShares.permDownload')}
                 </Badge>
               )}
             </div>
@@ -516,7 +547,7 @@ export function MySharesView() {
       },
       {
         accessorKey: 'createdAt',
-        header: '创建时间',
+        header: t('myShares.colCreated'),
         cell: ({ row }) => (
           <span className='text-sm text-muted-foreground'>
             {formatTime(row.original.createdAt)}
@@ -526,7 +557,9 @@ export function MySharesView() {
       {
         id: 'actions',
         header: () => (
-          <span className='block w-full text-center'>操作</span>
+          <span className='block w-full text-center'>
+            {t('myShares.colActions')}
+          </span>
         ),
         cell: ({ row }) => {
           const share = row.original
@@ -548,7 +581,7 @@ export function MySharesView() {
                     )}
                     onClick={(e) => e.stopPropagation()}
                     onPointerDown={(e) => e.stopPropagation()}
-                    aria-label='更多操作'
+                    aria-label={t('myShares.ariaMore')}
                   >
                     <FileListRowActionIcon />
                   </Button>
@@ -561,7 +594,7 @@ export function MySharesView() {
                     }}
                   >
                     <Copy className='size-4' />
-                    快捷复制
+                    {t('myShares.quickCopy')}
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={(e) => {
@@ -570,7 +603,7 @@ export function MySharesView() {
                     }}
                   >
                     <Eye className='size-4' />
-                    查看详情
+                    {t('myShares.viewDetail')}
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     onClick={(e) => {
@@ -579,19 +612,23 @@ export function MySharesView() {
                     }}
                   >
                     <FileText className='size-4' />
-                    访问记录
+                    {t('myShares.accessRecordsMenu')}
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    className='text-destructive focus:text-destructive'
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleCancelShare(share)
-                    }}
-                  >
-                    <RouteOff className='size-4' />
-                    取消分享
-                  </DropdownMenuItem>
+                  {canCancelShare && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        className='text-destructive focus:text-destructive'
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleCancelShare(share)
+                        }}
+                      >
+                        <RouteOff className='size-4' />
+                        {t('myShares.cancelShareMenu')}
+                      </DropdownMenuItem>
+                    </>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -600,7 +637,17 @@ export function MySharesView() {
         enableSorting: false,
       },
     ],
-    [shareList, selectedKeys]
+    [
+      canCancelShare,
+      shareList,
+      selectedKeys,
+      t,
+      formatExpireTime,
+      formatScopeText,
+      isExpired,
+      isAllPageSelected,
+      isSomePageSelected,
+    ]
   )
 
   const pageCount = Math.max(
@@ -628,7 +675,7 @@ export function MySharesView() {
         <div className='min-w-0 flex-1'>
           <FileBreadcrumb
             breadcrumbPath={[]}
-            customTitle='我的分享'
+            customTitle={t('myShares.title')}
             onNavigate={() => {}}
           />
         </div>
@@ -641,15 +688,17 @@ export function MySharesView() {
           onRefresh={handleRefresh}
           hideActions={true}
         />
-        <Button
-          variant='destructive'
-          size='sm'
-          disabled={total === 0}
-          onClick={handleClearAllShares}
-        >
-          <Trash2 className='mr-2 h-4 w-4' />
-          清空所有分享
-        </Button>
+        {canClearShares && (
+          <Button
+            variant='destructive'
+            size='sm'
+            disabled={total === 0}
+            onClick={handleClearAllShares}
+          >
+            <Trash2 className='mr-2 h-4 w-4' />
+            {t('myShares.clearAllButton')}
+          </Button>
+        )}
       </div>
 
       {/* 次级工具栏：统计信息 */}
@@ -657,8 +706,8 @@ export function MySharesView() {
         <div className='flex items-center gap-3'>
           <span className='text-sm text-muted-foreground'>
             {selectedKeys.length > 0
-              ? `已选 ${selectedKeys.length} 项 · 取消分享后链接将失效`
-              : `共 ${total} 项 · 支持按名称搜索分享`}
+              ? t('myShares.selectedHint', { count: selectedKeys.length })
+              : t('myShares.totalHint', { total })}
           </span>
         </div>
       </div>
@@ -668,7 +717,7 @@ export function MySharesView() {
         <div className='flex h-full min-h-0 flex-col'>
           {loading ? (
             <div className='flex h-full items-center justify-center'>
-              <p className='text-muted-foreground'>加载中...</p>
+              <p className='text-muted-foreground'>{tc('loading')}</p>
             </div>
           ) : shareList.length === 0 ? (
             <div className='flex h-full items-center justify-center'>
@@ -677,11 +726,11 @@ export function MySharesView() {
                   <EmptyMedia variant='icon'>
                     <LinkIcon className='h-12 w-12' />
                   </EmptyMedia>
-                  <EmptyTitle>暂无分享</EmptyTitle>
+                  <EmptyTitle>{t('myShares.emptySharesTitle')}</EmptyTitle>
                   <EmptyDescription>
                     {searchKeyword
-                      ? '未找到匹配的分享，请尝试调整关键词'
-                      : '创建分享后，将在此处显示'}
+                      ? t('myShares.emptySearch')
+                      : t('myShares.emptyDefault')}
                   </EmptyDescription>
                 </EmptyHeader>
               </Empty>
@@ -748,7 +797,7 @@ export function MySharesView() {
                             colSpan={columns.length}
                             className='h-24 text-center'
                           >
-                            无数据
+                            {t('myShares.noData')}
                           </TableCell>
                         </TableRow>
                       )}
@@ -764,11 +813,11 @@ export function MySharesView() {
         </div>
       </div>
 
-      {selectedKeys.length > 0 && (
+      {selectedKeys.length > 0 && canCancelShare && (
         <BulkSelectionBar
           selectedCount={selectedKeys.length}
           onClear={() => setSelectedKeys([])}
-          ariaLabel='我的分享批量操作'
+          ariaLabel={t('myShares.bulkBar')}
         >
           <Tooltip>
             <TooltipTrigger asChild>
@@ -778,13 +827,13 @@ export function MySharesView() {
                 size='icon'
                 className='size-8 shrink-0'
                 onClick={handleBatchCancel}
-                aria-label='取消分享'
+                aria-label={t('myShares.ariaCancelShare')}
               >
                 <RouteOff />
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <p>取消分享</p>
+              <p>{t('myShares.tooltipCancelShare')}</p>
             </TooltipContent>
           </Tooltip>
         </BulkSelectionBar>
@@ -794,35 +843,35 @@ export function MySharesView() {
       <Dialog open={shareDetailVisible} onOpenChange={setShareDetailVisible}>
         <DialogContent className='sm:max-w-[500px]'>
           <DialogHeader>
-            <DialogTitle>详细信息</DialogTitle>
+            <DialogTitle>{t('myShares.detailTitle')}</DialogTitle>
           </DialogHeader>
 
-          <div className='space-y-6 px-6 pb-4'>
+          <div className='space-y-6'>
             {shareDetailLoading ? (
               <div className='py-8 text-center text-sm text-muted-foreground'>
-                加载中...
+                {tc('loading')}
               </div>
             ) : (
               currentShare && (
-                <div className='space-y-3'>
-                  <div className='space-y-1.5'>
-                    <div className='text-xs text-muted-foreground'>
-                      分享名称
-                    </div>
-                    <div className='text-sm break-all text-foreground'>
+                <DescriptionFieldList>
+                  <DescriptionField>
+                    <DescriptionFieldLabel>
+                      {t('myShares.labelShareName')}
+                    </DescriptionFieldLabel>
+                    <DescriptionFieldValue breakAll>
                       {currentShare.shareName}
-                    </div>
-                  </div>
+                    </DescriptionFieldValue>
+                  </DescriptionField>
 
                   {getShareUrl(currentShare) && (
-                    <div className='space-y-1.5'>
-                      <div className='text-xs text-muted-foreground'>
-                        分享链接
-                      </div>
-                      <div className='flex items-center gap-2'>
-                        <div className='flex-1 text-sm break-all text-foreground'>
+                    <DescriptionField>
+                      <DescriptionFieldLabel>
+                        {t('myShares.labelShareLink')}
+                      </DescriptionFieldLabel>
+                      <DescriptionFieldValueRow>
+                        <DescriptionFieldValue className='min-w-0 flex-1' breakAll>
                           {getShareUrl(currentShare)}
-                        </div>
+                        </DescriptionFieldValue>
                         <Button
                           size='icon'
                           variant='outline'
@@ -837,16 +886,21 @@ export function MySharesView() {
                             <Copy className='h-4 w-4' />
                           )}
                         </Button>
-                      </div>
-                    </div>
+                      </DescriptionFieldValueRow>
+                    </DescriptionField>
                   )}
 
-                  <div className='space-y-1.5'>
-                    <div className='text-xs text-muted-foreground'>提取码</div>
-                    <div className='flex items-center gap-2'>
-                      <div className='text-sm font-semibold tracking-wider text-foreground text-primary'>
+                  <DescriptionField>
+                    <DescriptionFieldLabel>
+                      {t('myShares.codeLabel')}
+                    </DescriptionFieldLabel>
+                    <DescriptionFieldValueRow>
+                      <DescriptionFieldValue
+                        className='min-w-0 flex-1 font-semibold tracking-wider text-primary'
+                        breakAll
+                      >
                         {currentShare.shareCode || '-'}
-                      </div>
+                      </DescriptionFieldValue>
                       {currentShare.shareCode && (
                         <Button
                           size='icon'
@@ -863,76 +917,78 @@ export function MySharesView() {
                           )}
                         </Button>
                       )}
-                    </div>
-                  </div>
+                    </DescriptionFieldValueRow>
+                  </DescriptionField>
 
-                  <div className='space-y-1.5'>
-                    <div className='text-xs text-muted-foreground'>有效期</div>
-                    <div className='text-sm text-foreground'>
+                  <DescriptionField>
+                    <DescriptionFieldLabel>
+                      {t('myShares.validityLabel')}
+                    </DescriptionFieldLabel>
+                    <DescriptionFieldValue>
                       {currentShare.isPermanent
-                        ? '永久有效'
+                        ? t('myShares.permanent')
                         : formatExpireTime(currentShare.expireTime)}
-                    </div>
-                  </div>
+                    </DescriptionFieldValue>
+                  </DescriptionField>
 
-                  <div className='space-y-1.5'>
-                    <div className='text-xs text-muted-foreground'>
-                      分享权限
-                    </div>
-                    <div className='text-sm text-foreground'>
+                  <DescriptionField>
+                    <DescriptionFieldLabel>
+                      {t('myShares.colScope')}
+                    </DescriptionFieldLabel>
+                    <DescriptionFieldValue>
                       {formatScopeText(currentShare.scope)}
-                    </div>
-                  </div>
+                    </DescriptionFieldValue>
+                  </DescriptionField>
 
-                  <div className='space-y-1.5'>
-                    <div className='text-xs text-muted-foreground'>
-                      查看次数
-                    </div>
-                    <div className='text-sm text-foreground'>
+                  <DescriptionField>
+                    <DescriptionFieldLabel>
+                      {t('myShares.labelViews')}
+                    </DescriptionFieldLabel>
+                    <DescriptionFieldValue>
                       {currentShare.viewCount}
                       {currentShare.maxViewCount > 0 &&
                         ` / ${currentShare.maxViewCount}`}
-                    </div>
-                  </div>
+                    </DescriptionFieldValue>
+                  </DescriptionField>
 
-                  <div className='space-y-1.5'>
-                    <div className='text-xs text-muted-foreground'>
-                      下载次数
-                    </div>
-                    <div className='text-sm text-foreground'>
+                  <DescriptionField>
+                    <DescriptionFieldLabel>
+                      {t('myShares.labelDownloads')}
+                    </DescriptionFieldLabel>
+                    <DescriptionFieldValue>
                       {currentShare.downloadCount}
                       {currentShare.maxDownloadCount > 0 &&
                         ` / ${currentShare.maxDownloadCount}`}
-                    </div>
-                  </div>
+                    </DescriptionFieldValue>
+                  </DescriptionField>
 
-                  <div className='space-y-1.5'>
-                    <div className='text-xs text-muted-foreground'>
-                      创建时间
-                    </div>
-                    <div className='text-sm text-foreground'>
+                  <DescriptionField>
+                    <DescriptionFieldLabel>
+                      {t('myShares.labelCreatedAt')}
+                    </DescriptionFieldLabel>
+                    <DescriptionFieldValue>
                       {formatFileTime(currentShare.createdAt)}
-                    </div>
-                  </div>
-                </div>
+                    </DescriptionFieldValue>
+                  </DescriptionField>
+                </DescriptionFieldList>
               )
             )}
           </div>
 
           <DialogFooter>
             <DialogClose asChild>
-              <Button variant='outline'>关闭</Button>
+              <Button variant='outline'>{t('myShares.detailClose')}</Button>
             </DialogClose>
             <Button onClick={handleCopyShareDetail}>
               {copiedShareDetail ? (
                 <>
                   <Check className='mr-2 h-4 w-4' />
-                  已复制
+                  {t('common.copied')}
                 </>
               ) : (
                 <>
                   <Copy className='mr-2 h-4 w-4' />
-                  复制分享
+                  {t('myShares.copyShareBtn')}
                 </>
               )}
             </Button>
@@ -945,20 +1001,22 @@ export function MySharesView() {
         open={accessRecordsVisible}
         onOpenChange={setAccessRecordsVisible}
       >
-        <DialogContent className='max-h-[85vh] max-w-5xl overflow-y-auto'>
+        <DialogContent className='max-h-[85vh] sm:max-w-5xl overflow-y-auto'>
           <DialogHeader>
             <DialogTitle>
-              访问记录 - {currentShareForRecords?.shareName || ''}
+              {t('myShares.accessRecordsHeading', {
+                name: currentShareForRecords?.shareName || '',
+              })}
             </DialogTitle>
           </DialogHeader>
           <div className='space-y-6 px-6 pb-4'>
             {accessRecordsLoading ? (
               <div className='py-8 text-center text-sm text-muted-foreground'>
-                加载中...
+                {tc('loading')}
               </div>
             ) : accessRecords.length === 0 ? (
               <div className='py-8 text-center text-sm text-muted-foreground'>
-                暂无访问记录
+                {t('myShares.noAccessRecords')}
               </div>
             ) : (
               <div className='max-h-[60vh] overflow-auto'>
@@ -966,19 +1024,19 @@ export function MySharesView() {
                   <TableHeader>
                     <TableRow>
                       <TableHead className='font-medium text-muted-foreground'>
-                        访问IP
+                        {t('myShares.recordsColIp')}
                       </TableHead>
                       <TableHead className='font-medium text-muted-foreground'>
-                        访问地址
+                        {t('myShares.recordsColAddress')}
                       </TableHead>
                       <TableHead className='font-medium text-muted-foreground'>
-                        浏览器
+                        {t('myShares.recordsColBrowser')}
                       </TableHead>
                       <TableHead className='font-medium text-muted-foreground'>
-                        操作系统
+                        {t('myShares.recordsColOs')}
                       </TableHead>
                       <TableHead className='font-medium text-muted-foreground'>
-                        访问时间
+                        {t('myShares.recordsColTime')}
                       </TableHead>
                     </TableRow>
                   </TableHeader>
@@ -1019,25 +1077,25 @@ export function MySharesView() {
         open={deleteDialogVisible}
         onOpenChange={setDeleteDialogVisible}
       >
-        {deleteDialogVisible && (
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>确认取消分享</AlertDialogTitle>
-              <AlertDialogDescription>
-                确定要取消分享 "{deletingShare?.shareName}" 吗？取消后将无法恢复！
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>取消</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={confirmCancelShare}
-                className='bg-destructive hover:bg-destructive/90'
-              >
-                确认
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        )}
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('myShares.confirmCancelShareTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('myShares.confirmCancelShareDesc', {
+                name: deletingShare?.shareName ?? '',
+              })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmCancelShare}
+              className='bg-destructive hover:bg-destructive/90'
+            >
+              {t('common.confirm')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
       </AlertDialog>
 
       {/* 清空所有分享确认 */}
@@ -1045,25 +1103,23 @@ export function MySharesView() {
         open={clearAllDialogVisible}
         onOpenChange={setClearAllDialogVisible}
       >
-        {clearAllDialogVisible && (
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>确认清空所有分享</AlertDialogTitle>
-              <AlertDialogDescription>
-                确定要清空所有分享吗？所有分享链接将失效且无法恢复！
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>取消</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={confirmClearAllShares}
-                className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
-              >
-                清空
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        )}
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('myShares.confirmClearAllTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('myShares.confirmClearAllDesc')}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmClearAllShares}
+              className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
+            >
+              {t('myShares.clearAllAction')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
       </AlertDialog>
 
       {/* 批量删除确认弹窗 */}
@@ -1071,26 +1127,25 @@ export function MySharesView() {
         open={batchDeleteDialogVisible}
         onOpenChange={setBatchDeleteDialogVisible}
       >
-        {batchDeleteDialogVisible && (
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>确认批量取消</AlertDialogTitle>
-              <AlertDialogDescription>
-                确定要取消选中的 {selectedKeys.length}{' '}
-                个分享吗？取消后将无法恢复！
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>取消</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={confirmBatchCancel}
-                className='bg-destructive hover:bg-destructive/90'
-              >
-                确认
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        )}
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('myShares.confirmBatchTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('myShares.confirmBatchDesc', {
+                count: selectedKeys.length,
+              })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmBatchCancel}
+              className='bg-destructive hover:bg-destructive/90'
+            >
+              {t('common.confirm')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
       </AlertDialog>
     </div>
   )

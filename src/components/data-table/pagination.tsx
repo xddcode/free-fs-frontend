@@ -4,6 +4,7 @@ import {
   DoubleArrowLeftIcon,
   DoubleArrowRightIcon,
 } from '@radix-ui/react-icons'
+import { useTranslation } from 'react-i18next'
 import { type Table } from '@tanstack/react-table'
 import { cn, getPageNumbers } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -24,11 +25,15 @@ export function DataTablePagination<TData>({
   table,
   className,
 }: DataTablePaginationProps<TData>) {
+  const { t } = useTranslation('common')
   const currentPage = table.getState().pagination.pageIndex + 1
   const totalPages = table.getPageCount()
   const pageNumbers = getPageNumbers(currentPage, totalPages)
 
-  const pageSummary = `第 ${currentPage} 页，共 ${totalPages} 页`
+  const pageSummary = t('pagination.pageOf', {
+    current: currentPage,
+    total: totalPages,
+  })
 
   return (
     <div
@@ -61,7 +66,9 @@ export function DataTablePagination<TData>({
               ))}
             </SelectContent>
           </Select>
-          <p className='hidden text-sm font-medium sm:block'>每页条数</p>
+          <p className='hidden text-sm font-medium sm:block'>
+            {t('pagination.rowsPerPage')}
+          </p>
         </div>
       </div>
 
@@ -76,7 +83,7 @@ export function DataTablePagination<TData>({
             onClick={() => table.setPageIndex(0)}
             disabled={!table.getCanPreviousPage()}
           >
-            <span className='sr-only'>首页</span>
+            <span className='sr-only'>{t('pagination.first')}</span>
             <DoubleArrowLeftIcon className='h-4 w-4' />
           </Button>
           <Button
@@ -85,7 +92,7 @@ export function DataTablePagination<TData>({
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
           >
-            <span className='sr-only'>上一页</span>
+            <span className='sr-only'>{t('pagination.prev')}</span>
             <ChevronLeftIcon className='h-4 w-4' />
           </Button>
 
@@ -100,7 +107,9 @@ export function DataTablePagination<TData>({
                   className='h-8 min-w-8 px-2'
                   onClick={() => table.setPageIndex((pageNumber as number) - 1)}
                 >
-                  <span className='sr-only'>第 {pageNumber} 页</span>
+                  <span className='sr-only'>
+                    {t('pagination.pageSr', { n: pageNumber })}
+                  </span>
                   {pageNumber}
                 </Button>
               )}
@@ -113,7 +122,7 @@ export function DataTablePagination<TData>({
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
           >
-            <span className='sr-only'>下一页</span>
+            <span className='sr-only'>{t('pagination.next')}</span>
             <ChevronRightIcon className='h-4 w-4' />
           </Button>
           <Button
@@ -122,7 +131,7 @@ export function DataTablePagination<TData>({
             onClick={() => table.setPageIndex(table.getPageCount() - 1)}
             disabled={!table.getCanNextPage()}
           >
-            <span className='sr-only'>末页</span>
+            <span className='sr-only'>{t('pagination.last')}</span>
             <DoubleArrowRightIcon className='h-4 w-4' />
           </Button>
         </div>

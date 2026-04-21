@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { useLocation, Link } from 'react-router-dom'
 import {
   Breadcrumb,
@@ -8,57 +9,78 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
 
-const routeNames: Record<string, string> = {
-  '/': '首页',
-  '/files': '全部文件',
-  '/transfer': '传输',
-  '/storage': '云存储配置',
-  '/settings': '设置',
-  '/settings/appearance': '外观',
-  '/settings/transfer': '传输设置',
+/** 逻辑路径（含 `/w/:slug` 前缀剥离后）→ `breadcrumb` 下的键名 */
+const BREADCRUMB_PATH_KEYS: Record<string, string> = {
+  '/': 'home',
+  '/files': 'allFiles',
+  '/transfer': 'transfer',
+  '/storage': 'storage',
+  '/settings': 'settings',
+  '/settings/appearance': 'appearance',
+  '/settings/transfer': 'transferSettings',
+}
+
+function parseSegments(pathname: string): { homeHref: string; segments: string[] } {
+  const ws = pathname.match(/^(\/w\/[^/]+)(?:\/(.*))?$/)
+  if (ws) {
+    const base = ws[1]
+    const tail = ws[2]
+    const segments = tail
+      ? tail.split('/').filter(Boolean)
+      : []
+    return { homeHref: `${base}/`, segments }
+  }
+  return {
+    homeHref: '/',
+    segments: pathname.split('/').filter(Boolean),
+  }
 }
 
 export function AppBreadcrumb() {
+  const { t } = useTranslation('layout')
   const location = useLocation()
-  const pathSegments = location.pathname.split('/').filter(Boolean)
+  const { homeHref, segments } = parseSegments(location.pathname)
 
-  // 首页特殊处理
-  if (pathSegments.length === 0) {
+  if (segments.length === 0) {
     return (
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
-            <BreadcrumbPage>首页</BreadcrumbPage>
+            <BreadcrumbPage>{t('breadcrumb.home')}</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
     )
   }
 
+  const ws = location.pathname.match(/^(\/w\/[^/]+)/)
+
   return (
     <Breadcrumb>
       <BreadcrumbList>
         <BreadcrumbItem className='hidden md:block'>
           <BreadcrumbLink asChild>
-            <Link to='/'>首页</Link>
+            <Link to={homeHref}>{t('breadcrumb.home')}</Link>
           </BreadcrumbLink>
         </BreadcrumbItem>
-        {pathSegments.length > 0 && (
-          <BreadcrumbSeparator className='hidden md:block' />
-        )}
-        {pathSegments.map((segment, index) => {
-          const path = `/${pathSegments.slice(0, index + 1).join('/')}`
-          const isLast = index === pathSegments.length - 1
-          const name = routeNames[path] || segment
+        <BreadcrumbSeparator className='hidden md:block' />
+        {segments.map((segment, index) => {
+          const isLast = index === segments.length - 1
+          const logicalPath = `/${segments.slice(0, index + 1).join('/')}`
+          const key = BREADCRUMB_PATH_KEYS[logicalPath]
+          const name = key ? t(`breadcrumb.${key}`) : segment
+          const pathHref = ws
+            ? `${ws[1]}/${segments.slice(0, index + 1).join('/')}`
+            : `/${segments.slice(0, index + 1).join('/')}`
 
           return (
-            <div key={path} className='flex items-center gap-2'>
+            <div key={pathHref} className='flex items-center gap-2'>
               <BreadcrumbItem>
                 {isLast ? (
                   <BreadcrumbPage>{name}</BreadcrumbPage>
                 ) : (
                   <BreadcrumbLink asChild>
-                    <Link to={path}>{name}</Link>
+                    <Link to={pathHref}>{name}</Link>
                   </BreadcrumbLink>
                 )}
               </BreadcrumbItem>

@@ -1,11 +1,13 @@
 import { type ChangeEvent, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import {
   RefreshCw,
   Plus,
-  SlidersHorizontal,
   ArrowUpAZ,
   ArrowDownAZ,
+  Search,
 } from 'lucide-react'
 import { getUserStorageSettings } from '@/api/storage'
 import { Button } from '@/components/ui/button'
@@ -17,23 +19,27 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Separator } from '@/components/ui/separator'
+import { RequirePermission } from '@/components/require-permission'
+import { SidebarTrigger } from '@/components/ui/sidebar'
 import { AddStorageModal } from './components/AddStorageModal'
 import { StorageSettingCard } from './components/StorageSettingCard'
 
 export default function StoragePage() {
+  const { t } = useTranslation('storage')
+  const { t: tc } = useTranslation('common')
+  const { slug } = useParams<{ slug: string }>()
   const [searchTerm, setSearchTerm] = useState('')
   const [sort, setSort] = useState<'asc' | 'desc'>('asc')
   const [addModalVisible, setAddModalVisible] = useState(false)
 
-  // 获取用户配置列表
   const {
     data: userSettings = [],
     isLoading,
     refetch,
   } = useQuery({
-    queryKey: ['userStorageSettings'],
+    queryKey: ['userStorageSettings', slug],
     queryFn: getUserStorageSettings,
+    staleTime: 30_000,
   })
 
   // 过滤和排序配置
@@ -62,80 +68,80 @@ export default function StoragePage() {
   }
 
   return (
-    <div className='flex-1 space-y-4 p-4 pt-6 md:p-8'>
-      {/* Filters and Actions */}
-      <div className='flex items-end justify-between sm:items-center'>
-        <div className='flex flex-col gap-4 sm:flex-row'>
-          <Input
-            placeholder='搜索存储配置...'
-            className='h-9 w-40 lg:w-[250px]'
-            value={searchTerm}
-            onChange={handleSearch}
-          />
+    <div className='flex h-full flex-col'>
+      {/* 顶部工具栏 */}
+      <div className='flex items-center gap-4 border-b px-6 py-4'>
+        <SidebarTrigger className='md:hidden' />
+
+        {/* 标题 */}
+        <div className='min-w-0 flex-1'>
+          <h2 className='text-xl font-semibold tracking-tight'>
+            {t('page.title')}
+          </h2>
         </div>
 
-        <div className='flex gap-2'>
-          <Select value={sort} onValueChange={handleSortChange}>
-            <SelectTrigger className='w-16'>
-              <SelectValue>
-                <SlidersHorizontal size={18} />
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent align='end'>
-              <SelectItem value='asc'>
-                <div className='flex items-center gap-4'>
-                  <ArrowUpAZ size={16} />
-                  <span>Ascending</span>
-                </div>
-              </SelectItem>
-              <SelectItem value='desc'>
-                <div className='flex items-center gap-4'>
-                  <ArrowDownAZ size={16} />
-                  <span>Descending</span>
-                </div>
-              </SelectItem>
-            </SelectContent>
-          </Select>
-          <Button variant='outline' size='icon' onClick={() => refetch()}>
+        {/* 右侧工具栏 */}
+        <div className='flex items-center gap-2'>
+          <div className='relative'>
+            <Search className='absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground' />
+            <Input
+              placeholder={t('page.searchPlaceholder')}
+              className='h-9 w-[250px] pl-10'
+              value={searchTerm}
+              onChange={handleSearch}
+            />
+          </div>
+          <Button variant='outline' size='sm' onClick={() => refetch()}>
             <RefreshCw className='h-4 w-4' />
           </Button>
-          <Button onClick={() => setAddModalVisible(true)}>
-            <Plus className='mr-2 h-4 w-4' />
-            添加存储
-          </Button>
+          <RequirePermission code='storage:manage'>
+            <Button size='sm' onClick={() => setAddModalVisible(true)}>
+              <Plus className='mr-1.5 h-4 w-4' />
+              {t('page.add')}
+            </Button>
+          </RequirePermission>
         </div>
       </div>
 
-      <Separator className='shadow-sm' />
+      {/* 次级工具栏：统计信息 */}
+      <div className='flex items-center justify-between border-b px-6 py-3'>
+        <span className='text-sm text-muted-foreground'>
+          {tc('listTotalItems', { count: filteredSettings.length })}
+        </span>
+      </div>
 
-      {/* Content */}
-      {isLoading ? (
-        <div className='flex h-64 items-center justify-center'>
-          <p className='text-muted-foreground'>加载中...</p>
-        </div>
-      ) : userSettings.length === 0 ? (
-        <div className='flex h-64 flex-col items-center justify-center rounded-lg border-2 border-dashed'>
-          <p className='mb-4 text-muted-foreground'>暂无存储配置</p>
-          <Button onClick={() => setAddModalVisible(true)}>
-            <Plus className='mr-2 h-4 w-4' />
-            添加您的第一个存储配置
-          </Button>
-        </div>
-      ) : filteredSettings.length === 0 ? (
-        <div className='flex h-64 items-center justify-center rounded-lg border-2 border-dashed'>
-          <p className='text-muted-foreground'>暂无文件</p>
-        </div>
-      ) : (
-        <ul className='faded-bottom no-scrollbar grid grid-cols-2 gap-4 overflow-auto pb-16 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'>
-          {filteredSettings.map((setting) => (
-            <StorageSettingCard
-              key={setting.id}
-              setting={setting}
-              onRefresh={refetch}
-            />
-          ))}
-        </ul>
-      )}
+      {/* 主内容区域 */}
+      <div className='flex-1 overflow-auto p-6'>
+        {isLoading ? (
+          <div className='flex h-64 items-center justify-center'>
+            <p className='text-muted-foreground'>{tc('loading')}</p>
+          </div>
+        ) : userSettings.length === 0 ? (
+          <div className='flex h-64 flex-col items-center justify-center rounded-lg border-2 border-dashed'>
+            <p className='mb-4 text-muted-foreground'>{t('page.empty')}</p>
+            <RequirePermission code='storage:manage'>
+              <Button onClick={() => setAddModalVisible(true)}>
+                <Plus className='mr-2 h-4 w-4' />
+                {t('page.addFirst')}
+              </Button>
+            </RequirePermission>
+          </div>
+        ) : filteredSettings.length === 0 ? (
+          <div className='flex h-64 items-center justify-center rounded-lg border-2 border-dashed'>
+            <p className='text-muted-foreground'>{t('page.noMatch')}</p>
+          </div>
+        ) : (
+          <ul className='faded-bottom no-scrollbar grid grid-cols-2 gap-4 overflow-auto pb-16 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'>
+            {filteredSettings.map((setting) => (
+              <StorageSettingCard
+                key={setting.id}
+                setting={setting}
+                onRefresh={refetch}
+              />
+            ))}
+          </ul>
+        )}
+      </div>
 
       {/* Add Storage Config Modal */}
       <AddStorageModal

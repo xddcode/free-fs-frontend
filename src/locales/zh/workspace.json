@@ -1,0 +1,22 @@
+{
+  "new": {
+    "title": "创建工作空间",
+    "subtitle": "工作空间是团队协作的基本单元，文件、存储和成员都归属于工作空间。",
+    "cardTitle": "工作空间信息",
+    "cardDescription": "填写基本信息来创建你的工作空间",
+    "nameLabel": "工作空间名称",
+    "namePlaceholder": "如：我的团队",
+    "slugLabel": "唯一标识",
+    "slugPlaceholder": "如：my-team",
+    "slugHint": "仅允许小写字母、数字和连字符，用于唯一标识工作空间。",
+    "descLabel": "描述（可选）",
+    "descPlaceholder": "简要描述工作空间的用途...",
+    "back": "返回",
+    "submit": "创建工作空间",
+    "submitting": "创建中...",
+    "toastFill": "请填写工作空间名称和标识",
+    "toastSuccess": "工作空间创建成功",
+    "toastFail": "创建工作空间失败",
+    "defaultName": "{{name}}的工作空间"
+  }
+}

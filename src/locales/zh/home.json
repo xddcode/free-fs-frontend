@@ -1,0 +1,44 @@
+{
+  "category": {
+    "document": "文档",
+    "image": "图片",
+    "video": "视频",
+    "audio": "音频",
+    "other": "其他"
+  },
+  "storageCard": {
+    "title": "存储概览",
+    "usedLabel": "已使用空间",
+    "manage": "管理存储空间"
+  },
+  "recentFiles": {
+    "title": "最近文件",
+    "manageLink": "文件管理",
+    "colName": "名称",
+    "colModified": "修改时间",
+    "colSize": "大小",
+    "empty": "暂无最近文件",
+    "loadFailed": "加载失败",
+    "retry": "重试"
+  },
+  "openSource": {
+    "title": "开源项目",
+    "description": "Free Fs 是一款基于 Spring Boot 和 React 构建的开源文件管理系统，欢迎大家交流学习。",
+    "gitee": "Gitee 仓库",
+    "github": "GitHub 仓库"
+  },
+  "chart": {
+    "title": "存储增长",
+    "seriesLabel": "已用存储 ({{unit}})",
+    "descDesktop": "已用存储随时间变化（{{unit}}）",
+    "descMobile": "存储趋势",
+    "range90d": "近 3 个月",
+    "range30d": "近 30 天",
+    "range7d": "近 7 天",
+    "unitAria": "数据单位",
+    "timeRangeAria": "选择时间范围",
+    "loadFailed": "加载失败，请稍后重试",
+    "noData": "暂无数据",
+    "areaName": "已用存储"
+  }
+}

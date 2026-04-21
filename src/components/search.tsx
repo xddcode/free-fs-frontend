@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { SearchIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useSearch } from '@/context/search-provider'
@@ -11,8 +12,10 @@ type SearchProps = {
 
 export function Search({
   className = '',
-  placeholder = '快捷搜索文件',
+  placeholder,
 }: SearchProps) {
+  const { t } = useTranslation('common')
+  const defaultPlaceholder = placeholder ?? t('searchShortcut')
   const { setOpen } = useSearch()
   return (
     <Button
@@ -29,7 +32,9 @@ export function Search({
         className='absolute start-2 top-1/2 -translate-y-1/2'
         size={16}
       />
-      <span className='ms-7 truncate pr-1 text-left'>{placeholder}</span>
+      <span className='ms-7 truncate pr-1 text-left'>
+        {defaultPlaceholder}
+      </span>
       <kbd className='pointer-events-none absolute end-1.5 top-1/2 hidden h-5 -translate-y-1/2 items-center gap-1 rounded border bg-muted px-1 font-mono text-[10px] font-medium leading-none opacity-100 select-none group-hover:bg-accent sm:flex'>
         <span className='text-xs'>⌘</span>K
       </kbd>

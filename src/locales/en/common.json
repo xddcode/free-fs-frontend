@@ -1,0 +1,80 @@
+{
+  "loading": "Loading…",
+  "workspaceListError": "Could not load workspaces",
+  "refreshOrRelogin": "Refresh the page or sign in again",
+  "workspaceLoadError": "Failed to load workspace. Please try again.",
+  "retry": "Retry",
+  "backHome": "Back to home",
+  "notFound": {
+    "title": "Sorry, this page does not exist",
+    "back": "Back to home"
+  },
+  "profile": {
+    "title": "Profile",
+    "description": "Profile page"
+  },
+  "api": {
+    "loginFailed": "Sign-in failed",
+    "noPermission": "No permission",
+    "operationFailed": "Operation failed",
+    "networkFailed": "Request failed",
+    "badRequest": "Invalid request",
+    "wrongCredentials": "Invalid account or password",
+    "notFound": "Resource not found",
+    "serverError": "Server error",
+    "requestFailed": "Request failed ({{status}})",
+    "timeout": "Request timed out. Check your network.",
+    "networkError": "Network error. Check your connection."
+  },
+  "listTotalItems": "{{count}} items",
+  "searchShortcut": "Quick search…",
+  "commandMenu": {
+    "title": "Search files",
+    "placeholderAll": "Search all files, type keywords…",
+    "placeholderScoped": "Type keywords…",
+    "clear": "Clear",
+    "closeAria": "Close",
+    "typeHeading": "File type (optional)",
+    "types": {
+      "image": "Image",
+      "video": "Video",
+      "folder": "Folder",
+      "document": "Document",
+      "audio": "Audio"
+    },
+    "footerAllDefault": "Searches all files by default. Pick a type, enter keywords, then press Enter.",
+    "footerAllWithKeyword": "Press Enter to search across all files.",
+    "footerScopedNoKeyword": "Enter keywords for this type, then press Enter to search.",
+    "footerScopedWithKeyword": "Press Enter to search on the Files page."
+  },
+  "format": {
+    "todayTime": "Today {{time}}",
+    "todayListRow": "Today | {{time}}"
+  },
+  "preview": {
+    "popupBlocked": "Pop-up was blocked. Allow pop-ups and try again.",
+    "tokenFailed": "Could not get preview token. Try again later."
+  },
+  "fileErrors": {
+    "readFailed": "Failed to read file",
+    "chunkReadFailed": "Failed to read chunk"
+  },
+  "pagination": {
+    "pageOf": "Page {{current}} of {{total}}",
+    "rowsPerPage": "Rows per page",
+    "first": "First page",
+    "prev": "Previous page",
+    "next": "Next page",
+    "last": "Last page",
+    "pageSr": "Page {{n}}"
+  },
+  "bulkSelection": {
+    "suffix": "items selected",
+    "defaultToolbarName": "Bulk actions",
+    "toolbarAria": "{{label}}: {{count}} items selected",
+    "countBadgeAria": "{{count}} items selected",
+    "clear": "Clear selection",
+    "clearHint": "Clear selection (Esc)",
+    "announce": "{{count}} items selected. Bulk action bar is available."
+  }
+}

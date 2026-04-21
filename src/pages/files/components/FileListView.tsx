@@ -1,4 +1,5 @@
 import { useState, useEffect, type RefObject } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { FileItem, SortOrder } from '@/types/file'
 import {
   Download,
@@ -13,6 +14,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatFileListDisplayTime, formatFileSize } from '@/utils/format'
+import { usePermission } from '@/hooks/use-permission'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
@@ -105,7 +107,12 @@ export function FileListView({
   onLoadMore,
   scrollRootRef,
 }: FileListViewProps) {
+  const { t } = useTranslation('files')
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
+  const { hasPermission } = usePermission()
+  const canRead = hasPermission('file:read')
+  const canWrite = hasPermission('file:write')
+  const canShare = hasPermission('file:share')
 
   // 拖拽功能
   const {
@@ -169,7 +176,7 @@ export function FileListView({
   const handleDoubleClick = (file: FileItem) => {
     if (file.isDir) {
       onFileClick(file)
-    } else {
+    } else if (canRead) {
       onPreview(file)
     }
   }
@@ -190,20 +197,20 @@ export function FileListView({
                 <Checkbox
                   checked={isAllSelected}
                   onCheckedChange={handleSelectAll}
-                  aria-label='全选'
+                  aria-label={t('list.ariaSelectAll')}
                 />
               </TableHead>
               <TableHead className='text-muted-foreground h-[48px] px-4 text-left text-sm font-medium'>
-                名称
+                {t('table.colName')}
               </TableHead>
               <TableHead className='text-muted-foreground h-[48px] w-[7.5rem] px-4 text-left text-sm font-medium'>
-                大小
+                {t('table.colSize')}
               </TableHead>
               <TableHead className='text-muted-foreground h-[48px] min-w-[11rem] px-4 text-left text-sm font-medium'>
-                修改时间
+                {t('table.colModified')}
               </TableHead>
               <TableHead className='text-muted-foreground h-[48px] w-14 px-2 text-right text-sm font-medium'>
-                <span className='sr-only'>更多操作</span>
+                <span className='sr-only'>{t('list.ariaMore')}</span>
               </TableHead>
             </TableRow>
           </TableHeader>
@@ -235,13 +242,13 @@ export function FileListView({
                       isDragging && 'cursor-move opacity-50',
                       isDropTarget && 'bg-primary/15 is-folder-drop-target'
                     )}
-                    draggable={!openMenuId}
-                    onDragStart={(e) => handleDragStart(e, file)}
-                    onDragEnd={handleDragEnd}
-                    onDragEnter={(e) => handleDragEnter(e, file)}
-                    onDragOver={(e) => handleDragOver(e, file)}
-                    onDragLeave={(e) => handleDragLeave(e, file)}
-                    onDrop={(e) => handleDrop(e, file)}
+                    draggable={canWrite && !openMenuId}
+                    onDragStart={(e) => canWrite && handleDragStart(e, file)}
+                    onDragEnd={() => canWrite && handleDragEnd()}
+                    onDragEnter={(e) => canWrite && handleDragEnter(e, file)}
+                    onDragOver={(e) => canWrite && handleDragOver(e, file)}
+                    onDragLeave={(e) => canWrite && handleDragLeave(e, file)}
+                    onDrop={(e) => canWrite && handleDrop(e, file)}
                     onClick={(e) => handleRowClick(file, e)}
                     onDoubleClick={() => handleDoubleClick(file)}
                   >
@@ -323,13 +330,13 @@ export function FileListView({
                               openMenuId === file.id && 'bg-primary/10 text-primary'
                             )}
                             onClick={(e) => e.stopPropagation()}
-                            aria-label='更多操作'
+                            aria-label={t('list.ariaMore')}
                           >
                             <FileListRowActionIcon />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align='end'>
-                          {!file.isDir && (
+                          {!file.isDir && canRead && (
                             <DropdownMenuItem
                               onClick={(e) => {
                                 e.stopPropagation()
@@ -337,19 +344,21 @@ export function FileListView({
                               }}
                             >
                               <Eye className='size-4' />
-                              预览
+                              {t('rowMenu.preview')}
                             </DropdownMenuItem>
                           )}
-                          <DropdownMenuItem
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              onShare(file)
-                            }}
-                          >
-                            <Share2 className='size-4' />
-                            分享
-                          </DropdownMenuItem>
-                          {!file.isDir && (
+                          {canShare && (
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                onShare(file)
+                              }}
+                            >
+                              <Share2 className='size-4' />
+                              {t('rowMenu.share')}
+                            </DropdownMenuItem>
+                          )}
+                          {!file.isDir && canRead && (
                             <DropdownMenuItem
                               onClick={(e) => {
                                 e.stopPropagation()
@@ -357,27 +366,31 @@ export function FileListView({
                               }}
                             >
                               <Download className='size-4' />
-                              下载
+                              {t('rowMenu.download')}
                             </DropdownMenuItem>
                           )}
-                          <DropdownMenuItem
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              onMove(file)
-                            }}
-                          >
-                            <Move className='size-4' />
-                            移动到
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              onRename(file)
-                            }}
-                          >
-                            <Edit className='size-4' />
-                            重命名
-                          </DropdownMenuItem>
+                          {canWrite && (
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                onMove(file)
+                              }}
+                            >
+                              <Move className='size-4' />
+                              {t('rowMenu.move')}
+                            </DropdownMenuItem>
+                          )}
+                          {canWrite && (
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                onRename(file)
+                              }}
+                            >
+                              <Edit className='size-4' />
+                              {t('rowMenu.rename')}
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuItem
                             onClick={(e) => {
                               e.stopPropagation()
@@ -385,33 +398,41 @@ export function FileListView({
                             }}
                           >
                             <Info className='size-4' />
-                            详细信息
+                            {t('rowMenu.detail')}
                           </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              onFavorite(file)
-                            }}
-                          >
-                            <Heart
-                              className={cn(
-                                'size-4',
-                                file.isFavorite && 'fill-current text-red-500'
-                              )}
-                            />
-                            {file.isFavorite ? '取消收藏' : '收藏'}
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator className='bg-border' />
-                          <DropdownMenuItem
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              onDelete(file)
-                            }}
-                            className='text-destructive focus:text-destructive'
-                          >
-                            <Trash2 className='size-4' />
-                            放入回收站
-                          </DropdownMenuItem>
+                          {canWrite && (
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                onFavorite(file)
+                              }}
+                            >
+                              <Heart
+                                className={cn(
+                                  'size-4',
+                                  file.isFavorite && 'fill-current text-red-500'
+                                )}
+                              />
+                              {file.isFavorite
+                                ? t('rowMenu.unfavorite')
+                                : t('rowMenu.favorite')}
+                            </DropdownMenuItem>
+                          )}
+                          {canWrite && (
+                            <>
+                              <DropdownMenuSeparator className='bg-border' />
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  onDelete(file)
+                                }}
+                                className='text-destructive focus:text-destructive'
+                              >
+                                <Trash2 className='size-4' />
+                                {t('rowMenu.trash')}
+                              </DropdownMenuItem>
+                            </>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
@@ -421,7 +442,7 @@ export function FileListView({
                   {isMultiSelected ? (
                     // 多选菜单
                     <>
-                      {downloadableFiles.length > 0 && (
+                      {canRead && downloadableFiles.length > 0 && (
                         <ContextMenuItem
                           onClick={(e) => {
                             e.stopPropagation()
@@ -429,10 +450,10 @@ export function FileListView({
                           }}
                         >
                           <Download className='mr-2 h-4 w-4' />
-                          下载
+                          {t('rowMenu.download')}
                         </ContextMenuItem>
                       )}
-                      {onBatchShare && (
+                      {canShare && onBatchShare && (
                         <ContextMenuItem
                           onClick={(e) => {
                             e.stopPropagation()
@@ -440,25 +461,29 @@ export function FileListView({
                           }}
                         >
                           <Share2 className='mr-2 h-4 w-4' />
-                          分享
+                          {t('rowMenu.share')}
                         </ContextMenuItem>
                       )}
-                      <ContextMenuItem
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          onFavorite(selectedFiles)
-                        }}
-                      >
-                        <Heart
-                          className={cn(
-                            'mr-2 h-4 w-4',
-                            !hasUnfavorited && 'fill-current text-red-500'
-                          )}
-                        />
-                        {hasUnfavorited ? '收藏' : '取消收藏'}
-                      </ContextMenuItem>
-                      <ContextMenuSeparator />
-                      {onBatchMove && (
+                      {canWrite && (
+                        <ContextMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onFavorite(selectedFiles)
+                          }}
+                        >
+                          <Heart
+                            className={cn(
+                              'mr-2 h-4 w-4',
+                              !hasUnfavorited && 'fill-current text-red-500'
+                            )}
+                          />
+                          {hasUnfavorited
+                            ? t('rowMenu.favorite')
+                            : t('rowMenu.unfavorite')}
+                        </ContextMenuItem>
+                      )}
+                      {canWrite && <ContextMenuSeparator />}
+                      {canWrite && onBatchMove && (
                         <ContextMenuItem
                           onClick={(e) => {
                             e.stopPropagation()
@@ -466,11 +491,10 @@ export function FileListView({
                           }}
                         >
                           <Move className='mr-2 h-4 w-4' />
-                          移动到
+                          {t('rowMenu.move')}
                         </ContextMenuItem>
                       )}
-                      <ContextMenuSeparator />
-                      {onBatchDelete && (
+                      {canWrite && onBatchDelete && (
                         <ContextMenuItem
                           onClick={(e) => {
                             e.stopPropagation()
@@ -479,14 +503,14 @@ export function FileListView({
                           className='text-destructive focus:text-destructive'
                         >
                           <Trash2 className='mr-2 h-4 w-4' />
-                          放入回收站
+                          {t('rowMenu.trash')}
                         </ContextMenuItem>
                       )}
                     </>
                   ) : (
                     // 单选菜单
                     <>
-                      {!file.isDir && (
+                      {!file.isDir && canRead && (
                         <>
                           <ContextMenuItem
                             onClick={(e) => {
@@ -495,34 +519,40 @@ export function FileListView({
                             }}
                           >
                             <Eye className='mr-2 h-4 w-4' />
-                            预览
+                            {t('rowMenu.preview')}
                           </ContextMenuItem>
                         </>
                       )}
-                      <ContextMenuItem
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          onShare(file)
-                        }}
-                      >
-                        <Share2 className='mr-2 h-4 w-4' />
-                        分享
-                      </ContextMenuItem>
-                      <ContextMenuItem
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          onFavorite(file)
-                        }}
-                      >
-                        <Heart
-                          className={cn(
-                            'mr-2 h-4 w-4',
-                            file.isFavorite && 'fill-current text-red-500'
-                          )}
-                        />
-                        {file.isFavorite ? '取消收藏' : '收藏'}
-                      </ContextMenuItem>
-                      {!file.isDir && (
+                      {canShare && (
+                        <ContextMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onShare(file)
+                          }}
+                        >
+                          <Share2 className='mr-2 h-4 w-4' />
+                          {t('rowMenu.share')}
+                        </ContextMenuItem>
+                      )}
+                      {canWrite && (
+                        <ContextMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onFavorite(file)
+                          }}
+                        >
+                          <Heart
+                            className={cn(
+                              'mr-2 h-4 w-4',
+                              file.isFavorite && 'fill-current text-red-500'
+                            )}
+                          />
+                          {file.isFavorite
+                            ? t('rowMenu.unfavorite')
+                            : t('rowMenu.favorite')}
+                        </ContextMenuItem>
+                      )}
+                      {!file.isDir && canRead && (
                         <ContextMenuItem
                           onClick={(e) => {
                             e.stopPropagation()
@@ -530,28 +560,32 @@ export function FileListView({
                           }}
                         >
                           <Download className='mr-2 h-4 w-4' />
-                          下载
+                          {t('rowMenu.download')}
                         </ContextMenuItem>
                       )}
-                      <ContextMenuSeparator />
-                      <ContextMenuItem
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          onRename(file)
-                        }}
-                      >
-                        <Edit className='mr-2 h-4 w-4' />
-                        重命名
-                      </ContextMenuItem>
-                      <ContextMenuItem
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          onMove(file)
-                        }}
-                      >
-                        <Move className='mr-2 h-4 w-4' />
-                        移动到
-                      </ContextMenuItem>
+                      {canWrite && <ContextMenuSeparator />}
+                      {canWrite && (
+                        <ContextMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onRename(file)
+                          }}
+                        >
+                          <Edit className='mr-2 h-4 w-4' />
+                          {t('rowMenu.rename')}
+                        </ContextMenuItem>
+                      )}
+                      {canWrite && (
+                        <ContextMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onMove(file)
+                          }}
+                        >
+                          <Move className='mr-2 h-4 w-4' />
+                          {t('rowMenu.move')}
+                        </ContextMenuItem>
+                      )}
                       <ContextMenuItem
                         onClick={(e) => {
                           e.stopPropagation()
@@ -559,19 +593,23 @@ export function FileListView({
                         }}
                       >
                         <Info className='mr-2 h-4 w-4' />
-                        详细信息
+                        {t('rowMenu.detail')}
                       </ContextMenuItem>
-                      <ContextMenuSeparator />
-                      <ContextMenuItem
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          onDelete(file)
-                        }}
-                        className='text-destructive focus:text-destructive'
-                      >
-                        <Trash2 className='mr-2 h-4 w-4' />
-                        放入回收站
-                      </ContextMenuItem>
+                      {canWrite && (
+                        <>
+                          <ContextMenuSeparator />
+                          <ContextMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              onDelete(file)
+                            }}
+                            className='text-destructive focus:text-destructive'
+                          >
+                            <Trash2 className='mr-2 h-4 w-4' />
+                            {t('rowMenu.trash')}
+                          </ContextMenuItem>
+                        </>
+                      )}
                     </>
                   )}
                 </ContextMenuContent>
@@ -594,12 +632,12 @@ export function FileListView({
             className='h-5 w-5 shrink-0 animate-spin text-muted-foreground'
             aria-hidden
           />
-          <span className='sr-only'>加载中</span>
+          <span className='sr-only'>{t('list.loading')}</span>
         </div>
       )}
       {showNoMoreHint && (
         <p className='py-6 text-center text-sm text-muted-foreground/55'>
-          没有更多了
+          {t('index.noMore')}
         </p>
       )}
     </div>

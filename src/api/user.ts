@@ -8,7 +8,9 @@ import {
   UserInfo,
   UserRegisterParams,
   ChangePasswordParams,
+  SetPasswordParams,
   ForgotPasswordParams,
+  UpdateUserInfoParams,
 } from '@/types/user'
 import { request } from './request'
 
@@ -16,6 +18,13 @@ export const userApi = {
   // 登录
   login: (data: LoginParams) => {
     return request.post<LoginRes>('/apis/auth/login', data)
+  },
+
+  /** 登录-邮箱验证码：向 account 对应邮箱发送验证码（与后端路径对齐） */
+  sendLoginEmailCode: (account: string) => {
+    return request.post<unknown>('/apis/auth/login/email-code', null, {
+      params: { account },
+    })
   },
 
   // 注册
@@ -28,14 +37,43 @@ export const userApi = {
     return request.get<UserInfo>('/apis/user/info')
   },
 
-  // 更新用户信息
-  updateUserInfo: (data: Partial<UserInfo>) => {
-    return request.put<UserInfo>('/apis/user/info', data)
+  // 更新用户信息（请求体仅传可改字段；成功后需再调 getUserInfo，因接口可能不返回 data）
+  updateUserInfo: async (data: UpdateUserInfoParams): Promise<void> => {
+    await request.put<unknown>('/apis/user/info', data)
   },
 
-  // 修改密码
+  /** 发送修改邮箱验证码 */
+  sendUpdateEmailCode: (mail: string) => {
+    return request.post<unknown>(`/apis/user/update-mail/code/${mail}`)
+  },
+
+  /** 修改邮箱 */
+  updateEmail: (mail: string, code: string) => {
+    return request.put<unknown>(`/apis/user/update-mail/code/${mail}/${code}`, {
+      email: mail,
+      code: code,
+    })
+  },
+
+  /** 上传头像（multipart，字段名 file；成功后请 getUserInfo） */
+  uploadAvatar: async (file: File): Promise<void> => {
+    const formData = new FormData()
+    formData.append('file', file)
+    await request.put<unknown>('/apis/user/avatar', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+  },
+
+  // 修改密码（需原密码）
   changePassword: (data: ChangePasswordParams) => {
     return request.put('/apis/user/password', data)
+  },
+
+  /** 首次设置密码（无原密码，邮箱验证码注册用户） */
+  setPassword: async (data: SetPasswordParams): Promise<void> => {
+    await request.post<unknown>('/apis/user/password', data)
   },
 
   // 退出登录

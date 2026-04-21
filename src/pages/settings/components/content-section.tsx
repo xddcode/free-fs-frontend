@@ -1,21 +1,37 @@
 import { Separator } from '@/components/ui/separator'
+import { cn } from '@/lib/utils'
+import {
+  SettingsPageDescription,
+  SettingsPageTitle,
+} from './settings-page-header'
 
 type ContentSectionProps = {
   title: string
   desc: string
-  children: React.JSX.Element
+  children: React.ReactNode
+  /** 为 false 时内容区限制为 max-w-4xl；弹窗内默认铺满 */
+  fullWidth?: boolean
 }
 
-export function ContentSection({ title, desc, children }: ContentSectionProps) {
+export function ContentSection({
+  title,
+  desc,
+  children,
+  fullWidth = true,
+}: ContentSectionProps) {
   return (
     <div className='flex flex-1 flex-col'>
-      <div className='flex-none'>
-        <h3 className='text-lg font-medium'>{title}</h3>
-        <p className='text-sm text-muted-foreground'>{desc}</p>
-      </div>
-      <Separator className='my-4 flex-none' />
-      <div className='faded-bottom h-full w-full overflow-y-auto scroll-smooth pe-4 pb-12'>
-        <div className='-mx-1 px-1.5 lg:max-w-xl'>{children}</div>
+      <header className='flex-none'>
+        <SettingsPageTitle>{title}</SettingsPageTitle>
+        <SettingsPageDescription>{desc}</SettingsPageDescription>
+      </header>
+      <Separator className='my-6 flex-none' />
+      <div className='faded-bottom h-full w-full overflow-y-auto scroll-smooth pb-12'>
+        <div
+          className={cn('w-full', fullWidth ? 'max-w-none' : 'max-w-4xl')}
+        >
+          {children}
+        </div>
       </div>
     </div>
   )

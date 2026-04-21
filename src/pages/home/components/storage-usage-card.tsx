@@ -1,6 +1,7 @@
 import { HardDrive } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import {
   getHomeInfo,
   HOME_INFO_REFETCH_INTERVAL_MS,
@@ -20,10 +21,13 @@ export function StorageOverviewCard({
   className?: string
   storageUnit: HomeUsedBytesUnit
 }) {
+  const { t } = useTranslation('home')
+  const { slug } = useParams<{ slug: string }>()
+
   const { data, isLoading, isError } = useQuery({
-    queryKey: ['homeInfo', 'summary', storageUnit],
+    queryKey: ['homeInfo', 'summary', slug, storageUnit],
     queryFn: () => getHomeInfo({ unit: storageUnit }),
-    staleTime: 0,
+    staleTime: 30_000,
     refetchInterval: HOME_INFO_REFETCH_INTERVAL_MS,
   })
 
@@ -64,7 +68,9 @@ export function StorageOverviewCard({
       <div className='pointer-events-none absolute bottom-0 left-0 h-24 w-24 rounded-full bg-linear-to-tr from-purple-500/10 to-transparent blur-3xl' />
 
       <div className='relative flex min-h-0 flex-1 flex-col'>
-        <h3 className='mb-4 text-base font-bold'>存储概览</h3>
+        <h3 className='mb-4 text-base font-bold'>
+          {t('storageCard.title')}
+        </h3>
 
         <div className='flex flex-1 flex-col items-center justify-center gap-3 py-2'>
           <div
@@ -98,7 +104,7 @@ export function StorageOverviewCard({
                   )}
             </span>
             <span className='text-xs font-medium text-muted-foreground'>
-              已使用空间
+              {t('storageCard.usedLabel')}
             </span>
           </div>
         </div>
@@ -107,7 +113,7 @@ export function StorageOverviewCard({
           className='mt-4 h-9 w-full rounded-lg text-sm font-semibold shadow-sm transition-all hover:shadow-md'
           asChild
         >
-          <Link to='/storage'>管理存储空间</Link>
+          <Link to={`/w/${slug}/storage`}>{t('storageCard.manage')}</Link>
         </Button>
       </div>
     </Card>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useTransferStore } from '@/store/transfer'
 import { RefreshCw, Upload, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -15,6 +16,8 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import TransferTable from './components/TransferTable'
 
 export default function TransferPage() {
+  const { t } = useTranslation('transfer')
+  const { t: tc } = useTranslation('common')
   const [activeTab, setActiveTab] = useState('uploading')
   const [loading, setLoading] = useState(false)
 
@@ -86,7 +89,7 @@ export default function TransferPage() {
   const handlePause = async (taskId: string) => {
     try {
       await pauseTask(taskId)
-      toast.success('已暂停')
+      toast.success(t('page.toastPause'))
     } finally {
       // 无需处理
     }
@@ -95,7 +98,7 @@ export default function TransferPage() {
   const handleResume = async (taskId: string) => {
     try {
       await resumeTask(taskId)
-      toast.success('已恢复')
+      toast.success(t('page.toastResume'))
     } finally {
       // 无需处理
     }
@@ -104,7 +107,7 @@ export default function TransferPage() {
   const handleCancel = async (taskId: string) => {
     try {
       await cancelTask(taskId)
-      toast.success('已取消')
+      toast.success(t('page.toastCancel'))
     } finally {
       // 无需处理
     }
@@ -113,7 +116,7 @@ export default function TransferPage() {
   const handleRetry = async (taskId: string) => {
     try {
       await retryTask(taskId)
-      toast.success('已重试')
+      toast.success(t('page.toastRetry'))
     } finally {
       // 无需处理
     }
@@ -121,13 +124,13 @@ export default function TransferPage() {
 
   const handleClearCompleted = async () => {
     if (completedTasks.length === 0) {
-      toast.warning('没有可清空的任务')
+      toast.warning(t('page.toastClearWarn'))
       return
     }
 
     try {
       await clearCompletedTasks()
-      toast.success('已清空所有已完成任务')
+      toast.success(t('page.toastClearOk'))
     } finally {
       // 无需处理
     }
@@ -140,7 +143,9 @@ export default function TransferPage() {
         <SidebarTrigger className='md:hidden' />
 
         <div className='flex-1'>
-          <h2 className='text-base font-normal'>传输列表</h2>
+          <h2 className='text-xl font-semibold tracking-tight'>
+            {t('page.title')}
+          </h2>
         </div>
 
         <Button variant='outline' size='icon' onClick={handleRefresh}>
@@ -154,7 +159,7 @@ export default function TransferPage() {
             onClick={handleClearCompleted}
           >
             <Trash2 className='mr-2 h-4 w-4' />
-            全部清空
+            {t('page.clearAll')}
           </Button>
         )}
       </div>
@@ -164,16 +169,21 @@ export default function TransferPage() {
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList>
             <TabsTrigger value='uploading'>
-              上传中 {uploadingTasks.length > 0 && `(${uploadingTasks.length})`}
+              {t('page.tabUploading')}{' '}
+              {uploadingTasks.length > 0 && `(${uploadingTasks.length})`}
             </TabsTrigger>
-            <TabsTrigger value='downloading'>下载中 (0)</TabsTrigger>
-            <TabsTrigger value='completed'>已完成</TabsTrigger>
+            <TabsTrigger value='downloading'>
+              {t('page.tabDownloading')} (0)
+            </TabsTrigger>
+            <TabsTrigger value='completed'>
+              {t('page.tabCompleted')}
+            </TabsTrigger>
           </TabsList>
         </Tabs>
 
         {currentDisplayTasks.length > 0 && (
           <span className='text-sm text-muted-foreground'>
-            共 {currentDisplayTasks.length} 项
+            {tc('listTotalItems', { count: currentDisplayTasks.length })}
           </span>
         )}
       </div>
@@ -182,7 +192,7 @@ export default function TransferPage() {
       <div className='flex-1 overflow-auto p-6'>
         {loading ? (
           <div className='flex h-full items-center justify-center'>
-            <p className='text-muted-foreground'>加载中...</p>
+            <p className='text-muted-foreground'>{tc('loading')}</p>
           </div>
         ) : currentDisplayTasks.length === 0 ? (
           <div className='flex h-full items-center justify-center'>
@@ -193,17 +203,17 @@ export default function TransferPage() {
                 </EmptyMedia>
                 <EmptyTitle>
                   {activeTab === 'uploading'
-                    ? '暂无上传任务'
+                    ? t('page.emptyUploadingTitle')
                     : activeTab === 'downloading'
-                      ? '暂无下载任务'
-                      : '暂无已完成任务'}
+                      ? t('page.emptyDownloadingTitle')
+                      : t('page.emptyCompletedTitle')}
                 </EmptyTitle>
                 <EmptyDescription>
                   {activeTab === 'uploading'
-                    ? '上传文件后，任务会在这里显示'
+                    ? t('page.emptyUploadingDesc')
                     : activeTab === 'downloading'
-                      ? '下载功能即将推出'
-                      : '已完成的任务会在这里显示'}
+                      ? t('page.emptyDownloadingDesc')
+                      : t('page.emptyCompletedDesc')}
                 </EmptyDescription>
               </EmptyHeader>
             </Empty>

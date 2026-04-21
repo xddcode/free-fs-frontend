@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { StorageSetting, ConfigScheme } from '@/types/storage'
 import {
   Database,
@@ -16,6 +17,7 @@ import {
   toggleStorageSetting,
   updateStorageSetting,
 } from '@/api/storage'
+import { usePermission } from '@/hooks/use-permission'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -35,6 +37,13 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { ConfirmDialog } from '@/components/confirm-dialog'
+import {
+  DescriptionField,
+  DescriptionFieldLabel,
+  DescriptionFieldList,
+  DescriptionFieldValue,
+  DescriptionFieldValueRow,
+} from '@/components/field-layout'
 
 interface StorageSettingCardProps {
   setting: StorageSetting
@@ -45,6 +54,7 @@ export function StorageSettingCard({
   setting,
   onRefresh,
 }: StorageSettingCardProps) {
+  const { t } = useTranslation('storage')
   const [viewModalOpen, setViewModalOpen] = useState(false)
   const [editModalOpen, setEditModalOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -55,6 +65,10 @@ export function StorageSettingCard({
   const [editErrors, setEditErrors] = useState<Record<string, string>>({})
   const [copiedField, setCopiedField] = useState<string | null>(null)
   const [copiedConfig, setCopiedConfig] = useState(false)
+  const { hasPermission } = usePermission()
+  const canManageStorage = hasPermission('storage:manage')
+  const canOperateStorage = canManageStorage
+  const canDeleteStorage = canManageStorage
 
   const schemes: ConfigScheme[] = JSON.parse(
     setting.storagePlatform.configScheme
@@ -63,6 +77,7 @@ export function StorageSettingCard({
 
   // 脱敏处理
   const maskValue = (identifier: string, value: string): string => {
+    const emptyLabel = t('card.notConfigured')
     const lowerIdentifier = identifier.toLowerCase()
     const isAccessKey =
       lowerIdentifier.includes('access') && lowerIdentifier.includes('key')
@@ -77,27 +92,33 @@ export function StorageSettingCard({
       }
       return '****'
     }
-    return value || '未配置'
+    return value || emptyLabel
   }
 
   // 复制配置
   const handleCopyConfig = async () => {
     const configText: string[] = []
-    configText.push(`${setting.storagePlatform.name} 配置信息`)
+    configText.push(
+      t('card.configHeader', { name: setting.storagePlatform.name })
+    )
     configText.push('='.repeat(30))
     schemes.forEach((field) => {
-      const value = configData[field.identifier] || '未配置'
+      const value = configData[field.identifier] || t('card.notConfigured')
       configText.push(`${field.label}: ${value}`)
     })
-    configText.push(`配置备注: ${setting.remark || '未设置备注'}`)
+    configText.push(
+      t('card.remarkLine', {
+        remark: setting.remark || t('card.noRemark'),
+      })
+    )
 
     try {
       await navigator.clipboard.writeText(configText.join('\n'))
       setCopiedConfig(true)
       setTimeout(() => setCopiedConfig(false), 2000)
-      toast.success('已复制')
+      toast.success(t('card.copied'))
     } catch (error) {
-      toast.error('复制失败')
+      toast.error(t('card.copyFailed'))
     }
   }
 
@@ -107,9 +128,9 @@ export function StorageSettingCard({
       await navigator.clipboard.writeText(value)
       setCopiedField(identifier)
       setTimeout(() => setCopiedField(null), 2000)
-      toast.success('已复制')
+      toast.success(t('card.copied'))
     } catch (error) {
-      toast.error('复制失败')
+      toast.error(t('card.copyFailed'))
     }
   }
 
@@ -145,7 +166,9 @@ export function StorageSettingCard({
         field.validation.required &&
         !editFormData[field.identifier]?.trim()
       ) {
-        newErrors[field.identifier] = `请输入${field.label}`
+        newErrors[field.identifier] = t('card.toastEnterField', {
+          label: field.label,
+        })
       }
     })
 
@@ -167,7 +190,7 @@ export function StorageSettingCard({
         configData: JSON.stringify(editFormData),
         remark: editRemark.trim(),
       })
-      toast.success('配置保存成功')
+      toast.success(t('card.saveOk'))
       onRefresh()
       setEditModalOpen(false)
     } finally {
@@ -179,7 +202,7 @@ export function StorageSettingCard({
     setIsLoading(true)
     try {
       await deleteStorageSetting(setting.id)
-      toast.success(`${setting.storagePlatform.name} 配置已删除`)
+      toast.success(t('card.deleteOk', { name: setting.storagePlatform.name }))
       onRefresh()
       setDeleteDialogOpen(false)
     } finally {
@@ -194,8 +217,8 @@ export function StorageSettingCard({
       await toggleStorageSetting(setting.id.toString(), action)
       toast.success(
         action === 1
-          ? `${setting.storagePlatform.name} 已启用，页面即将刷新...`
-          : `${setting.storagePlatform.name} 已禁用，正在切换到默认平台...`
+          ? t('card.enabledToast', { name: setting.storagePlatform.name })
+          : t('card.disabledToast', { name: setting.storagePlatform.name })
       )
       setTimeout(() => {
         window.location.reload()
@@ -230,7 +253,9 @@ export function StorageSettingCard({
                 : ''
             }
           >
-            {setting.enabled === 1 ? '已启用' : '未启用'}
+            {setting.enabled === 1
+              ? t('card.statusOn')
+              : t('card.statusOff')}
           </Badge>
         </div>
 
@@ -256,7 +281,7 @@ export function StorageSettingCard({
             )}
           </div>
           <p className='line-clamp-2 text-xs text-gray-500'>
-            {setting.storagePlatform.desc || '暂无描述信息'}
+            {setting.storagePlatform.desc || t('card.noDesc')}
           </p>
         </div>
 
@@ -339,23 +364,21 @@ export function StorageSettingCard({
       <Dialog open={viewModalOpen} onOpenChange={setViewModalOpen}>
         <DialogContent className='sm:max-w-[500px]'>
           <DialogHeader>
-            <DialogTitle>详细信息</DialogTitle>
+            <DialogTitle>{t('card.detailTitle')}</DialogTitle>
           </DialogHeader>
 
-          <div className='space-y-6 px-6 pb-4'>
-            <div className='space-y-3'>
+          <div className='space-y-6'>
+            <DescriptionFieldList>
               {schemes.map((field) => (
-                <div key={field.identifier} className='space-y-1.5'>
-                  <div className='text-xs text-muted-foreground'>
-                    {field.label}
-                  </div>
-                  <div className='flex items-center gap-2'>
-                    <div className='flex-1 text-sm break-all text-foreground'>
+                <DescriptionField key={field.identifier}>
+                  <DescriptionFieldLabel>{field.label}</DescriptionFieldLabel>
+                  <DescriptionFieldValueRow>
+                    <DescriptionFieldValue className='min-w-0 flex-1' breakAll>
                       {maskValue(
                         field.identifier,
                         configData[field.identifier]
                       )}
-                    </div>
+                    </DescriptionFieldValue>
                     <Button
                       variant='outline'
                       size='icon'
@@ -373,32 +396,34 @@ export function StorageSettingCard({
                         <Copy className='h-4 w-4' />
                       )}
                     </Button>
-                  </div>
-                </div>
+                  </DescriptionFieldValueRow>
+                </DescriptionField>
               ))}
-              <div className='space-y-1.5'>
-                <div className='text-xs text-muted-foreground'>配置备注</div>
-                <div className='text-sm break-all text-foreground'>
-                  {setting.remark || '未设置备注'}
-                </div>
-              </div>
-            </div>
+              <DescriptionField>
+                <DescriptionFieldLabel>
+                  {t('card.remarkField')}
+                </DescriptionFieldLabel>
+                <DescriptionFieldValue breakAll>
+                  {setting.remark || t('card.noRemark')}
+                </DescriptionFieldValue>
+              </DescriptionField>
+            </DescriptionFieldList>
           </div>
 
           <DialogFooter>
             <DialogClose asChild>
-              <Button variant='outline'>取消</Button>
+              <Button variant='outline'>{t('card.cancel')}</Button>
             </DialogClose>
             <Button onClick={handleCopyConfig}>
               {copiedConfig ? (
                 <>
                   <Check className='mr-2 h-4 w-4' />
-                  已复制
+                  {t('card.copiedBtn')}
                 </>
               ) : (
                 <>
                   <Copy className='mr-2 h-4 w-4' />
-                  复制配置
+                  {t('card.copyConfig')}
                 </>
               )}
             </Button>
@@ -408,18 +433,18 @@ export function StorageSettingCard({
 
       {/* Edit Modal */}
       <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
-        <DialogContent className='max-h-[85vh] max-w-2xl overflow-y-auto'>
+        <DialogContent className='max-h-[85vh] sm:max-w-2xl overflow-y-auto'>
           <DialogHeader>
-            <DialogTitle>编辑配置</DialogTitle>
+            <DialogTitle>{t('card.editTitle')}</DialogTitle>
           </DialogHeader>
-          <div className='space-y-6 px-6 pb-4'>
+          <div className='space-y-6'>
             {schemes.map((field) => (
               <div key={field.identifier} className='space-y-3'>
                 <Label htmlFor={`edit-${field.identifier}`}>
-                  {field.label}{' '}
                   {field.validation.required && (
-                    <span className='align-middle text-red-500'>*</span>
+                    <span className='relative top-0.5 text-red-500'>* </span>
                   )}
+                  {field.label}
                 </Label>
                 <Input
                   id={`edit-${field.identifier}`}
@@ -431,7 +456,7 @@ export function StorageSettingCard({
                     })
                     clearEditFieldError(field.identifier)
                   }}
-                  placeholder={`请输入${field.label}`}
+                  placeholder={t('addModal.fieldPh', { label: field.label })}
                   className={
                     editErrors[field.identifier] ? 'border-red-500' : ''
                   }
@@ -445,23 +470,33 @@ export function StorageSettingCard({
               </div>
             ))}
             <div className='space-y-3'>
-              <Label htmlFor='edit-remark'>配置备注</Label>
+              <Label htmlFor='edit-remark'>{t('card.remarkField')}</Label>
               <Input
                 id='edit-remark'
                 value={editRemark}
                 onChange={(e) => setEditRemark(e.target.value)}
-                placeholder='例如：生产环境、测试环境等'
+                placeholder={t('card.editRemarkPh')}
               />
             </div>
           </div>
           <DialogFooter>
             <DialogClose asChild>
               <Button variant='outline' disabled={isLoading}>
-                取消
+                {t('card.cancel')}
               </Button>
             </DialogClose>
-            <Button onClick={handleSaveEdit} disabled={isLoading}>
-              {isLoading ? '保存中...' : '保存配置'}
+            <Button
+              onClick={handleSaveEdit}
+              disabled={
+                isLoading ||
+                !schemes.every((field) =>
+                  field.validation.required
+                    ? editFormData[field.identifier]?.trim()
+                    : true
+                )
+              }
+            >
+              {isLoading ? t('addModal.saving') : t('addModal.save')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -474,10 +509,10 @@ export function StorageSettingCard({
         onOpenChange={setDeleteDialogOpen}
         handleConfirm={handleDelete}
         isLoading={isLoading}
-        title='确认删除'
-        desc={`删除后，"${setting.storagePlatform.name}" 的配置信息将无法恢复。确定要继续吗？`}
-        confirmText={isLoading ? '删除中...' : '确认删除'}
-        cancelBtnText='取消'
+        title={t('card.deleteTitle')}
+        desc={t('card.deleteDesc', { name: setting.storagePlatform.name })}
+        confirmText={isLoading ? t('card.deleting') : t('card.confirmDelete')}
+        cancelBtnText={t('card.cancel')}
       />
 
       {/* Toggle Dialog */}
@@ -486,18 +521,29 @@ export function StorageSettingCard({
         onOpenChange={setToggleDialogOpen}
         handleConfirm={handleToggle}
         isLoading={isLoading}
-        title={setting.enabled === 1 ? '确认禁用' : '确认启用'}
+        title={
+          setting.enabled === 1
+            ? t('card.toggleDisableTitle')
+            : t('card.toggleEnableTitle')
+        }
         desc={
           setting.enabled === 1
-            ? '禁用后将自动切换到默认存储平台。确定要继续吗？'
-            : `启用后将自动切换到 "${setting.storagePlatform.name}" 存储平台，其他已启用的配置将被禁用。确定要继续吗？`
+            ? t('card.toggleDisableDesc')
+            : t('card.toggleEnableDesc', {
+                name: setting.storagePlatform.name,
+              })
         }
         confirmText={
           isLoading
-            ? '处理中...'
-            : `确认${setting.enabled === 1 ? '禁用' : '启用'}`
+            ? t('card.processing')
+            : t('card.confirmToggle', {
+                action:
+                  setting.enabled === 1
+                    ? t('card.disable')
+                    : t('card.enable'),
+              })
         }
-        cancelBtnText='取消'
+        cancelBtnText={t('card.cancel')}
       />
     </>
   )

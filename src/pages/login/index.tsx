@@ -1,30 +1,40 @@
-import React, { Suspense } from 'react';
-import { Card } from "@/components/ui/card";
-import { AnimatedBeamDemo } from "./components/AnimatedBeamDemo";
-import LoginFormContent from "./components/LoginFormContent";
-import RegisterFormContent from "./components/RegisterFormContent";
-import ForgotPasswordContent from "./components/ForgotPasswordContent";
-import { useSearchParams } from 'react-router-dom';
+import React, { Suspense } from 'react'
+import { useTranslation } from 'react-i18next'
+import { Card } from '@/components/ui/card'
+import { AnimatedBeamDemo } from './components/AnimatedBeamDemo'
+import LoginFormContent from './components/LoginFormContent'
+import RegisterFormContent from './components/RegisterFormContent'
+import ForgotPasswordContent from './components/ForgotPasswordContent'
+import { LoginLanguageSwitcher } from './components/LoginLanguageSwitcher'
+import { useSearchParams } from 'react-router-dom'
 
 const LoginPage: React.FC = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const type = searchParams.get('type') || 'login';
+  const { t } = useTranslation('login')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const type = searchParams.get('type') || 'login'
 
   const handleSwitchForm = (form: 'login' | 'register' | 'forgotPassword') => {
-    const nextType = form === 'forgotPassword' ? 'forgot-password' : form;
-    setSearchParams({ type: nextType });
-  };
+    const nextType = form === 'forgotPassword' ? 'forgot-password' : form
+    setSearchParams({ type: nextType })
+  }
+
+  const inviteToken = searchParams.get('token') || undefined
 
   const renderContent = () => {
     switch (type) {
       case 'register':
-        return <RegisterFormContent onSwitchForm={handleSwitchForm} />;
+        return (
+          <RegisterFormContent
+            onSwitchForm={handleSwitchForm}
+            inviteToken={inviteToken}
+          />
+        )
       case 'forgot-password':
-        return <ForgotPasswordContent onSwitchForm={handleSwitchForm} />;
+        return <ForgotPasswordContent onSwitchForm={handleSwitchForm} />
       default:
-        return <LoginFormContent onSwitchForm={handleSwitchForm} />;
+        return <LoginFormContent onSwitchForm={handleSwitchForm} />
     }
-  };
+  }
 
   return (
     <div className="relative flex min-h-screen w-full items-center justify-center overflow-hidden bg-slate-50 p-4 md:p-8">
@@ -73,12 +83,13 @@ const LoginPage: React.FC = () => {
 
         {/* 底部信息 */}
         <div className="mt-8 flex flex-col items-center gap-3 text-xs text-slate-400">
-          <div className="flex gap-4">
+          <div className="flex flex-wrap items-center justify-center gap-4">
+            <LoginLanguageSwitcher />
             <span className="cursor-pointer transition-colors hover:text-slate-600">
-              用户协议
+              {t('termsOfService')}
             </span>
             <span className="cursor-pointer transition-colors hover:text-slate-600">
-              隐私政策
+              {t('privacyPolicy')}
             </span>
             <a
               href="https://github.com/dromara/free-fs"
@@ -98,7 +109,7 @@ const LoginPage: React.FC = () => {
             </a>
           </div>
           <p>
-            © 2026 Free Fs Project · Powered by{' '}
+            {t('footerCopyright')}{' '}
             <a
               href="https://gitee.com/xddcode"
               target="_blank"
@@ -111,6 +122,6 @@ const LoginPage: React.FC = () => {
         </div>
       </div>
     </div>
-  );
-};
-export default LoginPage;
+  )
+}
+export default LoginPage

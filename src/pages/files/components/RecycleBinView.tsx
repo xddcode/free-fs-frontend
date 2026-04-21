@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   flexRender,
   getCoreRowModel,
@@ -16,6 +17,7 @@ import {
 } from '@/api/file'
 import { cn } from '@/lib/utils'
 import { formatFileSize, formatTime } from '@/utils/format'
+import { usePermission } from '@/hooks/use-permission'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -72,6 +74,14 @@ const RECYCLE_TABLE_HEAD: Record<string, string> = {
 }
 
 export default function RecycleBinView() {
+  const { t } = useTranslation('files')
+  const { hasPermission } = usePermission()
+  const canWrite = hasPermission('file:write')
+  const canRestore = canWrite
+  const canDelete = canWrite
+  const canClear = canWrite
+  const canOperateRecycle = canWrite
+
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [fileList, setFileList] = useState<FileRecycleItem[]>([])
@@ -120,7 +130,7 @@ export default function RecycleBinView() {
 
     try {
       await restoreFiles(ids)
-      toast.success(`成功还原 ${ids.length} 个文件`)
+      toast.success(t('recycle.toastRestoreMany', { count: ids.length }))
       setSelectedIds([])
       setOperatingItem(null)
       void fetchRecyclePage()
@@ -146,7 +156,7 @@ export default function RecycleBinView() {
 
     try {
       await permanentDeleteFiles(ids)
-      toast.success(`成功删除 ${ids.length} 个文件`)
+      toast.success(t('recycle.toastDeleteMany', { count: ids.length }))
       setSelectedIds([])
       setOperatingItem(null)
       void fetchRecyclePage()
@@ -168,9 +178,7 @@ export default function RecycleBinView() {
   const confirmClearRecycle = async () => {
     try {
       await clearRecycle()
-      // 乐观更新：先清空本地数据，避免 loading 状态导致的闪烁
-      setFileList([])
-      setTotal(0)
+      toast.success(t('recycle.toastEmpty'))
       setClearDialogOpen(false)
       setSelectedIds([])
       commitSearch('')
@@ -243,7 +251,7 @@ export default function RecycleBinView() {
                   : false
             }
             onCheckedChange={handleSelectAll}
-            aria-label='全选当前页'
+            aria-label={t('recycle.ariaSelectAll')}
           />
         ),
         cell: ({ row }) => (
@@ -258,7 +266,9 @@ export default function RecycleBinView() {
                 return prev.filter((x) => x !== id)
               })
             }}
-            aria-label={`选择 ${row.original.displayName}`}
+            aria-label={t('recycle.ariaSelectRow', {
+              name: row.original.displayName,
+            })}
           />
         ),
         enableSorting: false,
@@ -266,9 +276,12 @@ export default function RecycleBinView() {
       },
       {
         accessorKey: 'displayName',
-        header: '文件名',
+        header: t('recycle.colName'),
         cell: ({ row }) => {
           const file = row.original
+          if (!canOperateRecycle) {
+            return null
+          }
           return (
             <div className='flex items-center gap-3'>
               <div className='flex h-8 w-8 items-center justify-center rounded'>
@@ -287,7 +300,7 @@ export default function RecycleBinView() {
       },
       {
         accessorKey: 'size',
-        header: '大小',
+        header: t('recycle.colSize'),
         cell: ({ row }) => (
           <span className='text-sm text-muted-foreground'>
             {row.original.isDir ? '-' : formatFileSize(row.original.size)}
@@ -296,7 +309,7 @@ export default function RecycleBinView() {
       },
       {
         accessorKey: 'deletedTime',
-        header: '删除时间',
+        header: t('recycle.colDeleted'),
         cell: ({ row }) => (
           <span className='text-sm text-muted-foreground'>
             {formatTime(row.original.deletedTime)}
@@ -306,7 +319,9 @@ export default function RecycleBinView() {
       {
         id: 'actions',
         header: () => (
-          <span className='block w-full text-center'>操作</span>
+          <span className='block w-full text-center'>
+            {t('recycle.colActions')}
+          </span>
         ),
         cell: ({ row }) => {
           const file = row.original
@@ -333,32 +348,36 @@ export default function RecycleBinView() {
                         'bg-primary/10 text-primary'
                     )}
                     onClick={(e) => e.stopPropagation()}
-                    aria-label='更多操作'
+                    aria-label={t('recycle.ariaMore')}
                   >
                     <FileListRowActionIcon />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align='end'>
-                  <DropdownMenuItem
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleRestoreSingle(file.id, file.displayName)
-                    }}
-                  >
-                    <Undo2 className='size-4' />
-                    还原
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    className='text-destructive focus:text-destructive'
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleDeleteSingle(file.id, file.displayName)
-                    }}
-                  >
-                    <Trash2 className='size-4' />
-                    彻底删除
-                  </DropdownMenuItem>
+                  {canRestore && (
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleRestoreSingle(file.id, file.displayName)
+                      }}
+                    >
+                      <Undo2 className='size-4' />
+                      {t('recycle.menuRestore')}
+                    </DropdownMenuItem>
+                  )}
+                  {canRestore && canDelete && <DropdownMenuSeparator />}
+                  {canDelete && (
+                    <DropdownMenuItem
+                      className='text-destructive focus:text-destructive'
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleDeleteSingle(file.id, file.displayName)
+                      }}
+                    >
+                      <Trash2 className='size-4' />
+                      {t('recycle.menuDeleteForever')}
+                    </DropdownMenuItem>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
@@ -367,7 +386,15 @@ export default function RecycleBinView() {
         enableSorting: false,
       },
     ],
-    [fileList, selectedIds, openMenuId]
+    [
+      canDelete,
+      canOperateRecycle,
+      canRestore,
+      fileList,
+      selectedIds,
+      openMenuId,
+      t,
+    ]
   )
 
   const pageCount = Math.max(
@@ -394,7 +421,7 @@ export default function RecycleBinView() {
         <div className='min-w-0 flex-1'>
           <FileBreadcrumb
             breadcrumbPath={[]}
-            customTitle='回收站'
+            customTitle={t('recycle.title')}
             onNavigate={() => {}}
           />
         </div>
@@ -414,9 +441,10 @@ export default function RecycleBinView() {
           size='sm'
           disabled={total === 0}
           onClick={handleClearRecycle}
+          hidden={!canClear}
         >
           <Trash2 className='mr-2 h-4 w-4' />
-          清空回收站
+          {t('recycle.clearTrash')}
         </Button>
       </div>
 
@@ -424,8 +452,8 @@ export default function RecycleBinView() {
         <div className='flex items-center gap-3'>
           <span className='text-sm text-muted-foreground'>
             {selectedIds.length > 0
-              ? `已选 ${selectedIds.length} 项 · 回收站内容保存 7 天，到期后自动清理`
-              : `共 ${total} 项 · 回收站内容保存 7 天，到期后自动清理`}
+              ? t('recycle.selectedHint', { count: selectedIds.length })
+              : t('recycle.totalHint', { total })}
           </span>
         </div>
       </div>
@@ -434,7 +462,7 @@ export default function RecycleBinView() {
         <div className='flex h-full min-h-0 flex-col'>
           {loading ? (
             <div className='flex h-full items-center justify-center'>
-              <p className='text-muted-foreground'>加载中...</p>
+              <p className='text-muted-foreground'>{t('common.loading')}</p>
             </div>
           ) : fileList.length === 0 ? (
             <div className='flex h-full items-center justify-center'>
@@ -443,11 +471,11 @@ export default function RecycleBinView() {
                   <EmptyMedia variant='icon'>
                     <FileText className='h-12 w-12' />
                   </EmptyMedia>
-                  <EmptyTitle>暂无文件</EmptyTitle>
+                  <EmptyTitle>{t('recycle.emptyTitle')}</EmptyTitle>
                   <EmptyDescription>
                     {searchKeyword
-                      ? '未找到匹配项，请尝试调整关键词'
-                      : '删除的文件会显示在这里'}
+                      ? t('recycle.emptySearch')
+                      : t('recycle.emptyDefault')}
                   </EmptyDescription>
                 </EmptyHeader>
               </Empty>
@@ -514,7 +542,7 @@ export default function RecycleBinView() {
                             colSpan={columns.length}
                             className='h-24 text-center'
                           >
-                            无数据
+                            {t('recycle.noData')}
                           </TableCell>
                         </TableRow>
                       )}
@@ -530,112 +558,120 @@ export default function RecycleBinView() {
         </div>
       </div>
 
-      {selectedIds.length > 0 && (
+      {selectedIds.length > 0 && canOperateRecycle && (
         <BulkSelectionBar
           selectedCount={selectedIds.length}
           onClear={clearSelection}
-          ariaLabel='回收站批量操作'
+          ariaLabel={t('recycle.bulkBar')}
         >
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type='button'
-                variant='outline'
-                size='icon'
-                className='size-8 shrink-0'
-                onClick={handleBatchRestore}
-                aria-label='还原'
-              >
-                <Undo2 />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>还原</p>
-            </TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type='button'
-                variant='destructive'
-                size='icon'
-                className='size-8 shrink-0'
-                onClick={handleBatchDelete}
-                aria-label='彻底删除'
-              >
-                <Trash2 />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>彻底删除</p>
-            </TooltipContent>
-          </Tooltip>
+          {canRestore && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type='button'
+                  variant='outline'
+                  size='icon'
+                  className='size-8 shrink-0'
+                  onClick={handleBatchRestore}
+                  aria-label={t('recycle.ariaRestore')}
+                >
+                  <Undo2 />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{t('recycle.tooltipRestore')}</p>
+              </TooltipContent>
+            </Tooltip>
+          )}
+          {canDelete && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  type='button'
+                  variant='destructive'
+                  size='icon'
+                  className='size-8 shrink-0'
+                  onClick={handleBatchDelete}
+                  aria-label={t('recycle.ariaDelete')}
+                >
+                  <Trash2 />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{t('recycle.tooltipDeleteForever')}</p>
+              </TooltipContent>
+            </Tooltip>
+          )}
         </BulkSelectionBar>
       )}
 
       <AlertDialog open={restoreDialogOpen} onOpenChange={setRestoreDialogOpen}>
-        {restoreDialogOpen && (
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>确认还原</AlertDialogTitle>
-              <AlertDialogDescription>
-                {operatingItem
-                  ? `确定要还原文件 "${operatingItem.name}" 吗？`
-                  : `确定要还原选中的 ${selectedIds.length} 个文件吗？`}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>取消</AlertDialogCancel>
-              <AlertDialogAction onClick={confirmRestore}>还原</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        )}
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('recycle.confirmRestoreTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {operatingItem
+                ? t('recycle.confirmRestoreOne', {
+                    name: operatingItem.name,
+                  })
+                : t('recycle.confirmRestoreMany', {
+                    count: selectedIds.length,
+                  })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmRestore}>
+              {t('recycle.restoreAction')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
       </AlertDialog>
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        {deleteDialogOpen && (
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>确认彻底删除</AlertDialogTitle>
-              <AlertDialogDescription>
-                {operatingItem
-                  ? `确定要彻底删除文件 "${operatingItem.name}" 吗？删除后将无法恢复！`
-                  : `确定要彻底删除选中的 ${selectedIds.length} 个文件吗？删除后将无法恢复！`}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>取消</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={confirmDelete}
-                className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
-              >
-                删除
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        )}
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('recycle.confirmDeleteTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {operatingItem
+                ? t('recycle.confirmDeleteOne', {
+                    name: operatingItem.name,
+                  })
+                : t('recycle.confirmDeleteMany', {
+                    count: selectedIds.length,
+                  })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
+            >
+              {t('recycle.deleteForever')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
       </AlertDialog>
 
       <AlertDialog open={clearDialogOpen} onOpenChange={setClearDialogOpen}>
-        {clearDialogOpen && (
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>确认清空回收站</AlertDialogTitle>
-              <AlertDialogDescription>
-                确定要清空回收站吗？所有文件将被彻底删除且无法恢复！
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>取消</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={confirmClearRecycle}
-                className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
-              >
-                清空
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        )}
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('recycle.confirmEmptyTitle')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('recycle.confirmEmptyDesc')}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmClearRecycle}
+              className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
+            >
+              {t('recycle.emptyTrash')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
       </AlertDialog>
     </div>
   )

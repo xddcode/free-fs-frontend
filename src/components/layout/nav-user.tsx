@@ -1,6 +1,12 @@
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/contexts/auth-context'
-import { ChevronsUpDown, LogOut, Settings } from 'lucide-react'
+import {
+  RiExpandUpDownLine,
+  RiLogoutBoxLine,
+  RiSettings3Line,
+} from '@remixicon/react'
 import { useNavigate } from 'react-router-dom'
+import { useSettingsModal } from '@/contexts/settings-modal-context'
 import { getAvatarFallback } from '@/utils/avatar'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
@@ -27,7 +33,9 @@ interface NavUserProps {
 }
 
 export function NavUser({ user }: NavUserProps) {
+  const { t } = useTranslation('layout')
   const navigate = useNavigate()
+  const { openSettings } = useSettingsModal()
   const { logout } = useAuth()
   const { isMobile, state } = useSidebar()
 
@@ -37,7 +45,7 @@ export function NavUser({ user }: NavUserProps) {
   }
 
   const handleSettings = () => {
-    navigate('/settings')
+    openSettings('profile')
   }
 
   const avatarFallback = getAvatarFallback(user.name)
@@ -63,7 +71,7 @@ export function NavUser({ user }: NavUserProps) {
                     <span className='truncate font-semibold'>{user.name}</span>
                     <span className='truncate text-xs'>{user.email}</span>
                   </div>
-                  <ChevronsUpDown className='ms-auto size-4' />
+                  <RiExpandUpDownLine className='ms-auto size-4' />
                 </>
               )}
             </SidebarMenuButton>
@@ -90,16 +98,16 @@ export function NavUser({ user }: NavUserProps) {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleSettings}>
-              <Settings className='mr-2 h-4 w-4' />
-              <span>账户设置</span>
+              <RiSettings3Line className='mr-2 h-4 w-4' />
+              <span>{t('navUser.accountSettings')}</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={handleLogout}
               className='text-red-600 focus:text-red-600'
             >
-              <LogOut className='mr-2 h-4 w-4' />
-              <span>退出登录</span>
+              <RiLogoutBoxLine className='mr-2 h-4 w-4' />
+              <span>{t('navUser.logout')}</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

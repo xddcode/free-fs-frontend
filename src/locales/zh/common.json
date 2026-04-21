@@ -1,0 +1,80 @@
+{
+  "loading": "加载中...",
+  "workspaceListError": "无法加载工作空间列表",
+  "refreshOrRelogin": "请刷新页面或重新登录",
+  "workspaceLoadError": "工作空间加载失败，请重试",
+  "retry": "重试",
+  "backHome": "返回首页",
+  "notFound": {
+    "title": "抱歉，您访问的页面不存在",
+    "back": "返回首页"
+  },
+  "profile": {
+    "title": "个人中心",
+    "description": "个人中心页面"
+  },
+  "api": {
+    "loginFailed": "登录失败",
+    "noPermission": "没有操作权限",
+    "operationFailed": "操作失败",
+    "networkFailed": "网络请求失败",
+    "badRequest": "请求参数错误",
+    "wrongCredentials": "账号或密码错误",
+    "notFound": "请求的资源不存在",
+    "serverError": "服务器内部错误",
+    "requestFailed": "请求失败 ({{status}})",
+    "timeout": "请求超时，请检查网络连接",
+    "networkError": "网络连接失败，请检查网络"
+  },
+  "listTotalItems": "共 {{count}} 项",
+  "searchShortcut": "快捷搜索文件",
+  "commandMenu": {
+    "title": "搜索文件",
+    "placeholderAll": "搜索全部文件，输入关键字…",
+    "placeholderScoped": "输入关键字…",
+    "clear": "清空",
+    "closeAria": "关闭",
+    "typeHeading": "文件类型（可选）",
+    "types": {
+      "image": "图片",
+      "video": "视频",
+      "folder": "文件夹",
+      "document": "文档",
+      "audio": "音频"
+    },
+    "footerAllDefault": "默认搜索全部文件；可先选择类型再输入关键字，按回车跳转",
+    "footerAllWithKeyword": "按回车跳转至「全部文件」并搜索",
+    "footerScopedNoKeyword": "在当前类型下输入关键字，按回车跳转并搜索",
+    "footerScopedWithKeyword": "按回车跳转至文件页并搜索"
+  },
+  "format": {
+    "todayTime": "今天 {{time}}",
+    "todayListRow": "今天 | {{time}}"
+  },
+  "preview": {
+    "popupBlocked": "浏览器阻止了弹窗，请允许后重试",
+    "tokenFailed": "获取预览凭证失败，请稍后重试"
+  },
+  "fileErrors": {
+    "readFailed": "文件读取失败",
+    "chunkReadFailed": "分片读取失败"
+  },
+  "pagination": {
+    "pageOf": "第 {{current}} 页，共 {{total}} 页",
+    "rowsPerPage": "每页条数",
+    "first": "首页",
+    "prev": "上一页",
+    "next": "下一页",
+    "last": "末页",
+    "pageSr": "第 {{n}} 页"
+  },
+  "bulkSelection": {
+    "suffix": "项已选择",
+    "defaultToolbarName": "批量操作",
+    "toolbarAria": "{{label}}，已选 {{count}} 项",
+    "countBadgeAria": "已选 {{count}} 项",
+    "clear": "取消选择",
+    "clearHint": "取消选择 (Esc)",
+    "announce": "已选择 {{count}} 项，批量操作栏可用。"
+  }
+}

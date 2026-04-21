@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback, memo } from 'react'
+import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useTransferStore } from '@/store/transfer'
 import { Upload, X, FileIcon, FolderUp } from 'lucide-react'
 import { toast } from 'sonner'
@@ -71,6 +72,7 @@ export default function UploadModal({
   parentId,
   isDirectoryMode = false,
 }: UploadModalProps) {
+  const { t } = useTranslation('files')
   const [fileList, setFileList] = useState<FileWithPath[]>([])
   const [isDragging, setIsDragging] = useState(false)
 
@@ -92,7 +94,7 @@ export default function UploadModal({
     } else {
       // 文件模式：限制 10 个
       if (files.length + fileList.length > 10) {
-        toast.warning('单次最多上传 10 个文件')
+        toast.warning(t('upload.toastMax'))
         return
       }
       setFileList([...fileList, ...files])
@@ -157,10 +159,13 @@ export default function UploadModal({
       .map((item) => item.webkitGetAsEntry?.())
       .filter(Boolean)
 
-    if (entries.length > 0) {
-      await Promise.all(entries.map((entry) => readEntry(entry)))
-      if (files.length > 0) {
-        setFileList((prev) => [...prev, ...files])
+    if (files.length > 0) {
+      setFileList([...fileList, ...files])
+    } else {
+      // 如果没有通过 webkitGetAsEntry 获取到文件，使用传统方式
+      const fallbackFiles = Array.from(e.dataTransfer.files) as FileWithPath[]
+      if (!isDirectoryMode && fallbackFiles.length + fileList.length > 10) {
+        toast.warning(t('upload.toastMax'))
         return
       }
     }
@@ -181,7 +186,7 @@ export default function UploadModal({
   const handleSubmit = async () => {
     if (fileList.length === 0) {
       toast.warning(
-        isDirectoryMode ? '请选择要上传的文件夹' : '请选择要上传的文件'
+        isDirectoryMode ? t('upload.pickFolder') : t('upload.pickFile')
       )
       return
     }
@@ -197,16 +202,8 @@ export default function UploadModal({
       await Promise.all(fileList.map((file) => createTask(file, parentId)))
     }
 
-    // 关闭弹窗
+    // 关闭弹窗（进度见右下角 UploadPanel，不再弹 toast，避免挡住进度条）
     onOpenChange(false)
-
-    // 显示通知
-    toast.success(
-      isDirectoryMode ? '文件夹已添加到传输列表' : '文件已添加到传输列表',
-      {
-        description: '可前往传输列表查看上传进度',
-      }
-    )
   }
 
   // 获取显示的文件名
@@ -219,10 +216,10 @@ export default function UploadModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className='max-w-xl'>
+      <DialogContent className='sm:max-w-xl'>
         <DialogHeader>
           <DialogTitle>
-            {isDirectoryMode ? '上传文件夹' : '上传文件'}
+            {isDirectoryMode ? t('upload.titleFolder') : t('upload.titleFile')}
           </DialogTitle>
         </DialogHeader>
 
@@ -254,13 +251,13 @@ export default function UploadModal({
             )}
             <div className='text-base font-medium text-foreground'>
               {isDirectoryMode
-                ? '点击或拖拽文件夹到此处上传'
-                : '点击或拖拽文件到此处上传'}
+                ? t('upload.dropFolder')
+                : t('upload.dropFile')}
             </div>
             <div className='mt-2 text-sm text-muted-foreground'>
               {isDirectoryMode
-                ? '支持上传整个文件夹，保留目录结构'
-                : '支持同时上传多个文件，单次最多 10 个'}
+                ? t('upload.hintFolder')
+                : t('upload.hintFile')}
             </div>
           </label>
 
@@ -283,10 +280,10 @@ export default function UploadModal({
 
         <DialogFooter>
           <Button variant='outline' onClick={() => onOpenChange(false)}>
-            取消
+            {t('common.cancel')}
           </Button>
           <Button onClick={handleSubmit} disabled={fileList.length === 0}>
-            添加到上传列表
+            {t('upload.addToList')}
           </Button>
         </DialogFooter>
       </DialogContent>

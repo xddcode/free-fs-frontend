@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import ForgotPasswordContent from './ForgotPasswordContent'
 import LoginFormContent from './LoginFormContent'
 import RegisterFormContent from './RegisterFormContent'
@@ -6,12 +7,13 @@ import RegisterFormContent from './RegisterFormContent'
 type FormType = 'login' | 'register' | 'forgotPassword'
 
 export default function LoginForm() {
+  const { t } = useTranslation('login')
   const [currentForm, setCurrentForm] = useState<FormType>('login')
 
   const formTitles: Record<FormType, string> = {
-    login: '登录',
-    register: '注册',
-    forgotPassword: '忘记密码',
+    login: t('formTitleLogin'),
+    register: t('formTitleRegister'),
+    forgotPassword: t('formTitleForgotPassword'),
   }
 
   return (
@@ -21,10 +23,10 @@ export default function LoginForm() {
       </div>
       <div className='mt-2 mb-1'>
         <div className='text-[15px] leading-[22px] font-medium tracking-[0.5px] text-muted-foreground'>
-          Free Cloud Storage
+          {t('tagline')}
         </div>
         <div className='mt-0.5 text-[13px] leading-5 text-muted-foreground/70'>
-          自由云存储
+          {t('taglineSub')}
         </div>
       </div>
 

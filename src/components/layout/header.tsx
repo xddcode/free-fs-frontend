@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 import { AnimatedThemeToggler } from '@/components/ui/animated-theme-toggler'
 import { Button } from '@/components/ui/button'
@@ -19,6 +20,7 @@ type HeaderProps = React.HTMLAttributes<HTMLElement> & {
 }
 
 export function Header({ className, fixed, children, ...props }: HeaderProps) {
+  const { t } = useTranslation('layout')
   const [offset, setOffset] = useState(0)
   const { theme } = useTheme()
 
@@ -127,7 +129,9 @@ export function Header({ className, fixed, children, ...props }: HeaderProps) {
                 </div>
               </TooltipTrigger>
               <TooltipContent>
-                <p>{isDark ? '明亮模式' : '暗黑模式'}</p>
+                <p>
+                  {isDark ? t('header.lightMode') : t('header.darkMode')}
+                </p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>

@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
 import { InfoCircledIcon } from '@radix-ui/react-icons'
@@ -11,10 +12,8 @@ import { Checkbox } from '@/components/ui/checkbox'
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
-  FormLabel,
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
@@ -32,6 +31,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { SettingsRow, SettingsBlock } from '../components/settings-row'
 
 // 路径格式校验
 const validatePath = (value: string) => {
@@ -41,13 +41,11 @@ const validatePath = (value: string) => {
 
   const path = value.trim()
 
-  // Windows 路径格式
   const windowsAbsolutePathRegex =
     /^[a-zA-Z]:\\([\w\s\u4e00-\u9fa5\-().]+\\)*[\w\s\u4e00-\u9fa5\-().]*$/
   const windowsNetworkPathRegex =
     /^\\\\[\w\-.]+(\[\w\s\u4e00-\u9fa5\-().]+)+(\[\w\s\u4e00-\u9fa5\-().]+)*$/
 
-  // Linux/Mac 路径格式
   const unixPathRegex = /^\/[\w\s\u4e00-\u9fa5\-./]*$/
 
   const isWindowsPath =
@@ -58,7 +56,6 @@ const validatePath = (value: string) => {
     return false
   }
 
-  // Windows 路径检查非法字符
   if (isWindowsPath) {
     const illegalChars = /[<>"|?*]/
     const pathWithoutDrive = path.substring(path.indexOf(':') + 1)
@@ -70,24 +67,40 @@ const validatePath = (value: string) => {
   return true
 }
 
-const transferFormSchema = z.object({
-  downloadLocation: z
-    .string()
-    .min(1, '请输入文件下载位置')
-    .refine(validatePath, '路径格式不正确'),
-  isDefaultDownloadLocation: z.boolean(),
-  enableDownloadSpeedLimit: z.boolean(),
-  downloadSpeedLimit: z.number().min(1).max(200).optional(),
-  concurrentUploadQuantity: z.number().min(1).max(3),
-  concurrentDownloadQuantity: z.number().min(1).max(3),
-  chunkSize: z.number(),
-})
-
-type TransferFormValues = z.infer<typeof transferFormSchema>
+type TransferFormValues = {
+  downloadLocation: string
+  isDefaultDownloadLocation: boolean
+  enableDownloadSpeedLimit: boolean
+  downloadSpeedLimit?: number
+  concurrentUploadQuantity: number
+  concurrentDownloadQuantity: number
+  chunkSize: number
+}
 
 export function TransferForm() {
+  const { t } = useTranslation('settings')
+  const transferFormSchema = useMemo(
+    () =>
+      z.object({
+        downloadLocation: z
+          .string()
+          .min(1, t('transfer.validation.downloadRequired'))
+          .refine(validatePath, t('transfer.validation.pathInvalid')),
+        isDefaultDownloadLocation: z.boolean(),
+        enableDownloadSpeedLimit: z.boolean(),
+        downloadSpeedLimit: z.number().min(1).max(200).optional(),
+        concurrentUploadQuantity: z.number().min(1).max(3),
+        concurrentDownloadQuantity: z.number().min(1).max(3),
+        chunkSize: z.number(),
+      }),
+    [t]
+  )
+
   const [loading, setLoading] = useState(false)
+  /** 服务端数据已 reset 进表单后才允许自动保存（避免依赖会延迟更新的 formState.isValid） */
+  const settingsReadyRef = useRef(false)
   const { loadTransferSetting } = useUserStore()
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   const form = useForm<TransferFormValues>({
     resolver: zodResolver(transferFormSchema),
@@ -104,13 +117,13 @@ export function TransferForm() {
 
   const enableSpeedLimit = form.watch('enableDownloadSpeedLimit')
 
-  // 加载设置
   useEffect(() => {
     loadSettings()
   }, [])
 
   async function loadSettings() {
     setLoading(true)
+    settingsReadyRef.current = false
     try {
       const settings = await userApi.getTransferSetting()
 
@@ -124,12 +137,24 @@ export function TransferForm() {
         concurrentDownloadQuantity: settings.concurrentDownloadQuantity || 3,
         chunkSize: settings.chunkSize || 5 * 1024 * 1024,
       })
+      settingsReadyRef.current = true
+    } catch {
+      toast.error(t('transfer.loadFailed'))
     } finally {
       setLoading(false)
     }
   }
 
-  async function onSubmit(data: TransferFormValues) {
+  async function saveAfterValidation() {
+    if (!settingsReadyRef.current) return
+    const ok = await form.trigger()
+    if (!ok) return
+    await saveSettings(form.getValues())
+  }
+
+  async function saveSettings(data: TransferFormValues) {
+    if (!settingsReadyRef.current) return
+
     setLoading(true)
     try {
       await userApi.updateTransferSetting({
@@ -142,234 +167,327 @@ export function TransferForm() {
         concurrentDownloadQuantity: data.concurrentDownloadQuantity,
         chunkSize: data.chunkSize,
       })
-      toast.success('保存成功')
-      // 重新加载设置到表单
-      await loadSettings()
-      // 更新用户 store 中的传输设置
+      toast.success(t('transfer.saved'))
       await loadTransferSetting()
+    } catch (error) {
+      toast.error(t('transfer.saveFailed'))
     } finally {
       setLoading(false)
     }
   }
 
+  const handleFieldChange = () => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current)
+    }
+
+    saveTimeoutRef.current = setTimeout(() => {
+      void saveAfterValidation()
+    }, 800)
+  }
+
+  const handleImmediateChange = (callback: () => void) => {
+    callback()
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current)
+    }
+    setTimeout(() => {
+      void saveAfterValidation()
+    }, 100)
+  }
+
+  /** 选「不限制」立即提交；选「上限」在限速值 onBlur 时提交 */
+  const handleSpeedLimitModeChange = (
+    value: string,
+    fieldOnChange: (v: boolean) => void
+  ) => {
+    const enable = value === 'true'
+    fieldOnChange(enable)
+    if (!enable) {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current)
+      }
+      setTimeout(() => {
+        void saveAfterValidation()
+      }, 100)
+    }
+  }
+
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current)
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-6'>
-        {/* 文件下载位置 */}
-        <FormField
-          control={form.control}
-          name='downloadLocation'
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>文件下载位置</FormLabel>
-              <div className='flex gap-2'>
-                <FormControl>
-                  <Input
-                    placeholder='Windows: C:\Users\用户名\Desktop  |  Linux/Mac: /home/username/Desktop'
-                    {...field}
-                  />
-                </FormControl>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        type='button'
-                        variant='ghost'
-                        size='icon'
-                        className='flex-shrink-0'
+      <div>
+        <div className='divide-y divide-border'>
+          <div className='py-5'>
+            <FormField
+              control={form.control}
+              name='downloadLocation'
+              render={({ field }) => (
+                <FormItem className='space-y-0'>
+                  <SettingsBlock
+                    className='py-0'
+                    label={t('transfer.downloadLocation')}
+                    description={t('transfer.downloadLocationDesc')}
+                  >
+                    <div className='flex w-full min-w-0 items-center gap-2'>
+                      <FormControl>
+                        <Input
+                          placeholder={t('transfer.downloadLocationPlaceholder')}
+                          className='min-w-0 flex-1 font-mono text-sm'
+                          {...field}
+                          onChange={(e) => {
+                            field.onChange(e)
+                            handleFieldChange()
+                          }}
+                          disabled={loading}
+                        />
+                      </FormControl>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              type='button'
+                              variant='outline'
+                              size='icon'
+                              className='shrink-0'
+                            >
+                              <InfoCircledIcon className='h-4 w-4' />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent side='left' className='max-w-xs'>
+                            <p>{t('transfer.pathHintTitle')}</p>
+                            <p>{t('transfer.pathHintWin')}</p>
+                            <p>{t('transfer.pathHintUnix')}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                  </SettingsBlock>
+                  <FormMessage className='pt-1' />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name='isDefaultDownloadLocation'
+              render={({ field }) => (
+                <FormItem className='space-y-0'>
+                  <SettingsRow
+                    className='py-0 pt-6'
+                    label={t('transfer.defaultPath')}
+                    description={t('transfer.defaultPathDesc')}
+                  >
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={(checked) => {
+                          handleImmediateChange(() => field.onChange(checked))
+                        }}
+                        className='size-5 sm:mt-0.5'
+                        disabled={loading}
+                      />
+                    </FormControl>
+                  </SettingsRow>
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <div className='py-5'>
+            <FormField
+              control={form.control}
+              name='enableDownloadSpeedLimit'
+              render={({ field }) => (
+                <FormItem className='space-y-0'>
+                  <SettingsRow
+                    className='py-0'
+                    label={t('transfer.speedLimit')}
+                    description={t('transfer.speedLimitDesc')}
+                  >
+                    <FormControl>
+                      <RadioGroup
+                        onValueChange={(value: string) => {
+                          handleSpeedLimitModeChange(value, field.onChange)
+                        }}
+                        value={field.value ? 'true' : 'false'}
+                        className='flex flex-row flex-wrap items-center justify-end gap-6'
+                        disabled={loading}
                       >
-                        <InfoCircledIcon className='h-4 w-4' />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side='left' className='max-w-xs'>
-                      <p>请输入完整的文件夹路径</p>
-                      <p>Windows 示例: C:\Users\用户名\Desktop</p>
-                      <p>Linux/Mac 示例: /home/username/Desktop</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                        <label className='flex cursor-pointer items-center gap-2'>
+                          <RadioGroupItem value='false' id='speed-off' />
+                          <span className='text-sm'>{t('transfer.unlimited')}</span>
+                        </label>
+                        <label className='flex cursor-pointer items-center gap-2'>
+                          <RadioGroupItem value='true' id='speed-on' />
+                          <span className='text-sm'>{t('transfer.capped')}</span>
+                        </label>
+                      </RadioGroup>
+                    </FormControl>
+                  </SettingsRow>
+                </FormItem>
+              )}
+            />
 
-        {/* 默认下载路径 */}
-        <FormField
-          control={form.control}
-          name='isDefaultDownloadLocation'
-          render={({ field }) => (
-            <FormItem className='flex flex-row items-start space-y-0 space-x-3'>
-              <FormControl>
-                <Checkbox
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
-              </FormControl>
-              <div className='space-y-1 leading-none'>
-                <FormLabel>默认此路径为下载路径</FormLabel>
-                <FormDescription>
-                  如果不勾选，每次下载时会询问保存地址
-                </FormDescription>
-              </div>
-            </FormItem>
-          )}
-        />
+            {enableSpeedLimit && (
+              <FormField
+                control={form.control}
+                name='downloadSpeedLimit'
+                render={({ field }) => (
+                  <FormItem className='space-y-0'>
+                    <SettingsRow
+                      className='py-0 pt-6'
+                      label={t('transfer.speedValue')}
+                      description={t('transfer.speedValueDesc')}
+                    >
+                      <div className='flex items-center gap-2 self-end'>
+                        <FormControl>
+                          <Input
+                            type='number'
+                            min={1}
+                            max={200}
+                            className='w-24 font-mono tabular-nums sm:w-28'
+                            {...field}
+                            onChange={(e) => {
+                              field.onChange(Number(e.target.value))
+                            }}
+                            onBlur={() => {
+                              field.onBlur()
+                              void (async () => {
+                                if (!form.getValues('enableDownloadSpeedLimit'))
+                                  return
+                                await saveAfterValidation()
+                              })()
+                            }}
+                            disabled={loading}
+                          />
+                        </FormControl>
+                        <span className='shrink-0 text-sm text-muted-foreground'>
+                          MB/s
+                        </span>
+                      </div>
+                    </SettingsRow>
+                    <FormMessage className='pt-1' />
+                  </FormItem>
+                )}
+              />
+            )}
+          </div>
 
-        {/* 下载速率限制 */}
-        <FormField
-          control={form.control}
-          name='enableDownloadSpeedLimit'
-          render={({ field }) => (
-            <FormItem className='space-y-3'>
-              <FormLabel>下载速率限制</FormLabel>
-              <FormControl>
-                <RadioGroup
-                  onValueChange={(value: string) =>
-                    field.onChange(value === 'true')
-                  }
-                  value={field.value ? 'true' : 'false'}
-                  className='flex gap-4'
-                >
-                  <div className='flex items-center space-x-2'>
-                    <RadioGroupItem value='false' />
-                    <span className='text-sm'>不限制</span>
-                  </div>
-                  <div className='flex items-center space-x-2'>
-                    <RadioGroupItem value='true' />
-                    <span className='text-sm'>上限</span>
-                  </div>
-                </RadioGroup>
-              </FormControl>
-            </FormItem>
-          )}
-        />
-
-        {enableSpeedLimit && (
           <FormField
             control={form.control}
-            name='downloadSpeedLimit'
+            name='concurrentUploadQuantity'
             render={({ field }) => (
-              <FormItem>
-                <FormControl>
-                  <div className='flex items-center gap-2'>
-                    <Input
-                      type='number'
-                      min={1}
-                      max={200}
-                      className='w-32'
-                      {...field}
-                      onChange={(e) => field.onChange(Number(e.target.value))}
-                    />
-                    <span className='text-sm text-muted-foreground'>
-                      MB/s (可输入 1-200 之间的整数)
-                    </span>
-                  </div>
-                </FormControl>
-                <FormMessage />
+              <FormItem className='space-y-0'>
+                <SettingsRow
+                  label={t('transfer.concurrentUpload')}
+                  description={t('transfer.concurrentUploadDesc')}
+                >
+                  <Select
+                    onValueChange={(value) => {
+                      handleImmediateChange(() => field.onChange(Number(value)))
+                    }}
+                    value={String(field.value)}
+                    disabled={loading}
+                  >
+                    <FormControl>
+                      <SelectTrigger className='w-fit max-w-full self-end'>
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {[1, 2, 3].map((num) => (
+                        <SelectItem key={num} value={String(num)}>
+                          {t('transfer.unitCount', { count: num })}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </SettingsRow>
+                <FormMessage className='pt-2 pb-1' />
               </FormItem>
             )}
           />
-        )}
 
-        {/* 并发上传数量 */}
-        <FormField
-          control={form.control}
-          name='concurrentUploadQuantity'
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>同时上传数量</FormLabel>
-              <Select
-                onValueChange={(value) => field.onChange(Number(value))}
-                value={String(field.value)}
-              >
-                <FormControl>
-                  <SelectTrigger className='w-[200px]'>
-                    <SelectValue />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {[1, 2, 3].map((num) => (
-                    <SelectItem key={num} value={String(num)}>
-                      {num}个
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormDescription>同时进行上传的文件数量</FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+          <FormField
+            control={form.control}
+            name='concurrentDownloadQuantity'
+            render={({ field }) => (
+              <FormItem className='space-y-0'>
+                <SettingsRow
+                  label={t('transfer.concurrentDownload')}
+                  description={t('transfer.concurrentDownloadDesc')}
+                >
+                  <Select
+                    onValueChange={(value) => {
+                      handleImmediateChange(() => field.onChange(Number(value)))
+                    }}
+                    value={String(field.value)}
+                    disabled={loading}
+                  >
+                    <FormControl>
+                      <SelectTrigger className='w-fit max-w-full self-end'>
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {[1, 2, 3].map((num) => (
+                        <SelectItem key={num} value={String(num)}>
+                          {t('transfer.unitCount', { count: num })}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </SettingsRow>
+                <FormMessage className='pt-2 pb-1' />
+              </FormItem>
+            )}
+          />
 
-        {/* 并发下载数量 */}
-        <FormField
-          control={form.control}
-          name='concurrentDownloadQuantity'
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>同时下载数量</FormLabel>
-              <Select
-                onValueChange={(value) => field.onChange(Number(value))}
-                value={String(field.value)}
-              >
-                <FormControl>
-                  <SelectTrigger className='w-[200px]'>
-                    <SelectValue />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {[1, 2, 3].map((num) => (
-                    <SelectItem key={num} value={String(num)}>
-                      {num}个
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormDescription>同时进行下载的文件数量</FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {/* 分片大小 */}
-        <FormField
-          control={form.control}
-          name='chunkSize'
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>分片大小</FormLabel>
-              <Select
-                onValueChange={(value) => field.onChange(Number(value))}
-                value={String(field.value)}
-              >
-                <FormControl>
-                  <SelectTrigger className='w-[200px]'>
-                    <SelectValue />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value={String(2 * 1024 * 1024)}>2 MB</SelectItem>
-                  <SelectItem value={String(5 * 1024 * 1024)}>5 MB</SelectItem>
-                  <SelectItem value={String(10 * 1024 * 1024)}>
-                    10 MB
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-              <FormDescription>
-                上传文件时的分片大小，推荐设置 5 MB
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <div className='pt-4'>
-          <Button type='submit' disabled={loading}>
-            {loading ? '保存中...' : '保存设置'}
-          </Button>
+          <FormField
+            control={form.control}
+            name='chunkSize'
+            render={({ field }) => (
+              <FormItem className='space-y-0'>
+                <SettingsRow
+                  label={t('transfer.chunkSize')}
+                  description={t('transfer.chunkSizeDesc')}
+                >
+                  <Select
+                    onValueChange={(value) => {
+                      handleImmediateChange(() => field.onChange(Number(value)))
+                    }}
+                    value={String(field.value)}
+                    disabled={loading}
+                  >
+                    <FormControl>
+                      <SelectTrigger className='w-fit max-w-full self-end'>
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value={String(2 * 1024 * 1024)}>2 MB</SelectItem>
+                      <SelectItem value={String(5 * 1024 * 1024)}>5 MB</SelectItem>
+                      <SelectItem value={String(10 * 1024 * 1024)}>
+                        10 MB
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </SettingsRow>
+                <FormMessage className='pt-2 pb-1' />
+              </FormItem>
+            )}
+          />
         </div>
-      </form>
+      </div>
     </Form>
   )
 }

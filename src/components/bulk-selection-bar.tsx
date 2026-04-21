@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { useTranslation } from 'react-i18next'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -17,7 +18,7 @@ export type BulkSelectionBarProps = {
   children: React.ReactNode
   /** 工具栏无障碍名称 */
   ariaLabel?: string
-  /** 数量右侧说明文案，默认「项已选择」 */
+  /** 数量右侧说明文案，默认使用 common.bulkSelection.suffix */
   selectionSuffix?: string
   /** 选中变化时读屏播报 */
   getAnnouncement?: (count: number) => string
@@ -27,10 +28,13 @@ export function BulkSelectionBar({
   selectedCount,
   onClear,
   children,
-  ariaLabel = '批量操作',
-  selectionSuffix = '项已选择',
-  getAnnouncement = (count) => `已选择 ${count} 项，批量操作栏可用。`,
+  ariaLabel,
+  selectionSuffix,
+  getAnnouncement,
 }: BulkSelectionBarProps) {
+  const { t } = useTranslation('common')
+  const label = ariaLabel ?? t('bulkSelection.defaultToolbarName')
+  const suffix = selectionSuffix ?? t('bulkSelection.suffix')
   const [mounted, setMounted] = useState(false)
   const toolbarRef = useRef<HTMLDivElement>(null)
   const [announcement, setAnnouncement] = useState('')
@@ -43,13 +47,16 @@ export function BulkSelectionBar({
   useEffect(() => {
     if (selectedCount > 0) {
       queueMicrotask(() => {
-        setAnnouncement(getAnnouncement(selectedCount))
+        setAnnouncement(
+          getAnnouncement
+            ? getAnnouncement(selectedCount)
+            : t('bulkSelection.announce', { count: selectedCount })
+        )
       })
-      const t = setTimeout(() => setAnnouncement(''), 3000)
-      return () => clearTimeout(t)
+      const hideTimer = setTimeout(() => setAnnouncement(''), 3000)
+      return () => clearTimeout(hideTimer)
     }
-    // 仅随数量变化播报；getAnnouncement 由调用方保证稳定或接受首次传入
-  }, [selectedCount])
+  }, [selectedCount, getAnnouncement, t])
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
     const buttons = toolbarRef.current?.querySelectorAll('button')
@@ -112,7 +119,10 @@ export function BulkSelectionBar({
       <div
         ref={toolbarRef}
         role='toolbar'
-        aria-label={`${ariaLabel}，已选 ${selectedCount} 项`}
+        aria-label={t('bulkSelection.toolbarAria', {
+          label,
+          count: selectedCount,
+        })}
         aria-describedby={descId}
         tabIndex={-1}
         onKeyDown={handleKeyDown}
@@ -132,15 +142,15 @@ export function BulkSelectionBar({
               size='icon'
               className='size-6 shrink-0 rounded-full'
               onClick={onClear}
-              aria-label='取消选择'
-              title='取消选择 (Esc)'
+              aria-label={t('bulkSelection.clear')}
+              title={t('bulkSelection.clearHint')}
             >
               <X />
-              <span className='sr-only'>取消选择</span>
+              <span className='sr-only'>{t('bulkSelection.clear')}</span>
             </Button>
           </TooltipTrigger>
           <TooltipContent>
-            <p>取消选择 (Esc)</p>
+            <p>{t('bulkSelection.clearHint')}</p>
           </TooltipContent>
         </Tooltip>
 
@@ -152,12 +162,14 @@ export function BulkSelectionBar({
         >
           <span
             className='inline-flex min-w-7 items-center justify-center rounded-xl bg-primary px-2 py-0.5 text-xs font-semibold tabular-nums text-primary-foreground'
-            aria-label={`已选 ${selectedCount} 项`}
+            aria-label={t('bulkSelection.countBadgeAria', {
+              count: selectedCount,
+            })}
           >
             {selectedCount}
           </span>
           <span className='hidden whitespace-nowrap text-muted-foreground sm:inline'>
-            {selectionSuffix}
+            {suffix}
           </span>
         </div>
 

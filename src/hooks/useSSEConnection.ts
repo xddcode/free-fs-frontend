@@ -1,39 +1,46 @@
 import { useEffect, useRef } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { useTransferStore } from '@/store/transfer'
+import { useWorkspaceStore } from '@/store/workspace'
 
 /**
  * SSE 连接 Hook
  * 自动管理 SSE 连接的生命周期
- * 注意：必须在 AuthProvider 内部使用
+ * 需要认证且工作空间已激活后才初始化
  */
 export function useSSEConnection() {
   const { user, isAuthenticated } = useAuth()
   const { initSSE, disconnectSSE, sseConnected } = useTransferStore()
+  const currentWorkspaceId = useWorkspaceStore((s) => s.currentWorkspaceId)
+  const currentRole = useWorkspaceStore((s) => s.currentRole)
   const isInitializedRef = useRef(false)
-  const userIdRef = useRef<string | null>(null)
+  const contextRef = useRef<string | null>(null)
 
   useEffect(() => {
-    if (isAuthenticated && user?.id) {
-      // 如果已经为当前用户初始化过，跳过
-      if (isInitializedRef.current && userIdRef.current === user.id) {
+    const contextKey = `${user?.id}:${currentWorkspaceId}`
+
+    if (isAuthenticated && user?.id && currentWorkspaceId && currentRole) {
+      if (isInitializedRef.current && contextRef.current === contextKey) {
         return
+      }
+
+      if (isInitializedRef.current) {
+        disconnectSSE()
       }
 
       initSSE(user.id)
       isInitializedRef.current = true
-      userIdRef.current = user.id
+      contextRef.current = contextKey
     }
 
     return () => {
-      // 只在用户登出或组件真正卸载时断开
       if (!isAuthenticated || !user?.id) {
         disconnectSSE()
         isInitializedRef.current = false
-        userIdRef.current = null
+        contextRef.current = null
       }
     }
-  }, [isAuthenticated, user?.id])
+  }, [isAuthenticated, user?.id, currentWorkspaceId, currentRole])
 
   return { sseConnected }
 }

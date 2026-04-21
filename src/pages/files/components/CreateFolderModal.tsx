@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -23,6 +24,7 @@ export function CreateFolderModal({
   parentId,
   onConfirm,
 }: CreateFolderModalProps) {
+  const { t } = useTranslation('files')
   const [folderName, setFolderName] = useState('')
 
   useEffect(() => {
@@ -48,16 +50,16 @@ export function CreateFolderModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className='sm:max-w-[420px]'>
         <DialogHeader>
-          <DialogTitle>新建文件夹</DialogTitle>
+          <DialogTitle>{t('createFolder.title')}</DialogTitle>
         </DialogHeader>
-        <div className='space-y-6 px-6 pb-4'>
+        <div className='space-y-6'>
           {/* 文件夹图标 */}
           <div className='flex items-center justify-center'>
             <FileIcon type='folder' size={80} />
           </div>
           {/* 输入框 */}
           <Input
-            placeholder='请输入文件夹名称'
+            placeholder={t('createFolder.placeholder')}
             value={folderName}
             onChange={(e) => setFolderName(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -68,10 +70,10 @@ export function CreateFolderModal({
         </div>
         <DialogFooter>
           <Button variant='outline' onClick={() => onOpenChange(false)}>
-            取消
+            {t('createFolder.cancel')}
           </Button>
           <Button onClick={handleConfirm} disabled={!folderName.trim()}>
-            确认
+            {t('createFolder.confirm')}
           </Button>
         </DialogFooter>
       </DialogContent>

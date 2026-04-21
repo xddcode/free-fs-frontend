@@ -1,0 +1,44 @@
+{
+  "category": {
+    "document": "Documents",
+    "image": "Images",
+    "video": "Video",
+    "audio": "Audio",
+    "other": "Other"
+  },
+  "storageCard": {
+    "title": "Storage",
+    "usedLabel": "Space used",
+    "manage": "Manage storage"
+  },
+  "recentFiles": {
+    "title": "Recent files",
+    "manageLink": "Files",
+    "colName": "Name",
+    "colModified": "Modified",
+    "colSize": "Size",
+    "empty": "No recent files",
+    "loadFailed": "Failed to load",
+    "retry": "Retry"
+  },
+  "openSource": {
+    "title": "Open source",
+    "description": "Free Fs is an open-source file manager built with Spring Boot and React. Contributions and discussion welcome.",
+    "gitee": "Gitee",
+    "github": "GitHub"
+  },
+  "chart": {
+    "title": "Storage growth",
+    "seriesLabel": "Used storage ({{unit}})",
+    "descDesktop": "Used storage over time ({{unit}})",
+    "descMobile": "Trend",
+    "range90d": "Last 3 months",
+    "range30d": "Last 30 days",
+    "range7d": "Last 7 days",
+    "unitAria": "Unit",
+    "timeRangeAria": "Time range",
+    "loadFailed": "Failed to load. Try again later.",
+    "noData": "No data",
+    "areaName": "Used storage"
+  }
+}

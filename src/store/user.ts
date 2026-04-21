@@ -11,6 +11,10 @@ interface UserState {
   email: string
   avatar: string
   status: number
+  createdAt: string
+  updatedAt: string
+  lastLoginAt: string
+  isSetPassword?: boolean
   transferSetting?: TransferSetting
   setUserInfo: (userInfo: UserInfo) => void
   setTransferSetting: (setting: TransferSetting) => void
@@ -27,15 +31,30 @@ export const useUserStore = create<UserState>()(
       email: '',
       avatar: '',
       status: 0,
+      createdAt: '',
+      updatedAt: '',
+      lastLoginAt: '',
+      isSetPassword: undefined,
       transferSetting: undefined,
-      setUserInfo: (userInfo) => set(userInfo),
+      setUserInfo: (userInfo) =>
+        set({
+          id: userInfo.id,
+          username: userInfo.username,
+          nickname: userInfo.nickname,
+          email: userInfo.email,
+          avatar: userInfo.avatar,
+          status: userInfo.status,
+          createdAt: userInfo.createdAt,
+          updatedAt: userInfo.updatedAt,
+          lastLoginAt: userInfo.lastLoginAt,
+          isSetPassword: userInfo.isSetPassword,
+        }),
       setTransferSetting: (setting) => set({ transferSetting: setting }),
       loadTransferSetting: async () => {
         try {
           const setting = await userApi.getTransferSetting()
           set({ transferSetting: setting })
         } catch (error) {
-          // 如果是 404 或其他错误，设置默认值
           set({
             transferSetting: {
               userId: '',
@@ -44,7 +63,7 @@ export const useUserStore = create<UserState>()(
               downloadSpeedLimit: 0,
               concurrentUploadQuantity: 3,
               concurrentDownloadQuantity: 3,
-              chunkSize: 5 * 1024 * 1024, // 5MB
+              chunkSize: 5 * 1024 * 1024,
             },
           })
         }
@@ -57,6 +76,10 @@ export const useUserStore = create<UserState>()(
           email: '',
           avatar: '',
           status: 0,
+          createdAt: '',
+          updatedAt: '',
+          lastLoginAt: '',
+          isSetPassword: undefined,
           transferSetting: undefined,
         }),
     }),

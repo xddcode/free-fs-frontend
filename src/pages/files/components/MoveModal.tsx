@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { FileItem } from '@/types/file'
 import { Home, FolderPlus, Check, X } from 'lucide-react'
 import FolderIconSvg from '../../../../public/fi/folder'
@@ -33,6 +34,7 @@ export function MoveModal({
   onConfirm,
   onRefresh,
 }: MoveModalProps) {
+  const { t } = useTranslation('files')
   const [loading, setLoading] = useState(false)
   const [folders, setFolders] = useState<FileItem[]>([])
   const [breadcrumbPath, setBreadcrumbPath] = useState<FileItem[]>([])
@@ -88,7 +90,7 @@ export function MoveModal({
   const confirmCreateFolder = async () => {
     const folderName = newFolderName.trim()
     if (!folderName) {
-      toast.warning('请输入文件夹名称')
+      toast.warning(t('move.toastName'))
       return
     }
 
@@ -97,7 +99,7 @@ export function MoveModal({
         folderName,
         parentId: currentParentId,
       })
-      toast.success('创建文件夹成功')
+      toast.success(t('move.toastMkdirOk'))
       setIsCreatingFolder(false)
       setNewFolderName('')
       loadFolders(currentParentId)
@@ -178,14 +180,14 @@ export function MoveModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className='max-h-[85vh] max-w-2xl overflow-y-auto'
+        className='max-h-[85vh] sm:max-w-2xl overflow-y-auto'
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <DialogHeader>
-          <DialogTitle>移动到</DialogTitle>
+          <DialogTitle>{t('move.title')}</DialogTitle>
         </DialogHeader>
 
-        <div className='space-y-6 px-6 pb-4'>
+        <div className='space-y-6'>
           {/* 面包屑导航 */}
           <div className='flex items-center gap-2 rounded-lg bg-muted/50 px-3 py-2 text-sm'>
             <button
@@ -201,7 +203,7 @@ export function MoveModal({
               tabIndex={-1}
             >
               <Home className='h-4 w-4' />
-              <span>全部文件</span>
+              <span>{t('breadcrumb.allFiles')}</span>
             </button>
             {breadcrumbPath.map((folder, index) => (
               <div key={folder.id} className='flex items-center gap-2'>
@@ -230,12 +232,12 @@ export function MoveModal({
           <div className='max-h-[400px] min-h-[300px] overflow-y-auto rounded-lg bg-muted/50'>
             {loading ? (
               <div className='flex h-[300px] items-center justify-center'>
-                <p className='text-sm text-muted-foreground'>加载中...</p>
+                <p className='text-sm text-muted-foreground'>{t('move.loading')}</p>
               </div>
             ) : folders.length === 0 && !isCreatingFolder ? (
               <div className='flex h-[300px] flex-col items-center justify-center text-muted-foreground'>
                 <FolderIconSvg size={48} className='mb-3 opacity-50' />
-                <p className='text-sm'>当前目录下没有子文件夹</p>
+                <p className='text-sm'>{t('move.emptyFolders')}</p>
               </div>
             ) : (
               <div className='space-y-0.5 p-2'>
@@ -259,7 +261,7 @@ export function MoveModal({
                         value={newFolderName}
                         onChange={(e) => setNewFolderName(e.target.value)}
                         onKeyDown={handleInputKeyDown}
-                        placeholder='请输入文件夹名称'
+                        placeholder={t('move.mkdirPlaceholder')}
                         className='flex-1 border-none bg-transparent text-sm outline-none focus:outline-none'
                         maxLength={50}
                       />
@@ -268,14 +270,14 @@ export function MoveModal({
                       <button
                         onClick={confirmCreateFolder}
                         className='rounded p-1.5 text-primary transition-colors hover:bg-primary/10'
-                        title='确认'
+                        title={t('move.confirmMkdir')}
                       >
                         <Check className='h-4 w-4' />
                       </button>
                       <button
                         onClick={cancelCreateFolder}
                         className='rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted-foreground/10'
-                        title='取消'
+                        title={t('move.cancelMkdir')}
                       >
                         <X className='h-4 w-4' />
                       </button>
@@ -322,7 +324,7 @@ export function MoveModal({
                   clipRule='evenodd'
                 />
               </svg>
-              <span>文件已在当前目录，无需移动</span>
+              <span>{t('move.hintSameDir')}</span>
             </div>
           ) : (
             <div className='flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-800 dark:border-blue-900 dark:bg-blue-950/20 dark:text-blue-300'>
@@ -337,7 +339,7 @@ export function MoveModal({
                   clipRule='evenodd'
                 />
               </svg>
-              <span>提示：单击选择目标文件夹，双击进入该文件夹</span>
+              <span>{t('move.hintSelect')}</span>
             </div>
           )}
         </div>
@@ -349,18 +351,18 @@ export function MoveModal({
             className='mr-auto'
           >
             <FolderPlus className='mr-2 h-4 w-4' />
-            新建文件夹
+            {t('createFolder.title')}
           </Button>
           <DialogClose asChild>
             <Button variant='outline' disabled={isSubmitting}>
-              取消
+              {t('common.cancel')}
             </Button>
           </DialogClose>
           <Button
             onClick={handleConfirm}
             disabled={isSubmitting || isOkDisabled}
           >
-            {isSubmitting ? '移动中...' : '移动到此处'}
+            {isSubmitting ? t('move.submitting') : t('move.submit')}
           </Button>
         </DialogFooter>
       </DialogContent>

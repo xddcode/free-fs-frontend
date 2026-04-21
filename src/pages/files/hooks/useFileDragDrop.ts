@@ -35,6 +35,7 @@ export function useFileDragDrop(
         isDragging: true,
         draggedItems,
         dropTargetId: null,
+        dropTargetName: null,
       })
 
       // 设置拖拽数据

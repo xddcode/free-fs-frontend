@@ -1,0 +1,22 @@
+{
+  "new": {
+    "title": "Create workspace",
+    "subtitle": "A workspace is where your team collaborates. Files, storage, and members belong to a workspace.",
+    "cardTitle": "Workspace details",
+    "cardDescription": "Enter basic information to create your workspace.",
+    "nameLabel": "Workspace name",
+    "namePlaceholder": "e.g. My team",
+    "slugLabel": "Unique ID",
+    "slugPlaceholder": "e.g. my-team",
+    "slugHint": "Lowercase letters, numbers, and hyphens only. Used as a unique identifier.",
+    "descLabel": "Description (optional)",
+    "descPlaceholder": "What this workspace is for…",
+    "back": "Back",
+    "submit": "Create workspace",
+    "submitting": "Creating…",
+    "toastFill": "Enter workspace name and ID",
+    "toastSuccess": "Workspace created",
+    "toastFail": "Failed to create workspace",
+    "defaultName": "{{name}}'s workspace"
+  }
+}
