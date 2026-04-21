@@ -183,7 +183,6 @@ export default function RecycleBinView() {
       setSelectedIds([])
       commitSearch('')
       setPagination((p) => ({ ...p, pageIndex: 0 }))
-      toast.success('回收站已清空')
       void fetchRecyclePage()
     } catch {
       // 失败时重新拉取，恢复真实数据

@@ -286,7 +286,10 @@
     "favOk": "Added to favorites",
     "unfavOk": "Removed from favorites",
     "favFail": "Could not favorite",
-    "unfavFail": "Could not unfavorite"
+    "unfavFail": "Could not unfavorite",
+    "uploadFolderAdded": "Folder added to upload queue",
+    "uploadFileAdded": "Files added to upload queue",
+    "uploadCheckProgress": "Check transfer panel for progress"
   },
   "uploadPanel": {
     "sec": "{{n}}s",

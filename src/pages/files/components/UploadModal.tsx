@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, memo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useTransferStore } from '@/store/transfer'
 import { Upload, X, FileIcon, FolderUp } from 'lucide-react'
@@ -159,13 +159,10 @@ export default function UploadModal({
       .map((item) => item.webkitGetAsEntry?.())
       .filter(Boolean)
 
-    if (files.length > 0) {
-      setFileList([...fileList, ...files])
-    } else {
-      // 如果没有通过 webkitGetAsEntry 获取到文件，使用传统方式
-      const fallbackFiles = Array.from(e.dataTransfer.files) as FileWithPath[]
-      if (!isDirectoryMode && fallbackFiles.length + fileList.length > 10) {
-        toast.warning(t('upload.toastMax'))
+    if (entries.length > 0) {
+      await Promise.all(entries.map((entry) => readEntry(entry)))
+      if (files.length > 0) {
+        setFileList((prev) => [...prev, ...files])
         return
       }
     }
@@ -175,13 +172,13 @@ export default function UploadModal({
     if (!isDirectoryMode && fallbackFiles.length > 0) {
       setFileList((prev) => {
         if (!isDirectoryMode && fallbackFiles.length + prev.length > 10) {
-          toast.warning('单次最多上传 10 个文件')
+          toast.warning(t('upload.toastMax'))
           return prev
         }
         return [...prev, ...fallbackFiles]
       })
     }
-  }, [isDirectoryMode])
+  }, [isDirectoryMode, t])
 
   const handleSubmit = async () => {
     if (fileList.length === 0) {
@@ -202,8 +199,18 @@ export default function UploadModal({
       await Promise.all(fileList.map((file) => createTask(file, parentId)))
     }
 
-    // 关闭弹窗（进度见右下角 UploadPanel，不再弹 toast，避免挡住进度条）
+    // 关闭弹窗
     onOpenChange(false)
+
+    // 显示通知
+    toast.success(
+      isDirectoryMode
+        ? t('operations.uploadFolderAdded')
+        : t('operations.uploadFileAdded'),
+      {
+        description: t('operations.uploadCheckProgress'),
+      }
+    )
   }
 
   // 获取显示的文件名
@@ -216,7 +223,7 @@ export default function UploadModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className='sm:max-w-xl'>
+      <DialogContent className='max-w-xl'>
         <DialogHeader>
           <DialogTitle>
             {isDirectoryMode ? t('upload.titleFolder') : t('upload.titleFile')}

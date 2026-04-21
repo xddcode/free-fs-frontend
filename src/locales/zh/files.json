@@ -286,7 +286,10 @@
     "favOk": "收藏成功",
     "unfavOk": "取消收藏成功",
     "favFail": "收藏失败",
-    "unfavFail": "取消收藏失败"
+    "unfavFail": "取消收藏失败",
+    "uploadFolderAdded": "文件夹已添加到传输列表",
+    "uploadFileAdded": "文件已添加到传输列表",
+    "uploadCheckProgress": "可前往传输列表查看上传进度"
   },
   "uploadPanel": {
     "sec": "{{n}}秒",
